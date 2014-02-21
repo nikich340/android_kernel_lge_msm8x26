@@ -486,3 +486,10 @@ config LGE_MBHC_TWIST_HEADSET
 config LGE_AUDIO_AUX
 	bool "4pole aux feature"
 	default n
+
+config SOUND_CONTROL_HAX_3_GPL
+	tristate "new wcd93xx sound control hax"
+	default y
+	help
+	  FauxSound WCD93xx chipset sound control hacks 3.0 for deeper hax
+
