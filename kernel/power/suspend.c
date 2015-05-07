@@ -180,6 +180,8 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
 		if (!(suspend_test(TEST_CORE) || *wakeup)) {
 			error = suspend_ops->enter(state);
 			events_check_enabled = false;
+		} else if (*wakeup) {
+			error = -EBUSY;
 		}
 
 #if defined(CONFIG_LGE_WAKE_IRQ_PRINT)
