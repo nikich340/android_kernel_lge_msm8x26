@@ -305,6 +305,8 @@ source "init/Kconfig"
 
 source "kernel/Kconfig.freezer"
 
+source "arch/arm/hotplug/Kconfig"
+
 menu "System Type"
 
 config MMU
