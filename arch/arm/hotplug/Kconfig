@@ -3,3 +3,9 @@ config INTELLI_PLUG
         default n
         help
           Generic Intelli-plug cpu hotplug driver for ARM SOCs
+
+config ALUCARD_HOTPLUG
+        bool "Enable alucard cpu hotplug driver"
+        default n
+        help
+          Generic alucard_hotplug cpu hotplug driver for ARM SOCs
