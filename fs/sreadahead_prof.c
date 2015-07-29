@@ -93,7 +93,7 @@ static ssize_t sreadaheadflag_dbgfs_read(
 			break;
 		}
 		schedule();
-	} while(1);
+	} while (1);
 
 	if (copy_to_user(buff, &prof_buf.state, sizeof(int))) {
 		ret = 0;
@@ -235,8 +235,9 @@ static int get_absolute_path(unsigned char *buf, int buflen, struct file *filp)
 	return 0;
 }
 
-static int is_system_partition(unsigned char *fn) {
-	return strncmp((const char*)fn, "/system/", 8) == 0 ? 1 : 0;
+static int is_system_partition(unsigned char *fn)
+{
+	return strncmp((const char *)fn, "/system/", 8) == 0 ? 1 : 0;
 }
 
 #ifdef CONFIG_VM_EVENT_COUNTERS

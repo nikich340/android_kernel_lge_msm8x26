@@ -5088,7 +5088,7 @@ int wlan_hdd_cfg80211_init(struct device *dev,
 #endif
     )
     {
-        wiphy->flags |= WIPHY_FLAG_SUPPORTS_FW_ROAM;
+        //wiphy->flags |= WIPHY_FLAG_SUPPORTS_FW_ROAM;
     }
 #endif
 #ifdef FEATURE_WLAN_TDLS
@@ -9469,6 +9469,8 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     if (0 > ret)
         hddLog(VOS_TRACE_LEVEL_INFO, "%s: NO SCAN result", __func__);
 
+    // 2014.10.28, Add Scanning Log for Issue Debugging, kuhyun.kwon@lge.com
+    hddLog(VOS_TRACE_LEVEL_ERROR, "Completion of Scan Update");
 
     /* If any client wait scan result through WEXT
      * send scan done event to client */
@@ -10012,6 +10014,10 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
            scanRequest.requestType, scanRequest.scanType,
            scanRequest.minChnTime, scanRequest.maxChnTime,
            scanRequest.p2pSearch, scanRequest.skipDfsChnlInP2pSearch);
+
+    // 2014.10.28, Add Scanning Log for Issue Debugging, kuhyun.kwon@lge.com
+    hddLog(VOS_TRACE_LEVEL_ERROR, "Scan RequestType:%d, Scan Mode:%d, NumOfChannels:%d,",
+           scanRequest.requestType, scanRequest.scanType, scanRequest.ChannelInfo.numOfChannels);
 
     status = sme_ScanRequest( WLAN_HDD_GET_HAL_CTX(pAdapter),
                               pAdapter->sessionId, &scanRequest, &scanId,
@@ -12804,7 +12810,7 @@ static int wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
                                  param->subtype, &delStaParams);
 
 #else
-    WLANSAP_PopulateDelStaParams(mac, eCsrForcedDeauthSta,
+    WLANSAP_PopulateDelStaParams(mac, eSIR_MAC_DEAUTH_LEAVING_BSS_REASON,
                                  (SIR_MAC_MGMT_DEAUTH >> 4), &delStaParams);
 #endif
     ret = __wlan_hdd_cfg80211_del_station(wiphy, dev, &delStaParams);

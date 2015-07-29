@@ -186,7 +186,7 @@ struct qpnp_bms_chip {
 	int				rbatt_mohm;
 #if defined (CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E8WIFI) || \
     defined (CONFIG_MACH_MSM8926_E8LTE) || defined (CONFIG_MACH_MSM8226_E9WIFI) || \
-    defined (CONFIG_MACH_MSM8226_E9WIFIN) || defined (CONFIG_MACH_MSM8926_E9LTE)
+    defined (CONFIG_MACH_MSM8226_E9WIFIN) || defined (CONFIG_MACH_MSM8926_E9LTE) || defined (CONFIG_MACH_MSM8926_E8LTE_KR)
 	int				vbat_uv;
 #endif
 	struct delayed_work		calculate_soc_delayed_work;
@@ -2047,7 +2047,7 @@ int cal_rnd_avg(int *soc_value, int unit_num)
 #endif
 #if defined (CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E8WIFI) || \
     defined (CONFIG_MACH_MSM8926_E8LTE) || defined (CONFIG_MACH_MSM8226_E9WIFI) || \
-    defined (CONFIG_MACH_MSM8226_E9WIFIN) || defined (CONFIG_MACH_MSM8926_E9LTE)
+    defined (CONFIG_MACH_MSM8226_E9WIFIN) || defined (CONFIG_MACH_MSM8926_E9LTE) || defined (CONFIG_MACH_MSM8926_E8LTE_KR)
 extern int lge_boot_mode_for_touch;
 static bool battery_voltage_status_flag = false;
 #endif
@@ -2059,7 +2059,7 @@ static bool battery_voltage_status_flag = false;
 
 #ifdef CONFIG_LGE_PM_BATTERY_SOC_RESCALING
 #if defined (CONFIG_MACH_MSM8226_E8WIFI) || defined (CONFIG_MACH_MSM8926_E8LTE) || \
-    defined (CONFIG_MACH_MSM8926_T8LTE)
+    defined (CONFIG_MACH_MSM8926_T8LTE) || defined (CONFIG_MACH_MSM8926_E8LTE_KR) || defined(CONFIG_MACH_MSM8226_T8WIFI)
 #define SOC_RESCALING_FACTOR	100/96
 #else
 #define SOC_RESCALING_FACTOR	100/94
@@ -2242,10 +2242,9 @@ static int report_cc_based_soc(struct qpnp_bms_chip *chip)
     pr_debug("[BMS_DEBUG] Rescale SOC = %d\n", chip->rescale_soc);
 #if defined (CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E8WIFI) || \
     defined (CONFIG_MACH_MSM8926_E8LTE) || defined (CONFIG_MACH_MSM8226_E9WIFI) || \
-    defined (CONFIG_MACH_MSM8226_E9WIFIN) || defined (CONFIG_MACH_MSM8926_E9LTE)
-	if(lge_boot_mode_for_touch == 2){
-		if (battery_voltage_status_flag == false)
-		{
+    defined (CONFIG_MACH_MSM8226_E9WIFIN) || defined (CONFIG_MACH_MSM8926_E9LTE) || defined (CONFIG_MACH_MSM8926_E8LTE_KR)
+	if (lge_boot_mode_for_touch == 2) {
+		if (battery_voltage_status_flag == false) {
 			if ((chip->rescale_soc > 1) || (chip->vbat_uv >= 3550000)) {
 				battery_voltage_status_flag = true;
 			} else
@@ -2578,7 +2577,7 @@ skip_limits:
 out:
 #if defined (CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E8WIFI) || \
     defined (CONFIG_MACH_MSM8926_E8LTE) || defined (CONFIG_MACH_MSM8226_E9WIFI) || \
-    defined (CONFIG_MACH_MSM8226_E9WIFIN) || defined (CONFIG_MACH_MSM8926_E9LTE)
+    defined (CONFIG_MACH_MSM8226_E9WIFIN) || defined (CONFIG_MACH_MSM8926_E9LTE) || defined (CONFIG_MACH_MSM8926_E8LTE_KR)
 	chip->vbat_uv = vbat_uv;
 #endif
 	pr_debug("ibat_ua = %d, vbat_uv = %d, ocv_est_uv = %d, pc_est = %d, soc_est = %d, n = %d, delta_ocv_uv = %d, last_ocv_uv = %d, pc_new = %d, soc_new = %d, rbatt = %d, slope = %d\n",
@@ -2762,7 +2761,9 @@ static int calculate_raw_soc(struct qpnp_bms_chip *chip,
 
 	return soc;
 }
-
+#if defined (CONFIG_TOUCHSCREEN_ATMEL_T1066)
+extern void trigger_low_temp_state_from_batt(int low_temp);
+#endif//
 #define SLEEP_RECALC_INTERVAL	3
 static int calculate_state_of_charge(struct qpnp_bms_chip *chip,
 					struct raw_soc_params *raw,
@@ -2948,11 +2949,18 @@ done_calculating:
 	chip->first_time_calc_soc = 0;
 	chip->first_time_calc_uuc = 0;
 
+#if defined (CONFIG_TOUCHSCREEN_ATMEL_T1066)
+	if (batt_temp < -50)
+		trigger_low_temp_state_from_batt(1);
+
+	if (batt_temp > 0)
+		trigger_low_temp_state_from_batt(0);
+#endif//
     printk("New_cal_SOC = %d, SOC = %d, batt_temp = %d, rbatt = %d, fcc_uah = %d, ocv_charge_uah = %d, uuc_uah = %d, cc_uah = %d, iavg_ua = %d\n",
 			new_calculated_soc, soc, batt_temp, params.rbatt_mohm, params.fcc_uah, params.ocv_charge_uah, params.uuc_uah, params.cc_uah, params.iavg_ua);
 #if defined (CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E8WIFI) || \
     defined (CONFIG_MACH_MSM8926_E8LTE) || defined (CONFIG_MACH_MSM8226_E9WIFI) || \
-    defined (CONFIG_MACH_MSM8226_E9WIFIN) || defined (CONFIG_MACH_MSM8926_E9LTE)
+    defined (CONFIG_MACH_MSM8226_E9WIFIN) || defined (CONFIG_MACH_MSM8926_E9LTE) || defined (CONFIG_MACH_MSM8926_E8LTE_KR)
 	printk("calculated_soc = %d, report_soc = %d, vbat = %d, ", chip->calculated_soc, chip->rescale_soc, chip->vbat_uv);
 #endif
 	return chip->calculated_soc;
@@ -3039,7 +3047,7 @@ done:
 	return soc;
 }
 
-#if defined(CONFIG_MACH_MSM8926_E8LTE) || defined(CONFIG_MACH_MSM8226_E8WIFI)
+#if defined(CONFIG_MACH_MSM8926_E8LTE) || defined(CONFIG_MACH_MSM8226_E8WIFI) || defined (CONFIG_MACH_MSM8926_E8LTE_KR)
 extern void check_touch_bat_therm(int type);
 int touch_thermal_mode = 0;
 int thermal_threshold = 20;
@@ -3096,7 +3104,7 @@ static int recalculate_soc(struct qpnp_bms_chip *chip)
 	}
 #endif
 
-#if defined(CONFIG_MACH_MSM8926_E8LTE) || defined(CONFIG_MACH_MSM8226_E8WIFI)
+#if defined(CONFIG_MACH_MSM8926_E8LTE) || defined(CONFIG_MACH_MSM8226_E8WIFI) || defined (CONFIG_MACH_MSM8926_E8LTE_KR)
 	rc = qpnp_vadc_read(chip->vadc_dev, P_MUX5_1_1, &result);
 
 	if (touch_thermal_mode == 0 && result.physical >= 550) {
@@ -4386,14 +4394,17 @@ static int set_battery_data(struct qpnp_bms_chip *chip)
 #endif
 		break;
 #ifdef CONFIG_LGE_PM_BATTERY_ID_RANIX_SILICON_WORKS
-	case BATT_ID_RA4301_VC0:
 	case BATT_ID_RA4301_VC1:
 	case BATT_ID_RA4301_VC2:
 	case BATT_ID_SW3800_VC0:
-	case BATT_ID_SW3800_VC1:
 	case BATT_ID_SW3800_VC2:
-		batt_data = &LGE_BL41A1H_1527783_2100mAh_BMS_data;
-		pr_err("[BATTERY PROFILE] Using default profile - SW_2100mAh, RANIX_2100mAh for id(%d)\n", battery_id);
+		batt_data = &LGE_BL41A1H_2100mAh_LG_Chem_data;
+		pr_err("Using profile - 2100mAh_LG_Chem for id(%d)\n", battery_id);
+		break;
+	case BATT_ID_RA4301_VC0 :
+	case BATT_ID_SW3800_VC1 :
+		batt_data = &LGE_BL41A1H_2100mAh_TOCAD_data;
+		pr_err("Using profile - 2100mAh_TOCAD for id(%d)\n", battery_id);
 		break;
 #endif
 	case BATT_ID_ISL6296_C:	/* FALL THROUGH */
@@ -4440,7 +4451,7 @@ static int set_battery_data(struct qpnp_bms_chip *chip)
 	else
 		batt_id = false;
 #if defined (CONFIG_MACH_MSM8926_E7LTE_ATT_US) || defined(CONFIG_LGE_PM_BATTERY_CAPACITY_4000mAh)
-	if(batt_id) {
+	if (batt_id) {
 		batt_data = &LGE_BL_T12_4000mAh_LG_Chem_data;
 		pr_err("[BATTERY PROFILE] Using default profile - LGC_4000mAh\n");
 	} else {
@@ -5055,26 +5066,26 @@ static int setup_die_temp_monitoring(struct qpnp_bms_chip *chip)
 	return 0;
 }
 
-int get_batt_therm_touch(void){
-    struct qpnp_vadc_result result;
-    int rc = 0;
+int get_batt_therm_touch(void)
+{
+	struct qpnp_vadc_result result;
+	int rc = 0;
 
-    if(dummy_chip != NULL){
-        rc = qpnp_vadc_read(dummy_chip->vadc_dev, LR_MUX1_BATT_THERM, &result);
+	if (dummy_chip != NULL) {
+		rc = qpnp_vadc_read(dummy_chip->vadc_dev, LR_MUX1_BATT_THERM, &result);
 
-        if(rc){
-             printk(KERN_INFO"[Touch] BAT TEMP read ERROR !!");
-            return 0xfff;
-        } else{
-           printk(KERN_INFO"[Touch][%s] Read Batt Temp = %d",__func__ ,(int)result.physical);
-        }
+		if (rc) {
+			printk(KERN_INFO"[Touch] BAT TEMP read ERROR !!");
+			return 0xfff;
+		} else {
+			printk(KERN_INFO"[Touch][%s] Read Batt Temp = %d", __func__, (int)result.physical);
+		}
 
-        return (int)result.physical;
-    }
+		return (int)result.physical;
+	}
 
-    printk(KERN_INFO"[Touch] Skip Touch Battery Temp!!");
-    return 0xfff;
-
+	printk(KERN_INFO"[Touch] Skip Touch Battery Temp!!");
+	return 0xfff;
 }
 EXPORT_SYMBOL(get_batt_therm_touch);
 
@@ -5274,8 +5285,7 @@ static int __devinit qpnp_bms_probe(struct spmi_device *spmi)
 			get_prop_bms_capacity(chip), vbatt, chip->last_ocv_uv,
 			chip->r_sense_uohm, warm_reset);
 
-
-        dummy_chip = chip;
+	dummy_chip = chip;
 	return 0;
 
 unregister_dc:

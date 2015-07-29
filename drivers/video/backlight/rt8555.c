@@ -253,6 +253,11 @@ void rt8555_backlight_off(void)
 	backlight_status = BL_OFF;
 
 	gpio_direction_output(gpio, 0);
+
+#if defined(CONFIG_MACH_MSM8226_E9WIFIN)
+	msleep(50);
+	rt8555_set_main_current_level(main_rt8555_dev->client, 0);
+#endif
 	
 	pr_err("%s: OFF!\n", __func__);
 	return;

@@ -18,8 +18,6 @@
 
 		atmel_t641_revD@4a {									/*touch ic I2C bus adddress*/
 			revision = "rev_c...";								/*board version */
-			atmel,fw_name = "atmel/E7_0_65.fw";
-			atmel,extra_fw_name = "atmel/E7_0_65.fw";
 		};
 
 	};

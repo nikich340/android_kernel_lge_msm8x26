@@ -58,8 +58,8 @@
 					00			/* 	7 1 DATA[7]	 */
 					00			/* 	8 1 DATA[8]	 */
 					00			/* 	9 1 DATA[9]	 */
-					00			/* 	10 1 DATA[10]	 */
-					00			/* 	11 1 DATA[11]	 */
+					01			/* 	10 1 DATA[10]	 */
+					01			/* 	11 1 DATA[11]	 */
 					00			/* 	12 1 DATA[12]	 */
 					00			/* 	13 1 DATA[13]	 */
 					00			/* 	14 1 DATA[14]	 */
@@ -339,10 +339,10 @@
 					00			/* 	2 1 MODE	 */
 					00	00		/* 	3 2 PERIOD	 */
 								/* 	[SPT_TIMER_T61 INSTANCE 1]	 */
-					00			/* 	0 1 CTRL	 */
+					01			/* 	0 1 CTRL	 */
 					00			/* 	1 1 CMD	 */
 					00			/* 	2 1 MODE	 */
-					00	00	];	/* 	3 2 PERIOD	 */
+					32	00	];	/* 	3 2 PERIOD	 */
 				atmel,config_t65 = [	41			/* 	[PROCI_LENSBENDING_T65 INSTANCE 0]	 */
 					01			/* 	0 1 CTRL	 */
 					06			/* 	1 1 GRADTHR	 */
@@ -374,39 +374,39 @@
 					00		];	/* 	8 1 AREATHRTO	 */
 				atmel,config_t70 = [	46			/* 	[SPT_DYNAMICCONFIGURATIONCONTROLLER_T70 INSTANCE 0]	 */
 					00			/* 	0 1 CTRL	 */
-					00	00		/* 	1 2 EVENT	 */
-					00			/* 	3 1 OBJTYPE	 */
+					02	00		/* 	1 2 EVENT	 */
+					5D			/* 	3 1 OBJTYPE	 */
 					00			/* 	4 1 RESERVED[0]	 */
 					00			/* 	5 1 OBJINST	 */
 					00			/* 	6 1 DSTOFFSET	 */
-					00	00		/* 	7 2 SRCOFFSET	 */
+					0A	00		/* 	7 2 SRCOFFSET	 */
 					00			/* 	9 1 LENGTH	 */
 								/* 	[SPT_DYNAMICCONFIGURATIONCONTROLLER_T70 INSTANCE 1]	 */
 					00		/* 	0 1 CTRL	 */
-					00	00		/* 	1 2 EVENT	 */
-					00			/* 	3 1 OBJTYPE	 */
+					02	00		/* 	1 2 EVENT	 */
+					3D			/* 	3 1 OBJTYPE	 */
 					00			/* 	4 1 RESERVED[0]	 */
-					00			/* 	5 1 OBJINST	 */
-					00			/* 	6 1 DSTOFFSET	 */
-					00	00		/* 	7 2 SRCOFFSET	 */
+					01			/* 	5 1 OBJINST	 */
+					01			/* 	6 1 DSTOFFSET	 */
+					0B	00		/* 	7 2 SRCOFFSET	 */
 					00			/* 	9 1 LENGTH	 */
 								/* 	[SPT_DYNAMICCONFIGURATIONCONTROLLER_T70 INSTANCE 2]	 */
 					00			/* 	0 1 CTRL	 */
-					00	00		/* 	1 2 EVENT	 */
-					00			/* 	3 1 OBJTYPE	 */
+					0E	00		/* 	1 2 EVENT	 */
+					5D			/* 	3 1 OBJTYPE	 */
 					00			/* 	4 1 RESERVED[0]	 */
 					00			/* 	5 1 OBJINST	 */
 					00			/* 	6 1 DSTOFFSET	 */
-					00	00		/* 	7 2 SRCOFFSET	 */
+					0C	00		/* 	7 2 SRCOFFSET	 */
 					00			/* 	9 1 LENGTH	 */
 								/* 	[SPT_DYNAMICCONFIGURATIONCONTROLLER_T70 INSTANCE 3]	 */
 					00			/* 	0 1 CTRL	 */
-					00	00		/* 	1 2 EVENT	 */
-					00			/* 	3 1 OBJTYPE	 */
+					02	00		/* 	1 2 EVENT	 */
+					47			/* 	3 1 OBJTYPE	 */
 					00			/* 	4 1 RESERVED[0]	 */
 					00			/* 	5 1 OBJINST	 */
-					00			/* 	6 1 DSTOFFSET	 */
-					00	00		/* 	7 2 SRCOFFSET	 */
+					0C			/* 	6 1 DSTOFFSET	 */
+					0D	00		/* 	7 2 SRCOFFSET	 */
 					00			/* 	9 1 LENGTH	 */
 								/* 	[SPT_DYNAMICCONFIGURATIONCONTROLLER_T70 INSTANCE 4]	 */
 					00			/* 	0 1 CTRL	 */
@@ -771,8 +771,8 @@
 					00			/* 	7 1 DATA[7]	 */
 					00			/* 	8 1 DATA[8]	 */
 					00			/* 	9 1 DATA[9]	 */
-					00			/* 	10 1 DATA[10]	 */
-					00			/* 	11 1 DATA[11]	 */
+					01			/* 	10 1 DATA[10]	 */
+					01			/* 	11 1 DATA[11]	 */
 					00			/* 	12 1 DATA[12]	 */
 					00			/* 	13 1 DATA[13]	 */
 					00			/* 	14 1 DATA[14]	 */
@@ -1052,10 +1052,10 @@
 					00			/* 	2 1 MODE	 */
 					00	00		/* 	3 2 PERIOD	 */
 								/* 	[SPT_TIMER_T61 INSTANCE 1]	 */
-					00			/* 	0 1 CTRL	 */
+					01			/* 	0 1 CTRL	 */
 					00			/* 	1 1 CMD	 */
 					00			/* 	2 1 MODE	 */
-					00	00	];	/* 	3 2 PERIOD	 */
+					32	00	];	/* 	3 2 PERIOD	 */
 				atmel,config_t65 = [	41			/* 	[PROCI_LENSBENDING_T65 INSTANCE 0]	 */
 					01			/* 	0 1 CTRL	 */
 					06			/* 	1 1 GRADTHR	 */
@@ -1087,39 +1087,39 @@
 					00		];	/* 	8 1 AREATHRTO	 */
 				atmel,config_t70 = [	46			/* 	[SPT_DYNAMICCONFIGURATIONCONTROLLER_T70 INSTANCE 0]	 */
 					00			/* 	0 1 CTRL	 */
-					00	00		/* 	1 2 EVENT	 */
-					00			/* 	3 1 OBJTYPE	 */
+					02	00		/* 	1 2 EVENT	 */
+					5D			/* 	3 1 OBJTYPE	 */
 					00			/* 	4 1 RESERVED[0]	 */
 					00			/* 	5 1 OBJINST	 */
 					00			/* 	6 1 DSTOFFSET	 */
-					00	00		/* 	7 2 SRCOFFSET	 */
+					0A	00		/* 	7 2 SRCOFFSET	 */
 					00			/* 	9 1 LENGTH	 */
 								/* 	[SPT_DYNAMICCONFIGURATIONCONTROLLER_T70 INSTANCE 1]	 */
 					00		/* 	0 1 CTRL	 */
-					00	00		/* 	1 2 EVENT	 */
-					00			/* 	3 1 OBJTYPE	 */
+					02	00		/* 	1 2 EVENT	 */
+					3D			/* 	3 1 OBJTYPE	 */
 					00			/* 	4 1 RESERVED[0]	 */
-					00			/* 	5 1 OBJINST	 */
-					00			/* 	6 1 DSTOFFSET	 */
-					00	00		/* 	7 2 SRCOFFSET	 */
+					01			/* 	5 1 OBJINST	 */
+					01			/* 	6 1 DSTOFFSET	 */
+					0B	00		/* 	7 2 SRCOFFSET	 */
 					00			/* 	9 1 LENGTH	 */
 								/* 	[SPT_DYNAMICCONFIGURATIONCONTROLLER_T70 INSTANCE 2]	 */
 					00			/* 	0 1 CTRL	 */
-					00	00		/* 	1 2 EVENT	 */
-					00			/* 	3 1 OBJTYPE	 */
+					0E	00		/* 	1 2 EVENT	 */
+					5D			/* 	3 1 OBJTYPE	 */
 					00			/* 	4 1 RESERVED[0]	 */
 					00			/* 	5 1 OBJINST	 */
 					00			/* 	6 1 DSTOFFSET	 */
-					00	00		/* 	7 2 SRCOFFSET	 */
+					0C	00		/* 	7 2 SRCOFFSET	 */
 					00			/* 	9 1 LENGTH	 */
 								/* 	[SPT_DYNAMICCONFIGURATIONCONTROLLER_T70 INSTANCE 3]	 */
 					00			/* 	0 1 CTRL	 */
-					00	00		/* 	1 2 EVENT	 */
-					00			/* 	3 1 OBJTYPE	 */
+					02	00		/* 	1 2 EVENT	 */
+					47			/* 	3 1 OBJTYPE	 */
 					00			/* 	4 1 RESERVED[0]	 */
 					00			/* 	5 1 OBJINST	 */
-					00			/* 	6 1 DSTOFFSET	 */
-					00	00		/* 	7 2 SRCOFFSET	 */
+					0C			/* 	6 1 DSTOFFSET	 */
+					0D	00		/* 	7 2 SRCOFFSET	 */
 					00			/* 	9 1 LENGTH	 */
 								/* 	[SPT_DYNAMICCONFIGURATIONCONTROLLER_T70 INSTANCE 4]	 */
 					00			/* 	0 1 CTRL	 */

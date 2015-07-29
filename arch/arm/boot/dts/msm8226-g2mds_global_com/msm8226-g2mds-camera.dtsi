@@ -91,7 +91,7 @@
 qcom,camera_rev_b@20 {
 		compatible = "qcom,imx179";
 		reg = <0x20 0x0>;
-		qcom,slave-id = <0x20 0x0002 0x8179>;
+		qcom,slave-id = <0x20 0x0002 0x179>;
 		qcom,csiphy-sd-index = <0>;
 		qcom,csid-sd-index = <0>;
 		qcom,actuator-src = <&actuator0>;
@@ -130,7 +130,7 @@ qcom,camera_rev_b@20 {
 qcom,camera_rev_c@20 {
 		compatible = "qcom,imx179";
 		reg = <0x20 0x0>;
-		qcom,slave-id = <0x20 0x0002 0x8179>;
+		qcom,slave-id = <0x20 0x0002 0x179>;
 		qcom,csiphy-sd-index = <0>;
 		qcom,csid-sd-index = <0>;
 		qcom,actuator-src = <&actuator0>;
@@ -170,7 +170,7 @@ qcom,camera_rev_c@20 {
 	qcom,camera_rev_d@20 {
 		compatible = "qcom,imx179";
 		reg = <0x20 0x0>;
-		qcom,slave-id = <0x20 0x0002 0x8179>;
+		qcom,slave-id = <0x20 0x0002 0x179>;
 		qcom,csiphy-sd-index = <0>;
 		qcom,csid-sd-index = <0>;
 		qcom,actuator-src = <&actuator0>;

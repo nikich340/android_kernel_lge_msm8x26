@@ -1,0 +1,2 @@
+To make the kernel module of SW3800, please use below build command.
+make ARCH=arm CROSS_COMPILE=$PWD/../../../../prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/arm-eabi- SRCPATH=$PWD/../../../../kernel O=$PWD/../../../../out-$TARGET_PRODUCT/target/product/aka/obj/KERNEL_OBJ

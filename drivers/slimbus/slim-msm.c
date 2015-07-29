@@ -1261,7 +1261,11 @@ static int msm_slim_qmi_send_power_request(struct msm_slim_ctrl *dev,
 	if (rc < 0) {
 		SLIM_ERR(dev, "%s: QMI send req failed %d\n", __func__, rc);
 if(rc==-110)
+#ifdef CONFIG_MACH_MSM8226_T8WIFI
+  SLIM_WARN(dev,"slim qmi power fail. Contact to WX-BSP-Audio@lge.com");
+#else
   panic("slim qmi power fail. Contact to WX-BSP-Audio@lge.com");
+#endif
 		return rc;
 	}
 

@@ -44,7 +44,7 @@
 				maker_id_gpio = <120>;
 				palm_detect_mode = <1>;
 				ghost_detection_enable = <1>;
-				vdd_voltage = <2950000>;
+                                vdd_voltage = <3050000>;
 			};
 		};
 

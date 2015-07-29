@@ -60,6 +60,7 @@ static unsigned char power_block_mask = 0;
 static bool pen_status = 0;
 static unsigned int curr_id = 0;
 static bool curr_usb_status = 0;
+static bool curr_low_temp = 0;
 #if defined(CONFIG_MACH_MSM8926_E8LTE) || defined(CONFIG_MACH_MSM8226_E8WIFI)
 bool thermal_status = 0;
 extern int touch_thermal_mode;
@@ -1637,8 +1638,15 @@ static void mxt_proc_t6_messages(struct mxt_data *data, u8 *msg)
 
 		if (mxt_patchevent_get(PATCH_EVENT_TA)) {
 			TOUCH_INFO_MSG("   Stage 1 : USB/TA \n");
-			if (factorymode)
+			if (factorymode) {
 				mxt_patch_event(global_mxt_data, CHARGER_PLUGGED_AAT);
+				msleep(100);
+				mxt_write_object(global_mxt_data,MXT_GEN_ACQUIRE_T8, 6, 5);
+				mxt_write_object(global_mxt_data,MXT_GEN_ACQUIRE_T8, 7, 30);
+				mxt_write_object(global_mxt_data,MXT_GEN_ACQUIRE_T8, 8, 5);
+				mxt_write_object(global_mxt_data,MXT_GEN_ACQUIRE_T8, 9, 156);
+				mxt_write_object(global_mxt_data,MXT_SPT_DYNAMICCONFIGURATIONCONTROLLER_T70, 160, 0);
+			}
 			else
 				mxt_patch_event(global_mxt_data, CHARGER_PLUGGED);
 		}
@@ -1655,9 +1663,9 @@ static void mxt_proc_t6_messages(struct mxt_data *data, u8 *msg)
 			} else if(data->lpwg_mode == LPWG_MULTI_TAP) {
 				TOUCH_INFO_MSG("   Stage 2 : Multi Tap \n");
 				if (mxt_patchevent_get(PATCH_EVENT_TA)) {
-					mxt_patch_event(global_mxt_data, CHARGER_KNOCKON_SLEEP + (PATCH_EVENT_PAIR_NUM * (data->g_tap_cnt - 1)));
+					mxt_patch_event(global_mxt_data, CHARGER_KNOCKON_SLEEP + PATCH_EVENT_PAIR_NUM);//(PATCH_EVENT_PAIR_NUM * (data->g_tap_cnt - 1)));
 				} else {
-					mxt_patch_event(global_mxt_data, NOCHARGER_KNOCKON_SLEEP + (PATCH_EVENT_PAIR_NUM * (data->g_tap_cnt - 1)));
+					mxt_patch_event(global_mxt_data, NOCHARGER_KNOCKON_SLEEP + PATCH_EVENT_PAIR_NUM);//(PATCH_EVENT_PAIR_NUM * (data->g_tap_cnt - 1)));
 				}
 			}
 		}
@@ -2772,17 +2780,34 @@ out:
 	return 1;
 }
 
+void trigger_low_temp_state_from_batt(int low_temp)
+{
+	if (curr_low_temp == low_temp) {
+                return;
+	}
+	else
+		curr_low_temp = low_temp;
+
+	if (low_temp) {
+		//mxt_write_object(global_mxt_data, ,);
+		mxt_patch_event(global_mxt_data, PATCH_LOW_TEMP);
+		TOUCH_INFO_MSG("Very Cold please go to warm place!! \n");
+	}
+	else {
+		mxt_patch_event(global_mxt_data, PATCH_NOT_LOW_TEMP);
+		TOUCH_INFO_MSG("Good to move !! \n");
+	}
+}
+
 void trigger_usb_state_from_otg(int usb_type)
 {
-	TOUCH_INFO_MSG("USB trigger USB_type: %d \n", usb_type);
-
 	if (usb_type == curr_usb_status) {
-		TOUCH_INFO_MSG("usb status is same with before!! \n");
 		return;
 	}
 	else
 		curr_usb_status = usb_type;
 
+	TOUCH_INFO_MSG("USB trigger USB_type: %d \n", usb_type);
 	if (global_mxt_data && global_mxt_data->patch.event_cnt) {
 
 		global_mxt_data->global_object = mxt_get_object(global_mxt_data, MXT_PROCI_TOUCH_SEQUENCE_LOGGER_T93);
@@ -2879,8 +2904,15 @@ void trigger_usb_state_from_otg(int usb_type)
 			}
 			global_mxt_data->charging_mode = 1;
 
-			if (factorymode)
+			if (factorymode) {
 				mxt_patch_event(global_mxt_data, CHARGER_PLUGGED_AAT);
+                                msleep(100);
+                                mxt_write_object(global_mxt_data,MXT_GEN_ACQUIRE_T8, 6, 5);
+                                mxt_write_object(global_mxt_data,MXT_GEN_ACQUIRE_T8, 7, 30);
+                                mxt_write_object(global_mxt_data,MXT_GEN_ACQUIRE_T8, 8, 5);
+                                mxt_write_object(global_mxt_data,MXT_GEN_ACQUIRE_T8, 9, 156);
+				mxt_write_object(global_mxt_data,MXT_SPT_DYNAMICCONFIGURATIONCONTROLLER_T70, 160, 0);
+			}
 			else
 				mxt_patch_event(global_mxt_data, CHARGER_PLUGGED);
 
@@ -3215,6 +3247,11 @@ static irqreturn_t mxt_interrupt(int irq, void *dev_id)
 	if (!data->object_table)
 		return IRQ_HANDLED;
 
+	if (data->pdata->panel_on == POWER_OFF) {
+		if (wake_lock_active(&touch_wake_lock))
+			wake_unlock(&touch_wake_lock);
+		wake_lock_timeout(&touch_wake_lock, msecs_to_jiffies(5));
+	}
 	mutex_lock(&i2c_suspend_lock);
 
 	if (data->T44_address)
@@ -4428,11 +4465,20 @@ static ssize_t mxt_object_control(struct mxt_data *data, const char *buf, size_t
 
 	if (!strncmp(command, "mode", 4)) { /*mode*/
 		TOUCH_INFO_MSG("Mode changed MODE: %d\n", type);
+		if (type == 3) {
+			mxt_patch_event(global_mxt_data, PATCH_ENTER_SENSING);
+		}
+		else if(type == 4) {
+			mxt_patch_event(global_mxt_data, PATCH_EXIT_SENSING);
+		}
+
+#if 0
 		data->mxt_mode_changed = type;
 		if (data->mxt_mode_changed)
 			mxt_write_object(data, MXT_PROCG_NOISESUPPRESSION_T72, 0, 1);
 		else
 			mxt_write_object(data, MXT_PROCG_NOISESUPPRESSION_T72, 0, 11);
+#endif// Do not use T8
 		return count;
 	}
 
@@ -5182,6 +5228,9 @@ static ssize_t mxt_run_self_diagnostic_show(struct mxt_data *data, char *buf)
 		return len;
 	}
 
+	TOUCH_ERR_MSG("MXT_COMMAND_CALIBRATE \n");
+	mxt_t6_command(data, MXT_COMMAND_CALIBRATE, 1, false);
+
 	ref_buf = kzalloc(write_page, GFP_KERNEL);
 	if (!ref_buf) {
 		TOUCH_INFO_MSG("%s Failed to allocate memory\n", __func__);
@@ -5305,7 +5354,7 @@ static ssize_t mxt_force_rebase_show(struct mxt_data *data, char *buf)
 		wake_lock_timeout(&touch_wake_lock, msecs_to_jiffies(2000));
 	}
 
-	TOUCH_INFO_MSG("MXT_COMMAND_CALIBRATE \n");
+	TOUCH_ERR_MSG("MXT_COMMAND_CALIBRATE \n");
 	mxt_t6_command(data, MXT_COMMAND_CALIBRATE, 1, false);
 
 	return len;
@@ -5474,10 +5523,12 @@ static void lpwg_early_suspend(struct mxt_data *data)
 		case LPWG_DOUBLE_TAP:
 			data->mxt_knock_on_enable= true;
 			data->mxt_multi_tap_enable = false;
+			mxt_patch_event(data, COMMON_KNOCKON_SLEEP);
 			break;
 		case LPWG_MULTI_TAP:
 			data->mxt_knock_on_enable= false;
 			data->mxt_multi_tap_enable = true;
+			mxt_patch_event(data, COMMON_KNOCKCODE_SLEEP);
 			break;
 		default:
 			break;
@@ -5491,6 +5542,17 @@ static void lpwg_late_resume(struct mxt_data *data)
 
 	memset(g_tci_press, 0, sizeof(g_tci_press));
 	memset(g_tci_report, 0, sizeof(g_tci_report));
+
+	switch (data->lpwg_mode) {
+                case LPWG_DOUBLE_TAP:
+                        mxt_patch_event(data, COMMON_KNOCKON_WAKEUP);
+                        break;
+                case LPWG_MULTI_TAP:
+                        mxt_patch_event(data, COMMON_KNOCKCODE_WAKEUP);
+                        break;
+                default:
+                        break;
+        }
 	TOUCH_INFO_MSG("%s End\n", __func__);
 }
 
@@ -5739,14 +5801,15 @@ static ssize_t store_ime_status(struct mxt_data *data, const char *buf, size_t c
 			if ( error )
 				break;
 		}
+		mxt_patch_event(global_mxt_data, IME_MODE_ENABLE);
 	} else if (value == 0) {
 		for ( i = 0; i <10; i++) {
 			error = mxt_write_object(data, MXT_PROCG_NOISESUPPRESSION_T72, MXT_T72_VNOI + i, 48);
 			if ( error )
 				break;
 		}
+		mxt_patch_event(global_mxt_data, IME_MODE_DISABLE);
 	}
-
 	if (error)
 		TOUCH_INFO_MSG("Failed to write register for keyguard\n");
 	else
@@ -5799,7 +5862,7 @@ static LGE_TOUCH_ATTR(update_fw, S_IWUSR, NULL, mxt_update_fw_store);
 static LGE_TOUCH_ATTR(power_control, S_IRUGO | S_IWUSR, mxt_power_control_show, mxt_power_control_store);
 static LGE_TOUCH_ATTR(ghost_detection_card_enable, S_IWUSR, NULL, mxt_ghost_detection_card_enable_store);
 static LGE_TOUCH_ATTR(global_access_pixel, S_IWUSR | S_IRUSR, mxt_global_access_pixel_show, mxt_global_access_pixel_store);
-static LGE_TOUCH_ATTR(rebase, S_IWUSR | S_IRUSR, mxt_force_rebase_show, NULL);
+static LGE_TOUCH_ATTR(rebase, S_IWUSR | S_IRUGO, mxt_force_rebase_show, NULL);
 static LGE_TOUCH_ATTR(mfts, S_IWUSR | S_IRUSR, mxt_mfts_enable_show, mxt_mfts_enable_store);
 static LGE_TOUCH_ATTR(incoming_call, S_IRUGO | S_IWUSR, NULL, store_incoming_call);
 static LGE_TOUCH_ATTR(keyguard, S_IRUGO | S_IWUSR, NULL, store_keyguard_info);
@@ -6001,10 +6064,7 @@ static void mxt_active_mode_start(struct mxt_data *data)
 static void mxt_start(struct mxt_data *data)
 {
 	if (!data->suspended || data->in_bootloader) {
-		if(data->regulator_status == 1 && !data->in_bootloader) {
-			TOUCH_INFO_MSG("%s suspended flag is false. Calibration after System Shutdown.\n", __func__);
-			mxt_t6_command(data, MXT_COMMAND_CALIBRATE, 1, false);
-		}
+		TOUCH_INFO_MSG("%s is return by data->suspended = %d, data->in_bootloader =%d \n", __func__, data->suspended, data->in_bootloader);
 		return;
 	}
 
@@ -6037,6 +6097,12 @@ static void mxt_start(struct mxt_data *data)
 #ifdef MXT_FACTORY
 	if (factorymode) {
 		mxt_patch_event(data, PATCH_EVENT_AAT);
+		msleep(100);
+		mxt_write_object(global_mxt_data,MXT_GEN_ACQUIRE_T8, 6, 5);
+		mxt_write_object(global_mxt_data,MXT_GEN_ACQUIRE_T8, 7, 30);
+		mxt_write_object(global_mxt_data,MXT_GEN_ACQUIRE_T8, 8, 5);
+		mxt_write_object(global_mxt_data,MXT_GEN_ACQUIRE_T8, 9, 156);
+		mxt_write_object(global_mxt_data,MXT_SPT_DYNAMICCONFIGURATIONCONTROLLER_T70, 160, 0);
 	}
 #endif
 
@@ -7159,7 +7225,7 @@ static int mxt_write_config(struct mxt_fw_info *fw_info)
 	TOUCH_INFO_MSG("T38 CRC[%06X] FW CRC[%06X]\n", t38_cfg_crc, fw_info->cfg_crc);
 
 	/* Check config CRC */
-	if (current_crc == fw_info->cfg_crc || t38_cfg_crc == fw_info->cfg_crc) {
+	if (current_crc == fw_info->cfg_crc) { // || t38_cfg_crc == fw_info->cfg_crc) {
 		TOUCH_INFO_MSG("Same Config[%06X] Skip Writing\n", current_crc);
 
 		/* Change config for RevB 0x00 panel */
@@ -7647,7 +7713,7 @@ static int __devinit mxt_probe(struct i2c_client *client, const struct i2c_devic
 	data->ref_chk = 0;
 
 #ifdef MXT_FACTORY
-	if (lge_get_boot_mode() != LGE_BOOT_MODE_NORMAL ) {
+	if (lge_get_boot_mode() != LGE_BOOT_MODE_NORMAL && lge_get_boot_mode() != LGE_BOOT_MODE_PIF_910K) {
 		factorymode = true;
 		TOUCH_INFO_MSG("Yes-factory factory = %d\n", factorymode);
 	}else{
@@ -7918,6 +7984,8 @@ static int mxt_fb_resume(struct mxt_data *data)
 
 	if (input_dev->users)
 		mxt_start(data);
+	else
+		TOUCH_INFO_MSG("input_dev users is not setting \n");
 
 	mutex_unlock(&input_dev->mutex);
 	return 0;

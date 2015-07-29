@@ -43,6 +43,8 @@ spinlock_t msm_eventq_lock;
 static struct pid *msm_pid;
 spinlock_t msm_pid_lock;
 
+extern int is_cpp_load_fail;  /* LGE_CHANGE, soojong.jin@lge.com , 2015/03/12 Camera Recovery when CPP Firmware Loading Fail appears*/
+
 #define msm_dequeue(queue, type, member) ({				\
 	unsigned long flags;					\
 	struct msm_queue_head *__q = (queue);			\
@@ -740,6 +742,18 @@ int msm_post_event(struct v4l2_event *event, int timeout)
 			return -EINVAL;
 		}
 	}
+/* LGE_CHANGE_S, soojong.jin@lge.com , 2015/03/12 Camera Recovery when CPP Firmware Loading Fail appears*/
+	if(is_cpp_load_fail == 1){
+			mutex_unlock(&session->lock);
+
+			pr_err("%s: ===== Camera Recovery Start!and This is caused by CPP Load Fail===== \n", __func__);
+			dump_stack();
+			send_sig(SIGKILL, current, 0);
+			is_cpp_load_fail = 0;
+			
+			return -EINVAL;
+		}
+/* LGE_CHANGE_E, soojong.jin@lge.com , 2015/03/12 Camera Recovery when CPP Firmware Loading Fail appears*/
 
 	cmd = msm_dequeue(&cmd_ack->command_q,
 		struct msm_command, list);

@@ -22,9 +22,17 @@
 /include/ "msm8226-aka-bt.dtsi" /* LGE_CHANGE, [BT] Bring up */
 /include/ "msm8226-aka-tdmb.dtsi" /* LGE_CHANGE, [TDMB][hyun118.shin@lge.com], TDMB Bring up */
 
+/{
+	memory {
+		secure_mem: secure_region {
+		status = "disabled";
+		};
+	};
+};
+
 &soc {
 	serial@f991f000 {
-		status = "ok";
+		status = "disable";
 	};
 
 	syncoam_sm100_rev_a {
@@ -263,4 +271,5 @@
 };
 &mdss_fb0 {
 	qcom,memory-reservation-size = <0x800000>;
+	qcom,memblock-reserve = <0x03200000 0x800000>;
 };

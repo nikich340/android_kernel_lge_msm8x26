@@ -89,6 +89,9 @@
 		qcom,s3-debounce = <128>;
 		qcom,system-reset;
 		reg = <0x800 0x100>;
+		qcom,pon_1 {
+		        qcom,support-reset = <0>;
+			};
 		qcom,pon_3 {
 		        qcom,support-reset = <0>;
 			};

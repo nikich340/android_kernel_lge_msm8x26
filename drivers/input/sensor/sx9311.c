@@ -34,6 +34,10 @@
 #include <linux/of_gpio.h>
 #endif
 
+#if defined (CONFIG_MACH_MSM8926_T8LTE) || defined(CONFIG_MACH_MSM8226_T8WIFI)
+#include <mach/board_lge.h>
+#endif
+
 #ifdef USE_COMMON_SYSFS
 #include <linux/sysdev.h>
 #endif
@@ -2364,6 +2368,25 @@ static int sx9311_regulator_configure(struct sx86XX *this, bool bonoff)
 
 	if (this && (pDevice = this->pDevice) && (pdata = pDevice->hw)) {
 		if (bonoff == true) {
+
+#if defined (CONFIG_MACH_MSM8926_T8LTE) || defined(CONFIG_MACH_MSM8226_T8WIFI)
+			if((lge_get_boot_mode() == LGE_BOOT_MODE_CHARGERLOGO)){
+				pdata->vdd_regulator = regulator_get(this->pdev, "Semtech,vdd");
+				regulator_set_voltage(pdata->vdd_regulator, 0,\
+					pdata->vdd_supply_max);
+				regulator_set_optimum_mode(pdata->vdd_regulator, 0);
+				regulator_put(pdata->vdd_regulator);
+				regulator_disable(pdata->vdd_regulator);
+
+				pdata->svdd_regulator = regulator_get(this->pdev, "Semtech,svdd");
+				regulator_set_voltage(pdata->svdd_regulator, 0,\
+					pdata->svdd_supply_max);
+				regulator_set_optimum_mode(pdata->svdd_regulator, 0);
+				regulator_put(pdata->svdd_regulator);
+				regulator_disable(pdata->svdd_regulator);
+				return rc;
+			}
+#endif
 			pdata->vdd_regulator = regulator_get(this->pdev, "Semtech,vdd");
 			if (IS_ERR(pdata->vdd_regulator)) {
 				rc = PTR_ERR(pdata->vdd_regulator);

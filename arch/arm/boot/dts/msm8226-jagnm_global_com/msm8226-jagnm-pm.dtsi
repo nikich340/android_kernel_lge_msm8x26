@@ -24,6 +24,9 @@
 			qcom,pon_3 {
 				qcom,support-reset = <0>;
 			};
+                        qcom,pon_1 {
+                                qcom,support-reset = <0>;
+                        };
 		};
 		qcom,leds@a100 {
 				status = "okay";
@@ -426,6 +429,7 @@
 	rpm-regulator-ldoa28 {
 		status = "okay";
 		pm8226_l28: regulator-l28 {
+            regulator-max-microvolt = <3050000>;
 			qcom,init-voltage = <3050000>;
 			status = "okay";
 		};

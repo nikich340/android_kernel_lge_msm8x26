@@ -137,7 +137,7 @@ static int hi258_sysfs_add_symlink(struct device *dev)
 
 	if(bus){
 //  PATH of bus->p->devices_kset = /sys/bus/platform/devices/
-		rc = sysfs_create_link(&bus->p->devices_kset->kobj, &dev->kobj, "cam_sensor");
+		rc = sysfs_create_link(&bus->p->devices_kset->kobj, &dev->kobj, "cam_sensor_vt");
 		if(rc)
 			goto out_unlink;
 	}
@@ -714,7 +714,7 @@ static void hi258_update_register(struct msm_sensor_ctrl_t *s_ctrl)
 static void hi258_set_exposure_compensation(struct msm_sensor_ctrl_t *s_ctrl,
 	int value)
 {
-	int val = value; //(value + 12) / 6;
+	int val = value+2;//150206, changhwan.kang modify formula for exposure //(value + 12) / 6;
 	CDBG("%s %d", __func__, val);
 	hi258_i2c_write_table(s_ctrl, &HI258_reg_exposure_compensation[val][0],
 		ARRAY_SIZE(HI258_reg_exposure_compensation[val]));
@@ -876,10 +876,10 @@ int32_t hi258_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 			if(TUNING_REGISTER){
 				hi258_i2c_write_table(s_ctrl,(struct msm_camera_i2c_reg_conf *)hi258_recommend_settings_tuning, recommend_size);
 			}else{
-				hi258_i2c_write_table(s_ctrl, &hi258_recommend_settings[0], ARRAY_SIZE(hi258_recommend_settings));
+				hi258_i2c_write_table(s_ctrl, &hi258_recommend_settings[hi258_antibanding][0], ARRAY_SIZE(hi258_recommend_settings[hi258_antibanding]));
 			}
 		#else
-			hi258_i2c_write_table(s_ctrl,&hi258_recommend_settings[0], ARRAY_SIZE(hi258_recommend_settings));
+			hi258_i2c_write_table(s_ctrl,&hi258_recommend_settings[hi258_antibanding][0], ARRAY_SIZE(hi258_recommend_settings[hi258_antibanding]));
 		#endif
 		pr_err("CFG_SET_INIT_SETTING  end\n");
 		break;
@@ -901,10 +901,10 @@ int32_t hi258_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 					if(TUNING_REGISTER){
 						hi258_i2c_write_table(s_ctrl,(struct msm_camera_i2c_reg_conf *)hi258_capture_settings_tuning, snap_size);
 					}else{
-						hi258_i2c_write_table(s_ctrl,&hi258_capture_settings[0],ARRAY_SIZE(hi258_capture_settings));
+						hi258_i2c_write_table(s_ctrl,&hi258_capture_settings[hi258_antibanding][0],ARRAY_SIZE(hi258_capture_settings[hi258_antibanding]));
 					}
 				#else
-					hi258_i2c_write_table(s_ctrl, &hi258_capture_settings[0],ARRAY_SIZE(hi258_capture_settings));
+					hi258_i2c_write_table(s_ctrl, &hi258_capture_settings[hi258_antibanding][0],ARRAY_SIZE(hi258_capture_settings[hi258_antibanding]));
 				#endif
 				pr_err("cam resolution capture setting\n");
 				break;
@@ -919,17 +919,17 @@ int32_t hi258_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 						hi258_i2c_write_table(s_ctrl,(struct msm_camera_i2c_reg_conf *)hi258_preview_settings_tuning, prev_size);
 					}else{
 						if(hi258_prev_res ==2 || hi258_prev_res ==3){
-							hi258_i2c_write_table(s_ctrl, &hi258_recommend_settings[0],ARRAY_SIZE(hi258_recommend_settings));
+							hi258_i2c_write_table(s_ctrl, &hi258_recommend_settings[hi258_antibanding][0],ARRAY_SIZE(hi258_recommend_settings[hi258_antibanding]));
 							pr_err("cam resolution init end\n");
 						}
-						hi258_i2c_write_table(s_ctrl,&hi258_preview_settings[0],ARRAY_SIZE(hi258_preview_settings));
+						hi258_i2c_write_table(s_ctrl,&hi258_preview_settings[hi258_antibanding][0],ARRAY_SIZE(hi258_preview_settings[hi258_antibanding]));
 					}
 				#else
 					if(hi258_prev_res ==2 || hi258_prev_res ==3){
-						hi258_i2c_write_table(s_ctrl, &hi258_recommend_settings[0],ARRAY_SIZE(hi258_recommend_settings));
+						hi258_i2c_write_table(s_ctrl, &hi258_recommend_settings[hi258_antibanding][0],ARRAY_SIZE(hi258_recommend_settings[hi258_antibanding]));
 						pr_err("cam resolution init end\n");
 					}
-					hi258_i2c_write_table(s_ctrl, &hi258_preview_settings[0],ARRAY_SIZE(hi258_preview_settings));
+					hi258_i2c_write_table(s_ctrl, &hi258_preview_settings[hi258_antibanding][0],ARRAY_SIZE(hi258_preview_settings[hi258_antibanding]));
 				#endif
 				pr_err("cam resolution preview setting\n");
 				break;
@@ -939,10 +939,10 @@ int32_t hi258_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 					if(TUNING_REGISTER){
 						hi258_i2c_write_table(s_ctrl,(struct msm_camera_i2c_reg_conf *)hi258_HDvideo_settings_tuning, hdvideo_size);
 					}else{
-						hi258_i2c_write_table(s_ctrl,&hi258_HDvideo_settings[0],ARRAY_SIZE(hi258_HDvideo_settings));
+						hi258_i2c_write_table(s_ctrl,&hi258_HDvideo_settings[hi258_antibanding][0],ARRAY_SIZE(hi258_HDvideo_settings[hi258_antibanding]));
 					}
 				#else
-					hi258_i2c_write_table(s_ctrl, &hi258_HDvideo_settings[0],ARRAY_SIZE(hi258_HDvideo_settings));
+					hi258_i2c_write_table(s_ctrl, &hi258_HDvideo_settings[hi258_antibanding][0],ARRAY_SIZE(hi258_HDvideo_settings[hi258_antibanding]));
 				#endif
 				pr_err("cam resolution HD video setting\n");
 				break;
@@ -952,10 +952,10 @@ int32_t hi258_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 					if(TUNING_REGISTER){
 						hi258_i2c_write_table(s_ctrl,(struct msm_camera_i2c_reg_conf *)hi258_video_settings_tuning, video_size);
 					}else{
-						hi258_i2c_write_table(s_ctrl,&hi258_video_settings[0],ARRAY_SIZE(hi258_video_settings));
+						hi258_i2c_write_table(s_ctrl,&hi258_video_settings[hi258_antibanding][0],ARRAY_SIZE(hi258_video_settings[hi258_antibanding]));
 					}
 				#else
-					hi258_i2c_write_table(s_ctrl, &hi258_video_settings[0],ARRAY_SIZE(hi258_video_settings));
+					hi258_i2c_write_table(s_ctrl, &hi258_video_settings[hi258_antibanding][0],ARRAY_SIZE(hi258_video_settings[hi258_antibanding]));
 				#endif
 				pr_err("cam resolution video setting\n");
 				break;
@@ -1368,7 +1368,7 @@ int32_t hi258_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 		break;
 	}
 	case CFG_SET_ANTIBANDING: {
-		pr_err("%s: We do not support Antibanding feature Value now\n", __func__);
+		//pr_err("%s: We do not support Antibanding feature Value now\n", __func__);
 #if 0
 		int32_t antibanding_mode;
 		if (copy_from_user(&antibanding_mode,

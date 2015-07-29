@@ -91,6 +91,22 @@ unsigned long msm_fb_phys_addr_backup;
 #define LGE_60_BL		1280
 #define LGE_80_BL		2480
 #define LGE_MAX_BL		4095
+#elif defined(CONFIG_MACH_MSM8926_E2_SPR_US) || defined(CONFIG_MACH_MSM8926_E2_MPCS_US) || defined(CONFIG_MACH_MSM8926_E2_VZW) || defined(CONFIG_MACH_MSM8926_E2_BELL_CA) || defined(CONFIG_MACH_MSM8926_E2_RGS_CA) || defined(CONFIG_MACH_MSM8926_E2_VTR_CA)
+#define UI_BL_OFF		0
+#define UI_0_BL			10
+#define UI_20_BL		60
+#define UI_40_BL		110
+#define UI_60_BL		157
+#define UI_80_BL		207
+#define UI_MAX_BL		255
+
+#define LGE_BL_OFF		0
+#define LGE_0_BL		100
+#define LGE_20_BL		230
+#define LGE_40_BL		630
+#define LGE_60_BL		1280
+#define LGE_80_BL		2480
+#define LGE_MAX_BL		4095
 #elif defined(CONFIG_MACH_MSM8926_AKA_CN) || defined(CONFIG_MACH_MSM8926_AKA_KR)
 #define UI_BL_OFF		0
 #define UI_0_BL			10
@@ -256,7 +272,7 @@ static int mdss_fb_notify_update(struct msm_fb_data_type *mfd,
 
 static int lcd_backlight_registered;
 
-#if defined(CONFIG_FB_MSM_MIPI_TIANMA_VIDEO_QHD_PT_PANEL) || defined(CONFIG_MACH_MSM8926_X5_VZW)
+#if defined(CONFIG_MACH_MSM8926_X5_VZW)
 static int cal_value;
 static const char mapped_value[256] = {
 	0,  4,  4,  4,  4,  4,  4,  4,  4,  4, //9
@@ -286,7 +302,7 @@ static const char mapped_value[256] = {
 	202,207,207,207,214,214,217,217,222,222, //249
 	222,228,228,233,233,239 //255
 };
-#elif defined(CONFIG_LGE_MIPI_TOVIS_VIDEO_540P_PANEL)
+#elif defined(CONFIG_LGE_MIPI_TOVIS_VIDEO_540P_PANEL) || defined(CONFIG_FB_MSM_MIPI_TIANMA_VIDEO_QHD_PT_PANEL)
 static int cal_value;
 static const char mapped_value[256] = {
 	0,  11, 11, 11, 11, 11, 11, 11, 11, 11,
@@ -321,40 +337,6 @@ static const char mapped_value[256] = {
 	224,226,228,230,232,234,237,240,243,246,
 	248,251,255                             //100%, 255
 };
-#elif defined(CONFIG_FB_MSM_MIPI_LGD_VIDEO_WVGA_PT_INCELL_PANEL)
-#if defined(CONFIG_MACH_MSM8X10_L70P)
-
-#else
-static int cal_value;
-static const char mapped_value[256] = {
-	0,  3,  3,  3,  3,  4,  4,  4,  4,  5,   //9
-	5,  5,  5,  5,  5,  5,  5,  5,  5,  5,   //19
-	5,  5,  5,  5,  5,  5,  5,  6,  6,  6,   //29
-	6,  6,  6,  6,  6,  6,  6,  6,  6,  7,   //39
-	7,  7,  7,  7,  7,  7,  7,  8,  8,  8,   //49
-	9,  9,  9,  9,  9,  10, 10, 10, 10, 10,  //59
-	11, 11, 11, 11, 12, 12, 12, 12, 13, 13,  //69
-	13, 14, 14, 14, 15, 15, 15, 16, 16, 16,  //79
-	17, 17, 17, 18, 18, 19, 20, 20, 21, 21,  //89
-	21, 22, 22, 23, 23, 23, 24, 24, 24, 25,  //99
-	25, 25, 27, 27, 28, 28, 29, 29, 31, 31,  //109
-	31, 32, 32, 32, 33, 33, 35, 35, 37, 37,  //119
-	37, 38, 38, 40, 40, 42, 42, 42, 42, 43,  //129
-	43, 45, 47, 47, 49, 49, 51, 51, 51, 53,  //139
-	53, 55, 55, 55, 57, 57, 57, 59, 59, 59,  //149
-	61, 61, 64, 64, 66, 66, 66, 68, 68, 71,  //159
-	71, 71, 73, 73, 73, 76, 76, 76, 78, 78,  //169
-	81, 81, 84, 84, 86, 86, 86, 86, 89, 89,  //179
-	92, 92, 95, 95, 95, 98, 98, 98,101,104,  //189
-	104,104,107,107,110,110,112,114,114,114, //199
-	117,117,120,120,124,124,124,128,128,132, //209
-	132,132,135,135,135,139,143,143,145,147, //219
-	147,147,151,151,159,159,159,159,161,163, //229
-	163,163,167,172,172,174,176,176,180,180, //239
-	185,185,185,187,189,189,189,194,198,200, //249
-	201,203,205,208,210,213                  //255
-};
-#endif
 #endif
 static void mdss_fb_set_bl_brightness(struct led_classdev *led_cdev,
 				      enum led_brightness value)
@@ -362,7 +344,9 @@ static void mdss_fb_set_bl_brightness(struct led_classdev *led_cdev,
 	struct msm_fb_data_type *mfd = dev_get_drvdata(led_cdev->dev->parent);
 	int bl_lvl;
 #ifdef CONFIG_LGE_LCD_OFF_DIMMING
-	if (lge_get_bootreason() == 0x77665560 && !fb_blank_called) {
+	int bootreason;
+	bootreason = lge_get_bootreason();
+	if ((bootreason == 0x77665560||bootreason == 0x77665561||bootreason == 0x77665562) && !fb_blank_called) {
 		pr_info("%s : lcd off mode! Will not turn on backlight.\n", __func__);
 		return;
 	}
@@ -383,11 +367,21 @@ static void mdss_fb_set_bl_brightness(struct led_classdev *led_cdev,
 	MDSS_BRIGHT_TO_BL(bl_lvl, value, mfd->panel_info->bl_max,
 				mfd->panel_info->brightness_max);
 	pr_info("value=%d, bl_lvl=%d\n", value, bl_lvl);
-#else
-	cal_value = mapped_value[value];
-	MDSS_BRIGHT_TO_BL(bl_lvl, cal_value, mfd->panel_info->bl_max,
-			MDSS_MAX_BL_BRIGHTNESS);
-	pr_info("value=%d, cal_value=%d\n", value, cal_value);
+#elif defined(CONFIG_MACH_MSM8926_E2_SPR_US) || defined(CONFIG_MACH_MSM8926_E2_MPCS_US) || defined(CONFIG_MACH_MSM8926_E2_VZW) || defined(CONFIG_MACH_MSM8926_E2_BELL_CA) || defined(CONFIG_MACH_MSM8926_E2_RGS_CA) || defined(CONFIG_MACH_MSM8926_E2_VTR_CA)
+	if(value >= UI_BL_OFF && value <= UI_0_BL)
+		bl_lvl = (value - UI_BL_OFF) * (LGE_0_BL - LGE_BL_OFF) / (UI_0_BL - UI_BL_OFF) + LGE_BL_OFF;
+	else if(value >= UI_0_BL && value <= UI_20_BL)
+		bl_lvl = (value - UI_0_BL) * (LGE_20_BL - LGE_0_BL) / (UI_20_BL - UI_0_BL) + LGE_0_BL;
+	else if(value >UI_20_BL && value <= UI_40_BL)
+		bl_lvl = (value - UI_20_BL) * (LGE_40_BL - LGE_20_BL) / (UI_40_BL - UI_20_BL) + LGE_20_BL;
+	else if(value >UI_40_BL && value <= UI_60_BL)
+		bl_lvl = (value - UI_40_BL) * (LGE_60_BL - LGE_40_BL) / (UI_60_BL - UI_40_BL) + LGE_40_BL;
+	else if(value >UI_60_BL && value <= UI_80_BL)
+		bl_lvl = (value - UI_60_BL) * (LGE_80_BL - LGE_60_BL) / (UI_80_BL - UI_60_BL) + LGE_60_BL;
+	else if(value >UI_80_BL && value <= UI_MAX_BL)
+		bl_lvl = (value - UI_80_BL) * (LGE_MAX_BL - LGE_80_BL) / (UI_MAX_BL - UI_80_BL) + LGE_80_BL;
+
+	pr_info("value=%d, bl_lvl=%d\n", value, bl_lvl);
 #endif
 
 #else

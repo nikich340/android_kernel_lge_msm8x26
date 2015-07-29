@@ -33,6 +33,7 @@ static void mxt_patch_calibration(struct mxt_data *data)
 
 static int mxt_patch_start_timer(struct mxt_data *data, u16 period)
 {
+#if 0
 	struct mxt_object* object = NULL;
 	int ret = 0;
 	u8 t61_reg[5] = {3, 1, 0, 0, 0};
@@ -53,10 +54,13 @@ static int mxt_patch_start_timer(struct mxt_data *data, u16 period)
 	}
 
 	return ret;
+#endif//
+	return 0;
 }
 
 static int mxt_patch_stop_timer(struct mxt_data *data)
 {
+#if 0
 	struct mxt_object* object = NULL;
 	int ret = 0;
 	u8 t61_reg[5] = {3, 2, 0, 0, 0};
@@ -73,6 +77,8 @@ static int mxt_patch_stop_timer(struct mxt_data *data)
 	}
 
 	return ret;
+#endif//
+	return 0;
 }
 
 static int mxt_patch_write_stage_cfg(struct mxt_data *data, struct stage_cfg* pscfg, bool do_action)

@@ -66,6 +66,8 @@
 #define STRIPE_BASE_FW_1_4_0	140
 #define STRIPE_BASE_FW_1_6_0	464
 
+int is_cpp_load_fail = 0;  /* LGE_CHANGE, soojong.jin@lge.com , 2015/03/12 Camera Recovery when CPP Firmware Loading Fail appears*/
+
 struct msm_cpp_timer_data_t {
 	struct cpp_device *cpp_dev;
 	struct msm_cpp_frame_info_t *processed_frame;
@@ -489,8 +491,14 @@ static void msm_cpp_poll(void __iomem *cpp_base, u32 val)
 	} while ((tmp != val) && (retry++ < MSM_CPP_POLL_RETRIES));
 	if (retry < MSM_CPP_POLL_RETRIES)
 		CPP_DBG("Poll finished\n");
-	else
+	else{
 		pr_err("Poll failed: expect: 0x%x\n", val);
+/* LGE_CHANGE_S, soojong.jin@lge.com , 2015/03/12 Camera Recovery when CPP Firmware Loading Fail appears*/
+		is_cpp_load_fail = 1;
+		pr_err("%s : is_cpp_load_fail is set to TRUE\n",__func__);
+/* LGE_CHANGE_E, soojong.jin@lge.com , 2015/03/12 Camera Recovery when CPP Firmware Loading Fail appears*/
+		}
+
 }
 
 void cpp_release_ion_client(struct kref *ref)
@@ -1593,8 +1601,6 @@ long msm_cpp_subdev_ioctl(struct v4l2_subdev *sd,
 	}
 	case VIDIOC_MSM_CPP_CFG:
 		rc = msm_cpp_cfg(cpp_dev, ioctl_ptr);
-		if (rc < 0)
-			pr_err("%s: error in cpp_cfg\n", __func__); /* LGE_CHANGE, jaehan.jeong, 2013.12.2, Log for debugging */
 		break;
 	case VIDIOC_MSM_CPP_FLUSH_QUEUE:
 		rc = msm_cpp_flush_frames(cpp_dev);

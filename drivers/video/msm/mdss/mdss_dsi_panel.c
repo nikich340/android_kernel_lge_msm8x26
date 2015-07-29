@@ -598,32 +598,6 @@ static void _mdss_set_dsv_en(int enable)
 		gpio_set_value((ctrl->disp_fd_gpio), 1);
 		pr_info("%s: fd(%d) toggle(on)", __func__, ctrl->disp_fd_gpio);
 		mdelay(10);
-#if defined(CONFIG_MACH_MSM8926_E2_MPCS_US) || defined(CONFIG_MACH_MSM8926_E2_VTR_CA) || defined(CONFIG_MACH_MSM8926_E2_SPR_US)
-		/* 1. set GPIO (60) and (64) to be HIGH as DSV Enable GPIO (ON). */
-		/* 2. do not use P-Mode GPIO (64) */
-		rc = gpio_tlmm_config(GPIO_CFG((ctrl->disp_en_1st_gpio),
-									0,
-									GPIO_CFG_OUTPUT,
-									GPIO_CFG_PULL_UP,
-									GPIO_CFG_8MA),
-									GPIO_CFG_ENABLE);
-		if (rc) {
-			pr_err("%s: unable to config tlmm = %d\n",
-					__func__, (ctrl->disp_en_1st_gpio));
-		}
-		pr_info("%s: gpio_tlmm_config(%d), rc = %d\n", __func__, (ctrl->disp_en_1st_gpio), rc);
-
-		gpio_set_value((ctrl->disp_en_1st_gpio), 1);
-		pr_info("%s: dsv(%d) on", __func__, (ctrl->disp_en_1st_gpio));
-
-		gpio_set_value((ctrl->disp_en_2nd_gpio), 1);
-		pr_info("%s: dsv(%d) on", __func__, (ctrl->disp_en_2nd_gpio));
-#elif defined(CONFIG_MACH_MSM8926_E2_VZW)
-		/* 1. set GPIO (64) to be HIGH as DSV Enable GPIO (ON). */
-		/* 2. do not use P-Mode GPIO (64) */
-		gpio_set_value((ctrl->disp_en_2nd_gpio), 1);
-		pr_info("%s: dsv(%d) on", __func__, (ctrl->disp_en_2nd_gpio));
-#endif
 	} else {
 #if defined(CONFIG_MACH_MSM8926_E2_MPCS_US) || defined(CONFIG_MACH_MSM8926_E2_VTR_CA) || defined(CONFIG_MACH_MSM8926_E2_SPR_US)
 		/* 1. set GPIO (60) and (64) to be HIGH as DSV Enable GPIO (ON). */

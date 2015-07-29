@@ -1,4 +1,4 @@
-//FEATURE_SDCARD_MEDIAEXN_SYSTEMCALL_ENCRYPTION
+/* FEATURE_SDCARD_MEDIAEXN_SYSTEMCALL_ENCRYPTION */
 
 #include <keys/user-type.h>
 #include <keys/encrypted-type.h>
@@ -12,7 +12,8 @@
 #include <linux/ecryptfs.h>
 
 #define FEATURE_SDCARD_MEDIAEXN_SYSTEMCALL_ENCRYPTION
-#define MAX_MEDIA_EXT_LENGTH 330
+#define MAX_MEDIA_EXT_LENGTH 512
+#define MAX_FILE_NAME_LENGTH 255
 
 extern int getMediaProperty(void);
 extern int ecryptfs_mediaFileSearch(const unsigned char *filename);

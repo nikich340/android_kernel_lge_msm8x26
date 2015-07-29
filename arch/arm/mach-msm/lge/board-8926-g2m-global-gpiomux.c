@@ -104,11 +104,13 @@ static struct gpiomux_setting gpio_spi_cs_config = {
 	.pull = GPIOMUX_PULL_DOWN,
 };
 
+#ifndef CONFIG_LGE_NFC_PN547_C2
 static struct gpiomux_setting gpio_spi_cs_eth_config = {
 	.func = GPIOMUX_FUNC_4,
 	.drv = GPIOMUX_DRV_6MA,
 	.pull = GPIOMUX_PULL_DOWN,
 };
+#endif
 
 static struct gpiomux_setting wcnss_5wire_suspend_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
@@ -275,12 +277,14 @@ static struct msm_gpiomux_config msm_blsp_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &gpio_i2c_config,
 		},
 	},
+#ifndef CONFIG_LGE_NFC_PN547_C2
 	{
 		.gpio      = 22,		/* BLSP1 QUP1 SPI_CS_ETH */
 		.settings = {
 			[GPIOMUX_SUSPENDED] = &gpio_spi_cs_eth_config,
 		},
 	},
+#endif
 };
 
 static struct msm_gpiomux_config msm_melfas_configs[] __initdata = {
@@ -533,19 +537,7 @@ static struct msm_gpiomux_config gpio_func_reserved_pin_config __initdata = {
 #endif
 
 /*  LGE_CHANGE_S, [NFC][garam.kim@lge.com], NFC Bring up*/
-#ifdef CONFIG_LGE_NFC_PN547
-static struct gpiomux_setting nfc_pn547_sda_cfg = {
-	.func = GPIOMUX_FUNC_3,
-	.drv = GPIOMUX_DRV_8MA,
-	.pull = GPIOMUX_PULL_NONE,
-};
-
-static struct gpiomux_setting nfc_pn547_scl_cfg = {
-	.func = GPIOMUX_FUNC_3,
-	.drv = GPIOMUX_DRV_8MA,
-	.pull = GPIOMUX_PULL_NONE,
-};
-
+#ifdef CONFIG_LGE_NFC_PN547_C2
 static struct gpiomux_setting nfc_pn547_ven_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_2MA,
@@ -568,22 +560,6 @@ static struct gpiomux_setting nfc_pn547_mode_cfg = {
 };
 
 static struct msm_gpiomux_config msm_nfc_configs[] __initdata = {
-	{
-		/* I2C SDA */
-		.gpio      = 10,
-		.settings = {
-			[GPIOMUX_ACTIVE]    = &nfc_pn547_sda_cfg,
-			[GPIOMUX_SUSPENDED] = &nfc_pn547_sda_cfg,
-		},
-	},
-	{
-		/* I2C SCL */
-		.gpio      = 11,
-		.settings = {
-			[GPIOMUX_ACTIVE]    = &nfc_pn547_scl_cfg,
-			[GPIOMUX_SUSPENDED] = &nfc_pn547_scl_cfg,
-		},
-	},
 	{
 		/* VEN */
 		.gpio      = 20,
@@ -844,7 +820,7 @@ void __init msm8226_init_gpiomux(void)
 
 
 /*  LGE_CHANGE_S, [NFC][garam.kim@lge.com], NFC Bring up */
-#ifdef CONFIG_LGE_NFC_PN547
+#ifdef CONFIG_LGE_NFC_PN547_C2
 	msm_gpiomux_install(msm_nfc_configs, ARRAY_SIZE(msm_nfc_configs));
 #endif
 /*  LGE_CHANGE_E, [NFC][garam.kim@lge.com], NFC Bring up */

@@ -159,7 +159,7 @@ SYSCALL_DEFINE1(uselib, const char __user *, library)
  *
  * byungchul.park@lge.com 20120503
  */
-	sreadahead_prof( file, 0, 0);
+	sreadahead_prof(file, 0, 0);
 /* LGE_CHANGE_E */
 
 
@@ -811,7 +811,7 @@ struct file *open_exec(const char *name)
  *
  * byungchul.park@lge.com 20120503
  */
-	sreadahead_prof( file, 0, 0);
+	sreadahead_prof(file, 0, 0);
 /* LGE_CHANGE_E */
 
 

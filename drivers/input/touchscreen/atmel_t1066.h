@@ -295,7 +295,17 @@
 
 #define PATCH_EVENT_AAT	11
 #define CHARGER_PLUGGED_AAT			12
+#define COMMON_KNOCKON_SLEEP                    13
+#define COMMON_KNOCKCODE_SLEEP                    14
+#define COMMON_KNOCKON_WAKEUP                    15
+#define COMMON_KNOCKCODE_WAKEUP                    16
 
+#define IME_MODE_ENABLE				17
+#define IME_MODE_DISABLE			18
+#define PATCH_LOW_TEMP				19
+#define PATCH_NOT_LOW_TEMP			20
+#define PATCH_ENTER_SENSING			21
+#define PATCH_EXIT_SENSING			22
 #else
 /* patch Event */
 #define CHARGER_PLUGGED             0

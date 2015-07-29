@@ -435,7 +435,7 @@ static const struct qpnp_vadc_map_pt adcmap_btm_threshold[] = {
 	{800, 410},
 	{850, 400}
 };
-#elif defined (CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E8WIFI) || defined (CONFIG_MACH_MSM8926_E8LTE) || defined (CONFIG_MACH_MSM8226_E9WIFI) || defined (CONFIG_MACH_MSM8926_E7LTE_ATT_US) || defined(CONFIG_MACH_MSM8226_E9WIFIN) || defined (CONFIG_MACH_MSM8926_E7LTE_VZW_US) || defined (CONFIG_MACH_MSM8926_E7LTE_USC_US) || defined (CONFIG_MACH_MSM8926_T8LTE) || defined (CONFIG_MACH_MSM8926_E9LTE_VZW_US)
+#elif defined (CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E8WIFI) || defined (CONFIG_MACH_MSM8926_E8LTE_KR) || defined (CONFIG_MACH_MSM8926_E8LTE) || defined (CONFIG_MACH_MSM8226_E9WIFI) || defined (CONFIG_MACH_MSM8926_E7LTE_ATT_US) || defined(CONFIG_MACH_MSM8226_E9WIFIN) || defined (CONFIG_MACH_MSM8926_E7LTE_VZW_US) || defined (CONFIG_MACH_MSM8926_E7LTE_USC_US) || defined (CONFIG_MACH_MSM8926_T8LTE) || defined (CONFIG_MACH_MSM8926_E9LTE_VZW_US) || defined(CONFIG_MACH_MSM8226_T8WIFI)
 static const struct qpnp_vadc_map_pt adcmap_btm_threshold[] = {
 	{-300,	1673},
 	{-290,	1661},
@@ -1616,7 +1616,7 @@ EXPORT_SYMBOL(qpnp_vadc_check_result);
 
 /*Qualcomm patch -BMS tuning eunho.yang@lge.com
   *Issue : Battery soc didn't match battery voltage*/
-#if defined (CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E8WIFI) || defined (CONFIG_MACH_MSM8926_E8LTE) || defined (CONFIG_MACH_MSM8226_E9WIFI) || defined (CONFIG_MACH_MSM8226_E9WIFIN) || defined (CONFIG_MACH_MSM8926_E7LTE_ATT_US) || defined (CONFIG_MACH_MSM8926_E7LTE_VZW_US) || defined (CONFIG_MACH_MSM8926_E7LTE_USC_US) || defined (CONFIG_MACH_MSM8926_T8LTE) || defined (CONFIG_MACH_MSM8926_E9LTE_VZW_US)
+#if defined (CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E8WIFI) || defined (CONFIG_MACH_MSM8926_E8LTE_KR) || defined (CONFIG_MACH_MSM8926_E8LTE) || defined (CONFIG_MACH_MSM8226_E9WIFI) || defined (CONFIG_MACH_MSM8226_E9WIFIN) || defined (CONFIG_MACH_MSM8926_E7LTE_ATT_US) || defined (CONFIG_MACH_MSM8926_E7LTE_VZW_US) || defined (CONFIG_MACH_MSM8926_E7LTE_USC_US) || defined (CONFIG_MACH_MSM8926_T8LTE) || defined (CONFIG_MACH_MSM8926_E9LTE_VZW_US) || defined(CONFIG_MACH_MSM8226_T8WIFI)
 int qpnp_adc_get_revid_version(struct device *dev)
 {
 	struct pmic_revid_data *revid_data;
@@ -1642,7 +1642,7 @@ int qpnp_adc_get_revid_version(struct device *dev)
 		(revid_data->pmic_type == PM8941_V3P1_TYPE) &&
 		(revid_data->pmic_subtype == PM8941_V3P1_SUBTYPE))
 			return QPNP_REV_ID_8941_3_1;
-#if defined (CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E8WIFI) || defined (CONFIG_MACH_MSM8926_E8LTE) || defined (CONFIG_MACH_MSM8226_E9WIFI) || defined (CONFIG_MACH_MSM8226_E9WIFIN) || defined (CONFIG_MACH_MSM8926_E7LTE_ATT_US) || defined (CONFIG_MACH_MSM8926_E7LTE_VZW_US) || defined (CONFIG_MACH_MSM8926_E7LTE_USC_US) || defined (CONFIG_MACH_MSM8926_T8LTE) || defined (CONFIG_MACH_MSM8926_E9LTE_VZW_US)
+#if defined (CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E8WIFI) || defined (CONFIG_MACH_MSM8926_E8LTE_KR) || defined (CONFIG_MACH_MSM8926_E8LTE) || defined (CONFIG_MACH_MSM8226_E9WIFI) || defined (CONFIG_MACH_MSM8226_E9WIFIN) || defined (CONFIG_MACH_MSM8926_E7LTE_ATT_US) || defined (CONFIG_MACH_MSM8926_E7LTE_VZW_US) || defined (CONFIG_MACH_MSM8926_E7LTE_USC_US) || defined (CONFIG_MACH_MSM8926_T8LTE) || defined (CONFIG_MACH_MSM8926_E9LTE_VZW_US) || defined(CONFIG_MACH_MSM8226_T8WIFI)
 	else if ((revid_data->rev1 == PM8941_V3P0_REV1) &&
 		(revid_data->rev2 == PM8941_V3P0_REV2) &&
 		(revid_data->rev3 == PM8941_V3P0_REV3) &&
@@ -1695,7 +1695,7 @@ int qpnp_adc_get_revid_version(struct device *dev)
 			return QPNP_REV_ID_8110_1_0;
 /*Qualcomm patch -BMS tuning eunho.yang@lge.com
   *Issue : Battery soc didn't match battery voltage*/
-#if defined (CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E8WIFI) || defined (CONFIG_MACH_MSM8926_E8LTE) || defined (CONFIG_MACH_MSM8226_E9WIFI) || defined (CONFIG_MACH_MSM8226_E9WIFIN) || defined (CONFIG_MACH_MSM8926_E7LTE_ATT_US) || defined (CONFIG_MACH_MSM8926_E7LTE_VZW_US) || defined (CONFIG_MACH_MSM8926_E7LTE_USC_US) || defined (CONFIG_MACH_MSM8926_T8LTE) || defined (CONFIG_MACH_MSM8926_E9LTE_VZW_US)
+#if defined (CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E8WIFI) || defined (CONFIG_MACH_MSM8926_E8LTE_KR) || defined (CONFIG_MACH_MSM8926_E8LTE) || defined (CONFIG_MACH_MSM8226_E9WIFI) || defined (CONFIG_MACH_MSM8226_E9WIFIN) || defined (CONFIG_MACH_MSM8926_E7LTE_ATT_US) || defined (CONFIG_MACH_MSM8926_E7LTE_VZW_US) || defined (CONFIG_MACH_MSM8926_E7LTE_USC_US) || defined (CONFIG_MACH_MSM8926_T8LTE) || defined (CONFIG_MACH_MSM8926_E9LTE_VZW_US) || defined(CONFIG_MACH_MSM8226_T8WIFI)
 	else if ((revid_data->rev1 == PM8110_V2P0_REV1) &&
 		(revid_data->rev2 == PM8110_V2P0_REV2) &&
 		(revid_data->rev3 == PM8110_V2P0_REV3) &&

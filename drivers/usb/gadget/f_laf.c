@@ -33,7 +33,7 @@
 
 #ifdef LAF_DEBUG
 #undef DBG
-#undef ERROR 
+#undef ERROR
 
 #define lafprintk(d, level, fmt, args...) \
 	printk(level "%s: " fmt , (d)->gadget->name , ## args)
@@ -46,11 +46,11 @@
 #else
 
 #if 1
-#undef  DBG
-#undef  ERROR
-#undef 	pr_info
-#undef 	pr_err
-#undef 	pr_debug
+#undef DBG
+#undef ERROR
+#undef pr_info
+#undef pr_err
+#undef pr_debug
 
 #define pr_info(fmt, args...) do { } while (0)
 #define pr_err(fmt, args...) do { } while (0)
@@ -145,7 +145,7 @@ static struct usb_endpoint_descriptor laf_highspeed_in_desc = {
 	.bEndpointAddress       = USB_DIR_IN,
 	.bmAttributes           = USB_ENDPOINT_XFER_BULK,
 	.wMaxPacketSize         = __constant_cpu_to_le16(512),
-	.bInterval 			=	0,
+	.bInterval              = 0,
 };
 
 static struct usb_endpoint_descriptor laf_highspeed_out_desc = {
@@ -215,7 +215,7 @@ static struct usb_request *laf_request_new(struct usb_ep *ep, int buffer_size)
 	struct usb_request *req = usb_ep_alloc_request(ep, GFP_KERNEL);
 	if (!req)
 		return NULL;
-	
+
 	pr_info("%s\n", __func__);
 	/* now allocate buffers for the requests */
 	req->buf = kmalloc(buffer_size, GFP_KERNEL);
@@ -337,10 +337,10 @@ static int laf_create_bulk_endpoints(struct laf_dev *dev,
 
 	/* now allocate requests for our endpoints */
 	for (i = 0; i < LAF_RX_REQ_MAX; i++) {
-	req = laf_request_new(dev->ep_out, LAF_BULK_BUFFER_SIZE);
-	if (!req)
-		goto fail;
-	req->complete = laf_complete_out;
+		req = laf_request_new(dev->ep_out, LAF_BULK_BUFFER_SIZE);
+		if (!req)
+			goto fail;
+		req->complete = laf_complete_out;
 		dev->rx_req[i] = req;
 	}
 
@@ -362,79 +362,80 @@ fail:
 static ssize_t laf_read(struct file *fp, char __user *buf,
 				size_t count, loff_t *pos)
 {
-    struct laf_dev *dev = fp->private_data;
-    struct usb_request *req;
-    int r = count, xfer;
-    int ret;
+	struct laf_dev *dev = fp->private_data;
+	struct usb_request *req;
+	int r = count, xfer;
+	int ret;
 
-    pr_info("%s : laf_read = %d\n", __func__, count);
+	pr_info("%s : laf_read = %d\n", __func__, count);
 
-    if (unlikely(!_laf_dev))
-        return -ENODEV;
+	if (unlikely(!_laf_dev))
+		return -ENODEV;
 
-    if (unlikely(count > LAF_BULK_BUFFER_SIZE))
-        return -EINVAL;
+	if (unlikely(count > LAF_BULK_BUFFER_SIZE))
+		return -EINVAL;
 
-    if (unlikely(laf_lock(&dev->read_excl)))
-        return -EBUSY;
+	if (unlikely(laf_lock(&dev->read_excl)))
+		return -EBUSY;
 
-    /* we will block until we're online */
-    while (unlikely(!(atomic_read(&dev->online)) || unlikely(atomic_read(&dev->error)))) {
-        pr_debug("laf_read: waiting for online state\n");
-        ret = wait_event_interruptible(dev->read_wq,
-                (atomic_read(&dev->online) ||
-                 atomic_read(&dev->error)));
-        if (unlikely(ret < 0)) {
-            laf_unlock(&dev->read_excl);
-            return ret;
-        }
-    }
-    if (unlikely(atomic_read(&dev->error))) {
-        r = -EIO;
-        goto done;
-    }
+	/* we will block until we're online */
+	while (unlikely(!(atomic_read(&dev->online)) ||
+				unlikely(atomic_read(&dev->error)))) {
+		pr_debug("laf_read: waiting for online state\n");
+		ret = wait_event_interruptible(dev->read_wq,
+				(atomic_read(&dev->online) ||
+				 atomic_read(&dev->error)));
+		if (unlikely(ret < 0)) {
+			laf_unlock(&dev->read_excl);
+			return ret;
+		}
+	}
+	if (unlikely(atomic_read(&dev->error))) {
+		r = -EIO;
+		goto done;
+	}
 
 requeue_req:
-    /* queue a request */
-    req = dev->rx_req[0];
-    req->length = count;
-    dev->rx_done = 0;
-    ret = usb_ep_queue(dev->ep_out, req, GFP_ATOMIC);
-    if (unlikely(ret < 0)) {
-        pr_debug("laf_read: failed to queue req %p (%d)\n", req, ret);
-        r = -EIO;
-        atomic_set(&dev->error, 1);
-        goto done;
-    } else {
-        pr_debug("rx %p queue\n", req);
-    }
+	/* queue a request */
+	req = dev->rx_req[0];
+	req->length = count;
+	dev->rx_done = 0;
+	ret = usb_ep_queue(dev->ep_out, req, GFP_ATOMIC);
+	if (unlikely(ret < 0)) {
+		pr_debug("laf_read: failed to queue req %p (%d)\n", req, ret);
+		r = -EIO;
+		atomic_set(&dev->error, 1);
+		goto done;
+	} else {
+		pr_debug("rx %p queue\n", req);
+	}
 
-    /* wait for a request to complete */
-    ret = wait_event_interruptible(dev->read_wq, dev->rx_done);
-    if (unlikely(ret < 0)) {
-        if (ret != -ERESTARTSYS)
-            atomic_set(&dev->error, 1);
-        r = ret;
-        usb_ep_dequeue(dev->ep_out, req);
-        goto done;
-    }
-    if (likely(!atomic_read(&dev->error))) {
-        /* If we got a 0-len packet, throw it back and try again. */
-        if (unlikely(req->actual == 0))
-            goto requeue_req;
+	/* wait for a request to complete */
+	ret = wait_event_interruptible(dev->read_wq, dev->rx_done);
+	if (unlikely(ret < 0)) {
+		if (ret != -ERESTARTSYS)
+			atomic_set(&dev->error, 1);
+		r = ret;
+		usb_ep_dequeue(dev->ep_out, req);
+		goto done;
+	}
+	if (likely(!atomic_read(&dev->error))) {
+		/* If we got a 0-len packet, throw it back and try again. */
+		if (unlikely(req->actual == 0))
+			goto requeue_req;
 
-        pr_debug("rx %p %d\n", req, req->actual);
-        xfer = (req->actual < count) ? req->actual : count;
-        r = xfer;
-        if (unlikely(copy_to_user(buf, req->buf, xfer)))
-            r = -EFAULT;
-    } else
-        r = -EIO;
+		pr_debug("rx %p %d\n", req, req->actual);
+		xfer = (req->actual < count) ? req->actual : count;
+		r = xfer;
+		if (unlikely(copy_to_user(buf, req->buf, xfer)))
+			r = -EFAULT;
+	} else
+		r = -EIO;
 
 done:
-    laf_unlock(&dev->read_excl);
-    pr_debug("laf_read returning %d\n", r);
-    return r;
+	laf_unlock(&dev->read_excl);
+	pr_debug("laf_read returning %d\n", r);
+	return r;
 }
 
 static ssize_t laf_write(struct file *fp, const char __user *buf,
@@ -586,7 +587,7 @@ laf_function_bind(struct usb_configuration *c, struct usb_function *f)
 	if (id < 0)
 		return id;
 	laf_interface_desc.bInterfaceNumber = id;
-	
+
 	DBG(cdev, "laf_function_bind bInterfaceNumber: %d\n", id);
 
 	/* allocate endpoints */
@@ -685,7 +686,7 @@ static void laf_function_disable(struct usb_function *f)
 {
 	struct laf_dev	*dev = func_to_laf(f);
 
-	pr_info("%s \n", __func__);
+	pr_info("%s\n", __func__);
 	/*
 	 * Bus reset happened or cable disconnected.  No
 	 * need to disable the configuration now.  We will
@@ -718,8 +719,8 @@ static int laf_bind_config(struct usb_configuration *c)
 	dev->function.unbind = laf_function_unbind;
 	dev->function.set_alt = laf_function_set_alt;
 	dev->function.disable = laf_function_disable;
-	
-//	dev->function.bInterfaceNumber =  usb_interface_id(c, f);
+
+	/* dev->function.bInterfaceNumber =  usb_interface_id(c, f); */
 
 	return usb_add_function(c, &dev->function);
 }
@@ -772,10 +773,10 @@ static void laf_cleanup(void)
 
 
 #ifndef LAF_DEBUG
-#undef 	pr_info
-#undef 	pr_err
-#undef 	pr_debug
-#undef  DBG
+#undef pr_info
+#undef pr_err
+#undef pr_debug
+#undef DBG
 
 #define pr_info(fmt, args...) printk(KERN_ERR fmt, ## args)
 #define pr_err(fmt, args...) printk(KERN_ERR fmt, ## args)

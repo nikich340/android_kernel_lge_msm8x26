@@ -49,6 +49,9 @@
 
 #include <linux/coresight-stm.h>
 #include <linux/kernel.h>
+#ifdef CONFIG_LGE_DIAG_BYPASS
+#include "lg_diag_bypass.h"
+#endif
 
 MODULE_DESCRIPTION("Diag Char Driver");
 MODULE_LICENSE("GPL v2");
@@ -1491,7 +1494,11 @@ static int diagchar_write(struct file *file, const char __user *buf,
 	    (!((pkt_type == DCI_DATA_TYPE) ||
 	       ((pkt_type & (DATA_TYPE_DCI_LOG | DATA_TYPE_DCI_EVENT)) == 0))
 		&& (driver->logging_mode == USB_MODE) &&
+#ifdef CONFIG_LGE_DIAG_BYPASS
+		(!driver->usb_connected) && (!lge_bypass_status()))) {
+#else
 		(!driver->usb_connected))) {
+#endif
 		/*Drop the diag payload */
 		return -EIO;
 	}

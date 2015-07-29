@@ -38,19 +38,19 @@ int mmc_cd_get_status(struct mmc_host *host)
 	ret = !gpio_get_value_cansleep(cd->gpio) ^
 		!!(host->caps2 & MMC_CAP2_CD_ACTIVE_HIGH);
 out:
-	#ifdef CONFIG_MACH_LGE
-	#if !(defined(CONFIG_MACH_MSM8926_JAGN_KR) || defined(CONFIG_MACH_MSM8926_B2LN_KR) || defined (CONFIG_MACH_MSM8926_VFP_KR)  || defined (CONFIG_MACH_MSM8926_AKA_KR)) || defined(CONFIG_MACH_MSM8926_AKA_CN) 
+#ifdef CONFIG_MACH_LGE
+#if !(defined(CONFIG_MACH_MSM8926_JAGN_KR) || defined(CONFIG_MACH_MSM8926_B2LN_KR) || defined (CONFIG_MACH_MSM8926_VFP_KR)  || defined (CONFIG_MACH_MSM8926_AKA_KR)) || defined(CONFIG_MACH_MSM8926_AKA_CN)
 	pr_info("%s: gpio status, GPIO_READ_%s\n",
-				mmc_hostname(host), ret ? "HIGH" : "LOW");
-	#endif
-	#endif 
-	
+			mmc_hostname(host), ret ? "HIGH" : "LOW");
+#endif
+#endif
+
 	return ret;
 }
 #ifdef CONFIG_MACH_LGE
 EXPORT_SYMBOL(mmc_cd_get_status);
-bool mmc_gpio_irq_flag =0;	
-#endif 
+bool mmc_gpio_irq_flag;
+#endif
 
 static irqreturn_t mmc_cd_gpio_irqt(int irq, void *dev_id)
 {
@@ -70,18 +70,13 @@ static irqreturn_t mmc_cd_gpio_irqt(int irq, void *dev_id)
 		cd->status = status;
 
 #ifdef CONFIG_MACH_LGE
-		if(!status )   //active high & active low  status value is low when sdcard ejected . 
-		{
-			mmc_gpio_irq_flag =1;	
+		if (!status ) {   /* active high & active low  status value is low when sdcard ejected . */
+			mmc_gpio_irq_flag = 1;
+		} else {
+			mmc_gpio_irq_flag = 0;
 		}
-		
-		else 
-		{
-			mmc_gpio_irq_flag =0;	
-		}
-		pr_info("%s: mmc_gpio_irq_flagd !!!!! %d\n",mmc_hostname(host),mmc_gpio_irq_flag );
-		
-#endif 
+		pr_info("%s: mmc_gpio_irq_flagd !!!!! %d\n", mmc_hostname(host), mmc_gpio_irq_flag );
+#endif
 		/* Schedule a card detection after a debounce timeout */
 		mmc_detect_change(host, msecs_to_jiffies(100));
 	}

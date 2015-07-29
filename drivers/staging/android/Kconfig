@@ -12,6 +12,12 @@ config ANDROID_BINDER_IPC
 	bool "Android Binder IPC Driver"
 	default n
 
+
+config LGE_ANDROID_BINDER_IPC_CHECK
+	bool "Additional checking for transaction"
+	depends on ANDROID_BINDER_IPC
+	default n
+
 config ASHMEM
 	bool "Enable the Anonymous Shared Memory Subsystem"
 	default n

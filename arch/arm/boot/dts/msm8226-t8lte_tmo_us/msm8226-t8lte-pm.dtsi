@@ -455,7 +455,7 @@
 	status = "ok";
 	qcom,vddmax-mv = <4230>;
 	qcom,vddsafe-mv = <4260>;
-	qcom,ibatmax-ma = <1100>;
+	qcom,ibatmax-ma = <1300>;
 	qcom,vinmin-mv = <4230>;
 	qcom,ibatterm-ma = <200>;
 	qcom,vbatdet-delta-mv = <100>;

@@ -61,6 +61,7 @@ static struct msm_gpiomux_config gpio_func_reserved_pin_config __initdata = {
 
 // GPIO related function <<1.SENSOR>>
 //Need to set GPIO[004] HALLIC_INT
+//+GPIO[054] CAP_SENSOR_INT
 //Need to set GPIO[067] COMPASS_INT
 //Need to set GPIO[069] ACCEL_INT
 static struct msm_gpiomux_config gpio_func_sensor_configs[] __initdata = {
@@ -72,12 +73,28 @@ static struct gpiomux_setting hall_ic_sus_cfg = {
 	.dir = GPIOMUX_IN,
 };
 
+static struct gpiomux_setting cap_sensor_sus_cfg = {
+    .func = GPIOMUX_FUNC_GPIO,
+    .drv = GPIOMUX_DRV_2MA,
+    .pull = GPIOMUX_PULL_NONE,
+    .dir = GPIOMUX_IN,
+};
+
 static struct msm_gpiomux_config msm_hall_ic_configs[] __initdata = {
 	{
 		.gpio = 4,
 		.settings = {
 			[GPIOMUX_ACTIVE] = &hall_ic_sus_cfg,
-		},
+        },
+    },
+};
+
+static struct msm_gpiomux_config msm_cap_sensor_configs[] __initdata = {
+    {
+        .gpio = 54,
+        .settings = {
+            [GPIOMUX_ACTIVE] = &cap_sensor_sus_cfg,
+        },
     },
 };
 
@@ -1220,6 +1237,7 @@ void __init msm8226_init_gpiomux(void)
 	// GPIO related function <<1.SENSOR>>
 	msm_gpiomux_install(gpio_func_sensor_configs, ARRAY_SIZE(gpio_func_sensor_configs));
 	msm_gpiomux_install(msm_hall_ic_configs, ARRAY_SIZE(msm_hall_ic_configs));
+    msm_gpiomux_install(msm_cap_sensor_configs, ARRAY_SIZE(msm_cap_sensor_configs));
 
 	// GPIO related function <<2.I2C>>
 	msm_gpiomux_install(gpio_func_i2c_configs, ARRAY_SIZE(gpio_func_i2c_configs));

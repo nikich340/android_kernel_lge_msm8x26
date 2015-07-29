@@ -19,6 +19,14 @@
 /include/ "msm8226-g2mds-camera.dtsi"
 /include/ "msm8226-g2mds-input.dtsi"
 
+/{
+        memory {
+                secure_mem: secure_region {
+                        status = "disabled";
+                };
+	};
+};
+
 &soc {
 	serial@f991f000 {
 		status = "disabled";
@@ -29,9 +37,19 @@
 		revision = "rev_a";
 	};
 
+	lge_sw_irrc {
+                vreg2_irrc-supply = <&pm8226_lvs1>;
+	};
+
 	i2c@f9925000 {
 		lp5521@32 {
 			status = "disable";
+		};
+	};
+
+	qcom,ion {
+		qcom,ion-heap@8 { /* CP_MM HEAP */
+			status = "disabled";
 		};
 	};
 };
@@ -167,4 +185,5 @@
 
 &mdss_fb0 {
 	qcom,memory-reservation-size = <0x400000>; /* LGE chagne to decrease buffer size. QCT original -> 0x800000 */
+	qcom,memblock-reserve = <0x03200000 0x400000>;
 };

@@ -3446,6 +3446,9 @@ static struct clk_lookup msm_clocks_8226[] = {
 //	CLK_LOOKUP("cam_src_clk", mclk0_clk_src.c, "90.qcom,camera"),
 	CLK_LOOKUP("cam_src_clk", mclk0_clk_src.c, "6d.qcom,camera"),
 //FIX_ME JB_MR2
+#ifdef CONFIG_IMX091
+	CLK_LOOKUP("cam_src_clk", mclk0_clk_src.c, "20.qcom,camera_imx091"),
+#endif
 #ifdef CONFIG_IMX111	/* LGE_CHANGE,  Added for IMX111 clock source */
 	CLK_LOOKUP("cam_src_clk", mclk0_clk_src.c, "20.qcom,camera_rev_0"),
 	CLK_LOOKUP("cam_src_clk", mclk0_clk_src.c, "20.qcom,camera_rev_a"),
@@ -3468,6 +3471,10 @@ static struct clk_lookup msm_clocks_8226[] = {
 	CLK_LOOKUP("cam_src_clk", mclk0_clk_src.c, "34.qcom,camera_rev_b"),
 	CLK_LOOKUP("cam_src_clk", mclk0_clk_src.c, "34.qcom,camera_rev_c"),
 	CLK_LOOKUP("cam_src_clk", mclk0_clk_src.c, "34.qcom,camera_rev_d"),	
+#endif
+#ifdef CONFIG_OV8858
+	CLK_LOOKUP("cam_src_clk", mclk0_clk_src.c, "6c.qcom,camera_ov8858"),
+	CLK_LOOKUP("cam_src_clk", mclk0_clk_src.c, "20.qcom,camera_ov8858"),
 #endif
 #ifdef CONFIG_HI543	/* LGE_CHANGE,  Added for HI543 clock source */
 	CLK_LOOKUP("cam_src_clk", mclk0_clk_src.c, "40.qcom,camera"),
@@ -3522,6 +3529,9 @@ static struct clk_lookup msm_clocks_8226[] = {
 	CLK_LOOKUP("cam_clk", camss_mclk0_clk.c, "6f.qcom,camera"),
 //	CLK_LOOKUP("cam_clk", camss_mclk0_clk.c, "90.qcom,camera"),
 	CLK_LOOKUP("cam_clk", camss_mclk0_clk.c, "6d.qcom,camera"),
+#ifdef CONFIG_IMX091
+	CLK_LOOKUP("cam_clk", camss_mclk0_clk.c, "20.qcom,camera_imx091"),
+#endif
 #ifdef CONFIG_IMX111	/* LGE_CHANGE,  Added for IMX111 clock source */
 	CLK_LOOKUP("cam_clk", camss_mclk0_clk.c, "20.qcom,camera_rev_0"),
 	CLK_LOOKUP("cam_clk", camss_mclk0_clk.c, "20.qcom,camera_rev_a"),
@@ -3543,6 +3553,10 @@ static struct clk_lookup msm_clocks_8226[] = {
 	CLK_LOOKUP("cam_clk", camss_mclk0_clk.c, "34.qcom,camera_rev_b"),/*LGE_CHANGE_S, younjung.park, 2014.1.3, for X5 SPR*/
 	CLK_LOOKUP("cam_clk", camss_mclk0_clk.c, "34.qcom,camera_rev_c"),
 	CLK_LOOKUP("cam_clk", camss_mclk0_clk.c, "34.qcom,camera_rev_d"),
+#endif
+#ifdef CONFIG_OV8858
+	CLK_LOOKUP("cam_clk", camss_mclk0_clk.c, "6c.qcom,camera_ov8858"),
+	CLK_LOOKUP("cam_clk", camss_mclk0_clk.c, "20.qcom,camera_ov8858"),
 #endif
 #ifdef CONFIG_HI543	/* LGE_CHANGE,  Added for HI543 clock source */
 	CLK_LOOKUP("cam_clk", camss_mclk0_clk.c, "40.qcom,camera"),

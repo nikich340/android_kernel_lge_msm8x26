@@ -527,6 +527,7 @@ static const struct snd_soc_dapm_widget msm8226_dapm_widgets[] = {
 
 	SND_SOC_DAPM_MIC("Handset Mic", NULL),
 	SND_SOC_DAPM_MIC("Headset Mic", NULL),
+    SND_SOC_DAPM_MIC("Handset SubMic", NULL), // LGE, 2015-03-04, tomm.lee@lge.com, enable Mic Bias1 external connected to AMIC3 (submic)
 	SND_SOC_DAPM_MIC("ANCRight Headset Mic", NULL),
 	SND_SOC_DAPM_MIC("ANCLeft Headset Mic", NULL),
 
@@ -1567,8 +1568,13 @@ void *def_tapan_mbhc_cal(void)
 					       MBHC_BTN_DET_V_BTN_HIGH);
 #ifdef CONFIG_MACH_LGE
 	btn_low[0] = -50;
-	btn_high[0] = 110;
-	btn_low[1] = 111;
+#if defined (CONFIG_MACH_MSM8926_AKA_KR) || defined (CONFIG_MACH_MSM8926_B2LN_KR) || defined (CONFIG_MACH_MSM8926_JAGN_KR)
+    btn_high[0] = 120;
+    btn_low[1] = 121;
+#else
+    btn_high[0] = 110;
+    btn_low[1] = 111;
+#endif
 	btn_high[1] = 210;
 	btn_low[2] = 211;
 	btn_high[2] = 340;
@@ -1986,6 +1992,7 @@ static struct snd_soc_dai_link msm8226_common_dai[] = {
 		 /* this dainlink has playback support */
 		.be_id = MSM_FRONTEND_DAI_MULTIMEDIA8,
 	},
+#if !defined (CONFIG_MACH_MSM8926_AKA_KR) && !defined (CONFIG_MACH_MSM8926_B2LN_KR) && !defined (CONFIG_MACH_MSM8926_JAGN_KR)
 	{
 		.name = "Listen 2 Audio Service",
 		.stream_name = "Listen 2 Audio Service",
@@ -2137,6 +2144,7 @@ static struct snd_soc_dai_link msm8226_common_dai[] = {
 		.codec_name = "snd-soc-dummy",
 		.be_id = MSM_FRONTEND_DAI_VOWLAN,
 	},
+#endif
 	/* Backend BT/FM DAI Links */
 	{
 		.name = LPASS_BE_INT_BT_SCO_RX,
@@ -2786,6 +2794,7 @@ static int msm8226_prepare_codec_mclk(struct snd_soc_card *card)
 	return 0;
 }
 
+#if !defined (CONFIG_MACH_MSM8926_AKA_KR) && !defined (CONFIG_MACH_MSM8926_B2LN_KR) && !defined (CONFIG_MACH_MSM8926_JAGN_KR)
 static bool msm8226_swap_gnd_mic(struct snd_soc_codec *codec)
 {
 	struct snd_soc_card *card = codec->card;
@@ -2823,6 +2832,7 @@ static int msm8226_setup_hs_jack(struct platform_device *pdev,
 	}
 	return 0;
 }
+#endif
 
 static struct snd_soc_card *populate_snd_card_dailinks(struct device *dev)
 {
@@ -3031,6 +3041,7 @@ static __devinit int msm8226_asoc_machine_probe(struct platform_device *pdev)
 		}
 	}
 
+#if !defined (CONFIG_MACH_MSM8926_AKA_KR) && !defined (CONFIG_MACH_MSM8926_B2LN_KR) && !defined (CONFIG_MACH_MSM8926_JAGN_KR)
 	ext_spk_amp_gpio = of_get_named_gpio(pdev->dev.of_node,
 			"qcom,cdc-lineout-spkr-gpios", 0);
 	if (ext_spk_amp_gpio < 0) {
@@ -3050,6 +3061,7 @@ static __devinit int msm8226_asoc_machine_probe(struct platform_device *pdev)
 		}
 	}
 	msm8226_setup_hs_jack(pdev, pdata);
+#endif
 
 	ret = of_property_read_string(pdev->dev.of_node,
 			"qcom,prim-auxpcm-gpio-set", &auxpcm_pri_gpio_set);
@@ -3082,8 +3094,9 @@ err_lineout_spkr:
 		gpio_free(ext_spk_amp_gpio);
 		ext_spk_amp_gpio = -1;
 	}
-
+#if !defined (CONFIG_MACH_MSM8926_AKA_KR) && !defined (CONFIG_MACH_MSM8926_B2LN_KR) && !defined (CONFIG_MACH_MSM8926_JAGN_KR)
 err_vdd_spkr:
+#endif
 #ifdef CONFIG_SND_SOC_TPA2028D_STEREO_E9
 	if (ext_boost_gpio >= 0) {
 		gpio_free(ext_boost_gpio);

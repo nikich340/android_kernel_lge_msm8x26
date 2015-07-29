@@ -180,10 +180,12 @@
 		((_finger_status_reg[0] & 0x04) >> 1) | (_finger_status_reg[0] & 0x01))
 
 #define GET_INDEX_FROM_MASK(_index, _bit_mask, _max_finger)	\
+	do {	\
 		for (; !((_bit_mask >> _index) & 0x01) && _index < _max_finger; _index++) \
 			; \
 			if (_index <= _max_finger) \
-				_bit_mask &= ~(_bit_mask & (1 << (_index)));
+				_bit_mask &= ~(_bit_mask & (1 << (_index)));	\
+	} while (0);
 u8 pressure_zero;
 extern u8 device_control_reg;
 extern int ts_charger_plug;
@@ -2106,6 +2108,8 @@ err_t synaptics_ts_suspend(struct i2c_client *client)
 		ts->multi_tap_enable = 1;
 		break;
 	default:
+		synaptics_ts_power(client, POWER_SLEEP);
+		TOUCH_DEBUG_MSG("%s POWER_SLEEP\n", __func__);
 		break;
 	}
 	atomic_set(&ts->is_suspend, 1);

@@ -444,8 +444,11 @@ static int pn547_probe(struct i2c_client *client,
     }
 
     pn547_gpio_enable(pn547_dev);
-
-    ret = gpio_direction_output(pn547_dev->ven_gpio,0);
+#if defined(CONFIG_MACH_MSM8226_W7_GLOBAL_COM) || defined(CONFIG_MACH_MSM8226_W7_GLOBAL_SCA)
+    ret = gpio_direction_output(pn547_dev->ven_gpio,1);
+#else
+	ret = gpio_direction_output(pn547_dev->ven_gpio,0);
+#endif
     ret = gpio_direction_output(pn547_dev->firm_gpio,0);
     ret = gpio_direction_input(pn547_dev->irq_gpio);
 

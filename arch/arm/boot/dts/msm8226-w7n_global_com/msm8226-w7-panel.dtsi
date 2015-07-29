@@ -21,3 +21,7 @@
 &dsi_tovis_vid{
 	qcom,cont-splash-enabled;
 };
+
+&mdss_mdp {
+    /delete-property/ qcom,mdss-clk-levels;
+};

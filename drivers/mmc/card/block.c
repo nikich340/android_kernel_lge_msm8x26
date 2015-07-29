@@ -42,7 +42,9 @@
 #include <linux/mmc/host.h>
 #include <linux/mmc/mmc.h>
 #include <linux/mmc/sd.h>
-
+#if defined(CONFIG_MMC_FFU)
+#include <linux/mmc/ffu.h>
+#endif
 #include <asm/uaccess.h>
 
 #include "queue.h"
@@ -703,7 +705,39 @@ static int mmc_blk_ioctl_cmd(struct block_device *bdev,
 
 	mmc_rpm_hold(card->host, &card->dev);
 	mmc_claim_host(card->host);
-
+#if defined(CONFIG_MMC_FFU)
+	if(cmd.opcode == MMC_FFU_DOWNLOAD_OP) {
+		err = mmc_ffu_download(card, &cmd, idata->buf,
+				idata->buf_bytes);
+		goto cmd_rel_host;
+	}
+	if(cmd.opcode == MMC_FFU_INSTALL_OP) {
+		err = mmc_ffu_install(card);
+		goto cmd_rel_host;
+	}
+	if(cmd.opcode == MMC_FFU_MID_OP) {
+		printk(KERN_INFO "[LGE][FFU][cid : %u]\n", card->cid.manfid);
+		if (copy_to_user((void __user *)(unsigned long) idata->ic.data_ptr,
+						&card->cid.manfid, sizeof(unsigned int))) {
+			err = -EFAULT;
+		}
+		else{
+			err = 0;
+		}
+		goto cmd_rel_host;
+	}
+	if(cmd.opcode == MMC_FFU_PNM_OP) {
+		printk(KERN_INFO "[LGE][FFU][pnm : %s]\n", card->cid.prod_name);
+		if (copy_to_user((void __user *)(unsigned long) idata->ic.data_ptr,
+						&card->cid.prod_name, idata->ic.blksz)) {
+			err = -EFAULT;
+		}
+		else {
+			err = 0;
+		}
+		goto cmd_rel_host;
+	}
+#endif    // end of CONFIG_MMC_FFU 
 	err = mmc_blk_part_switch(card, md);
 	if (err)
 		goto cmd_rel_host;
@@ -1089,84 +1123,83 @@ static int get_card_status(struct mmc_card *card, u32 *status, int retries)
 }
 
 #ifdef CONFIG_LGE_ENABLE_MMC_STRENGTH_CONTROL
-
 static int lge_asctodec(char *buff, int num)
 {
-    int i, j;
-    int val, tmp;
-    val=0;
-    for(i=0; i<num; i++)
-    {
-        tmp = 1;
-        for(j=0; j< (num-(i+1)); j++){
-            tmp = tmp*10;
-        }   
-        val += tmp*(buff[i]-48); 
-    }
-    pr_info("[JWKIM_TEST] dec :%d\n", val);
-    return val;
+	int i, j;
+	int val, tmp;
+	val = 0;
+	for (i = 0; i < num; i++)
+	{
+		tmp = 1;
+		for ( j = 0; j < (num - (i + 1)); j++){
+			tmp = tmp * 10;
+		}
+		val += tmp * (buff[i] - 48);
+	}
+	pr_info("[JWKIM_TEST] dec :%d\n", val);
+	return val;
 }
 
 static void record_crc_error(char *filename)
 {
-    struct file *filp;
-    char bufs[10], asc_num[10];
-    int ret;
-    int count;
-    int num_crc;
-    int tmp;
-    int i;
+	struct file *filp;
+	char bufs[10], asc_num[10];
+	int ret;
+	int count;
+	int num_crc;
+	int tmp;
+	int i;
 
-    mm_segment_t old_fs = get_fs();
-    set_fs(KERNEL_DS);
+	mm_segment_t old_fs = get_fs();
+	set_fs(KERNEL_DS);
 
-    filp = filp_open(filename, O_RDWR, S_IRUSR|S_IWUSR);
-    if(IS_ERR(filp)){
-        pr_err("[JWKIM_TEST] open error\n");
-        return;
-    }
-    count = 0;
+	filp = filp_open(filename, O_RDWR, S_IRUSR|S_IWUSR);
+	if (IS_ERR(filp)) {
+		pr_err("[JWKIM_TEST] open error\n");
+		return;
+	}
+	count = 0;
 
-    do{
-        ret = vfs_read(filp, &bufs[count], 1, &filp->f_pos);
-        count++;
-    }while(ret!=0);
-    count--;
-    bufs[count]=0;
-    num_crc = lge_asctodec(bufs, count);
-    num_crc = num_crc+1;
-    count = 1;
-    tmp = num_crc;
-    do{
-        tmp = tmp/10;
-        if(!(tmp<1))
-            count++;
-        else
-            break;
-    }while(1);  
+	do {
+		ret = vfs_read(filp, &bufs[count], 1, &filp->f_pos);
+		count++;
+	} while (ret != 0);
+	count--;
+	bufs[count] = 0;
+	num_crc = lge_asctodec(bufs, count);
+	num_crc = num_crc + 1;
+	count = 1;
+	tmp = num_crc;
+	do {
+		tmp = tmp / 10;
+		if (!(tmp < 1))
+			count++;
+		else
+			break;
+	} while (1);
 
 
-    for(i=0; i<count; i++){
-        tmp = num_crc%10;
-        asc_num[count-(i+1)] = tmp + '0';
-        num_crc = num_crc/10;
-    }
-    asc_num[count]=0;
-    pr_info("[JWKIM_TEST] ascii val : %s\n", asc_num);
-    
-    filp->f_pos=0;
+	for (i = 0; i < count; i++) {
+		tmp = num_crc % 10;
+		asc_num[count - (i + 1)] = tmp + '0';
+		num_crc = num_crc / 10;
+	}
+	asc_num[count] = 0;
+	pr_info("[JWKIM_TEST] ascii val : %s\n", asc_num);
 
-    vfs_write(filp, asc_num, count, &filp->f_pos);
-    filp_close(filp, NULL);
-    set_fs(old_fs);
-    return;
+	filp->f_pos = 0;
+
+	vfs_write(filp, asc_num, count, &filp->f_pos);
+	filp_close(filp, NULL);
+	set_fs(old_fs);
+	return;
 }
 
 
 static void record_crc_cmd_error(struct work_struct *work)
 {
 	pr_info("[JWKIM_TEST] CMD CRC Occured!!!\n");
-    record_crc_error("/persist/command_crc_error.txt");
+	record_crc_error("/persist/command_crc_error.txt");
 }
 
 static DECLARE_WORK(lge_crc_cmd_workqueue, record_crc_cmd_error);
@@ -1188,7 +1221,7 @@ static int mmc_blk_cmd_error(struct request *req, const char *name, int error,
 			req->rq_disk->disk_name, "response CRC error",
 			name, status);
 #ifdef CONFIG_LGE_ENABLE_MMC_STRENGTH_CONTROL
-        queue_work(system_nrt_wq, &lge_crc_cmd_workqueue);
+	queue_work(system_nrt_wq, &lge_crc_cmd_workqueue);
 #endif
 		return ERR_RETRY;
 
@@ -1525,33 +1558,32 @@ static int mmc_blk_issue_flush(struct mmc_queue *mq, struct request *req)
 	struct mmc_card *card = md->queue.card;
 	int ret = 0;
 #if defined (CONFIG_LGE_MMC_RESET_IF_HANG)
-	int 	err=0;
-	static int timeout_count = 0;
-	static int reset_count = 0;
+	int	err = 0;
+	static int timeout_count;
+	static int reset_count;
 #endif
 
 	pr_debug("%s: %s\n", mmc_hostname(card->host), __func__);
 
 	ret = mmc_flush_cache(card);
 	if (ret == -ETIMEDOUT) {
-	/* LGE_CHANGE_S 
+
+	/* LGE_CHANGE_S
 	 * Author : bohyun.jung@lge.com
 	 * Change : eMMC can recover itself, but if it fails during re-init/flush, recover routine does not activated. (eMMC is not accessible)
-	 * 			try emmc_reset and panic if it continously fails.
+	 *			try emmc_reset and panic if it continously fails.
 	 */
+
 #if defined (CONFIG_LGE_MMC_RESET_IF_HANG)
-		if ((card->host->caps & MMC_CAP_NONREMOVABLE) && timeout_count > 3)		// Only for eMMC (NONREMOVABLE)
-		{
-			do
-			{
+		if ((card->host->caps & MMC_CAP_NONREMOVABLE) && timeout_count > 3) {		/* Only for eMMC (NONREMOVABLE) */
+			do {
 				reset_count++;
-				err = mmc_blk_reset(md, card->host, 0);				// mmc_blk_reset() return zero if re-init is done successfully. do force reset.
-				pr_info("%s:%s: mmc_flush_cache() fails:%d:%d, call mmc_blk_reset() again:%d.\n", 
+				err = mmc_blk_reset(md, card->host, 0);				/* mmc_blk_reset() return zero if re-init is done successfully. do force reset. */
+				pr_info("%s:%s: mmc_flush_cache() fails:%d:%d, call mmc_blk_reset() again:%d.\n",
 						mmc_hostname(card->host), __func__, ret, err, reset_count);
-			} while (err<0 && reset_count < 3);
-			if (err < 0)
-			{
-				pr_info("%s:%s: retry mmc_blk_reset() fails three times. abort it otherwise phone is hang:%d.\n", 
+			} while (err < 0 && reset_count < 3);
+			if (err < 0) {
+				pr_info("%s:%s: retry mmc_blk_reset() fails three times. abort it otherwise phone is hang:%d.\n",
 						mmc_hostname(card->host), __func__, err);
 				panic("eMMC is un-accessible");
 			}
@@ -1567,7 +1599,7 @@ static int mmc_blk_issue_flush(struct mmc_queue *mq, struct request *req)
 	} else if (ret) {
 		pr_err("%s: %s: notify flush error to upper layers\n", mmc_hostname(card->host), __func__);
 		ret = -EIO;
-	} 
+	}
 #if defined (CONFIG_LGE_MMC_RESET_IF_HANG)
 	else {
 		timeout_count = 0;
@@ -2251,7 +2283,7 @@ static u8 mmc_blk_prep_packed_list(struct mmc_queue *mq, struct request *req)
 		goto no_packed;
 
 /* LGE_UPDATE_S by p1-fs@lge.com Toshiba recommend packed number no over 8 */
-	else if(max_packed_rw > 8)
+	else if (max_packed_rw > 8)
 		max_packed_rw = 8;
 /* LGE_UPDATE_E by p1-fs@lge.com */
 
@@ -2415,7 +2447,7 @@ static void mmc_blk_packed_hdr_wrq_prep(struct mmc_queue_req *mqrq,
 	lge_packed_cmd_info.num_packed = mqrq->packed_num;
 	pr_info("num_packed :%d \n", lge_packed_cmd_info.num_packed);
 	lge_packed_cmd_info.packed_cmd_hdr[0] = packed_cmd_hdr[0];
-#endif 
+#endif
 	/*
 	 * Argument for each entry of packed group
 	 */
@@ -2446,7 +2478,7 @@ static void mmc_blk_packed_hdr_wrq_prep(struct mmc_queue_req *mqrq,
 	}
 
 #if defined(CONFIG_FMBT_TRACE_EMMC)
-	lge_packed_cmd_info.packed_blocks = mqrq->packed_blocks +1;
+	lge_packed_cmd_info.packed_blocks = mqrq->packed_blocks + 1;
 #endif
 
 	memset(brq, 0, sizeof(struct mmc_blk_request));
@@ -2706,7 +2738,7 @@ static int mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *rqc)
 				break;
 			}
 			goto cmd_abort;
-		case MMC_BLK_RETRY:									// goto cmd_abort if re-init fails.
+		case MMC_BLK_RETRY:									/* goto cmd_abort if re-init fails. */
 			if (retry++ < MMC_BLK_MAX_RETRIES)
 				break;
 			/* Fall through */
@@ -2715,10 +2747,10 @@ static int mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *rqc)
 			if (!mmc_blk_reset(md, card->host, type) &&
 					(retry++ < (MMC_BLK_MAX_RETRIES + 1)))
 					break;
-			goto cmd_abort;									
+			goto cmd_abort;
 		case MMC_BLK_DATA_ERR: {
-		    int err;
-					
+			int err;
+
 			pr_debug("%s: [MMC_BLK_DATA_ERR:]  %s\n", mmc_hostname(card->host), __func__);
 			err = mmc_blk_reset(md, card->host, type);
 			if (!err)
@@ -2820,30 +2852,27 @@ static int mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *rqc)
 #endif
 }
 
-/* LGE_CHANGE_S 
+/* LGE_CHANGE_S
  * Author : bohyun.jung@lge.com
  * Change : eMMC can recover itself, but if it fails during re-init/flush, recover routine does not activated. (eMMC is not accessible)
- * 			try emmc_reset and panic if it continously fails.
+ *			try emmc_reset and panic if it continously fails.
  */
 #if defined (CONFIG_LGE_MMC_RESET_IF_HANG)
 static int mmc_blk_reset_if_hang(struct mmc_queue *mq, struct mmc_card *card)
 {
 	struct mmc_blk_data *md = mq->data;
-	int	err=0, reset_count =0;
+	int	err = 0, reset_count = 0;
 
-	// in case that eMMC failed to re-initialize, retry five times and crash if it is eMMC.
-	if (card->host->caps & MMC_CAP_NONREMOVABLE)		// Only for eMMC (NONREMOVABLE)
-	{
-		do
-		{
+	/* in case that eMMC failed to re-initialize, retry five times and crash if it is eMMC. */
+	if (card->host->caps & MMC_CAP_NONREMOVABLE) {		/* Only for eMMC (NONREMOVABLE) */
+		do {
 			reset_count++;
-			err = mmc_blk_reset(md, card->host, 0);				// mmc_blk_reset() return zero if re-init is done successfully. do force reset.
-			pr_info("%s:%s: mmc_blk_issue_rw_rq() fail:%d, call mmc_blk_reset() again:%d.\n", 
+			err = mmc_blk_reset(md, card->host, 0);				/* mmc_blk_reset() return zero if re-init is done successfully. do force reset. */
+			pr_info("%s:%s: mmc_blk_issue_rw_rq() fail:%d, call mmc_blk_reset() again:%d.\n",
 					mmc_hostname(card->host), __func__,  err, reset_count);
-		} while (err<0 && reset_count < 3);
-		if (err < 0)
-		{
-			pr_info("%s:%s: retry mmc_blk_reset() fails three times. abort it otherwise phone is hang:%d.\n", 
+		} while (err < 0 && reset_count < 3);
+		if (err < 0) {
+			pr_info("%s:%s: retry mmc_blk_reset() fails three times. abort it otherwise phone is hang:%d.\n",
 					mmc_hostname(card->host), __func__, err);
 			panic("eMMC is un-accessible");
 		}
@@ -2893,7 +2922,7 @@ static int mmc_blk_issue_rq(struct mmc_queue *mq, struct request *req)
 		if (card->host && card->host->areq)
 #if defined (CONFIG_LGE_MMC_RESET_IF_HANG)
 			ret = mmc_blk_issue_rw_rq(mq, NULL);
-			if (ret == -ERR_ABORT) 
+			if (ret == -ERR_ABORT)
 				mmc_blk_reset_if_hang(mq, card);
 #else
 			mmc_blk_issue_rw_rq(mq, NULL);
@@ -2904,7 +2933,7 @@ static int mmc_blk_issue_rq(struct mmc_queue *mq, struct request *req)
 		if (card->host->areq)
 #if defined (CONFIG_LGE_MMC_RESET_IF_HANG)
 			ret = mmc_blk_issue_rw_rq(mq, NULL);
-			if (ret == -ERR_ABORT) 
+			if (ret == -ERR_ABORT)
 				mmc_blk_reset_if_hang(mq, card);
 #else
 			mmc_blk_issue_rw_rq(mq, NULL);
@@ -2919,7 +2948,7 @@ static int mmc_blk_issue_rq(struct mmc_queue *mq, struct request *req)
 		if (card->host->areq)
 #if defined (CONFIG_LGE_MMC_RESET_IF_HANG)
 			ret = mmc_blk_issue_rw_rq(mq, NULL);
-			if (ret == -ERR_ABORT) 
+			if (ret == -ERR_ABORT)
 				mmc_blk_reset_if_hang(mq, card);
 #else
 			mmc_blk_issue_rw_rq(mq, NULL);
@@ -2933,7 +2962,7 @@ static int mmc_blk_issue_rq(struct mmc_queue *mq, struct request *req)
 		}
 		ret = mmc_blk_issue_rw_rq(mq, req);
 #if defined (CONFIG_LGE_MMC_RESET_IF_HANG)
-		if (ret == -ERR_ABORT) 
+		if (ret == -ERR_ABORT)
 			mmc_blk_reset_if_hang(mq, card);
 #endif
 	}

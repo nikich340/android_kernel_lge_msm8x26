@@ -1098,7 +1098,7 @@ int mdss_dsi_on(struct mdss_panel_data *pdata)
 	if (mipi->init_delay)
 		usleep(mipi->init_delay);
 
-#if defined(CONFIG_MACH_MSM8226_E8WIFI) || defined(CONFIG_MACH_MSM8926_E8LTE) || defined(CONFIG_MACH_MSM8926_E7LTE_ATT_US) || defined(CONFIG_MACH_MSM8926_E7LTE_VZW_US) || defined(CONFIG_MACH_MSM8926_E7LTE_USC_US) || defined(CONFIG_MACH_MSM8926_T8LTE)
+#if defined(CONFIG_MACH_MSM8226_E8WIFI) || defined(CONFIG_MACH_MSM8926_E8LTE) || defined(CONFIG_MACH_MSM8926_E7LTE_ATT_US) || defined(CONFIG_MACH_MSM8926_E7LTE_VZW_US) || defined(CONFIG_MACH_MSM8926_E7LTE_USC_US) || defined(CONFIG_MACH_MSM8926_T8LTE) || defined(CONFIG_MACH_MSM8926_E8LTE_KR) || defined(CONFIG_MACH_MSM8226_T8WIFI)
 	if (mipi->force_clk_lane_hs) {
 		u32 tmp;
 		tmp = MIPI_INP((ctrl_pdata->ctrl_base) + 0x2c);
@@ -1227,7 +1227,7 @@ static int mdss_dsi_blank(struct mdss_panel_data *pdata)
 	struct mipi_panel_info *mipi;
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
 
-	printk("%s+:\n", __func__);
+	pr_info("%s+:\n", __func__);
 
 	if (pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
@@ -1285,7 +1285,7 @@ static int mdss_dsi_blank(struct mdss_panel_data *pdata)
 		}
 		ctrl_pdata->ctrl_state &= ~CTRL_STATE_PANEL_INIT;
 	}
-	printk("%s-:End\n", __func__);
+	pr_info("%s-:End\n", __func__);
 	return ret;
 }
 
@@ -1450,9 +1450,6 @@ int mdss_dsi_register_recovery_handler(struct mdss_dsi_ctrl_pdata *ctrl,
 	return 0;
 }
 
-#ifdef CONFIG_LGE_SUPPORT_TYPE_A_USB_NOTIFY
-extern void notify_lcd_state_to_usb(int on);
-#endif
 static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 				  int event, void *arg)
 {
@@ -1472,9 +1469,6 @@ static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 	switch (event) {
 	case MDSS_EVENT_UNBLANK:
 		rc = mdss_dsi_on(pdata);
-#ifdef CONFIG_LGE_SUPPORT_TYPE_A_USB_NOTIFY
-		notify_lcd_state_to_usb(1);
-#endif
 		mdss_dsi_op_mode_config(pdata->panel_info.mipi.mode,
 							pdata);
 		if (ctrl_pdata->on_cmds.link_state == DSI_LP_MODE)
@@ -1494,9 +1488,6 @@ static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 		if (ctrl_pdata->off_cmds.link_state == DSI_LP_MODE)
 			rc = mdss_dsi_blank(pdata);
 		rc = mdss_dsi_off(pdata);
-#ifdef CONFIG_LGE_SUPPORT_TYPE_A_USB_NOTIFY
-		notify_lcd_state_to_usb(0);
-#endif
 		break;
 	case MDSS_EVENT_CONT_SPLASH_FINISH:
 		if (ctrl_pdata->off_cmds.link_state == DSI_LP_MODE)
@@ -2209,17 +2200,6 @@ int dsi_panel_device_register(struct device_node *pan_node,
 					gpio_free(ctrl_pdata->lcd_dsv_enp_gpio);
 			}
 #endif
-#if defined(CONFIG_FB_MSM_MIPI_LGD_VIDEO_WVGA_PT_INCELL_PANEL)
-#if defined(CONFIG_MACH_MSM8926_E2_MPCS_US) || defined(CONFIG_MACH_MSM8926_E2_VTR_CA) || defined(CONFIG_MACH_MSM8926_E2_SPR_US)
-			if(gpio_is_valid(ctrl_pdata->disp_en_1st_gpio))
-				gpio_free(ctrl_pdata->disp_en_1st_gpio);
-			if(gpio_is_valid(ctrl_pdata->disp_en_2nd_gpio))
-				gpio_free(ctrl_pdata->disp_en_2nd_gpio);
-#elif defined(CONFIG_MACH_MSM8926_E2_VZW)
-			if(gpio_is_valid(ctrl_pdata->disp_en_2nd_gpio))
-				gpio_free(ctrl_pdata->disp_en_2nd_gpio);
-#endif
-#endif
 	}
 
 	if (mdss_dsi_clk_init(ctrl_pdev, ctrl_pdata)) {
@@ -2270,11 +2250,10 @@ int dsi_panel_device_register(struct device_node *pan_node,
 			"lge,has-dsv");
 #endif
 
-
-	pr_info("%s-: pinfo->cont_splash_enabled : %d\n", __func__, pinfo->cont_splash_enabled);
+	pr_info("%s: pinfo->cont_splash_enabled : %d\n", __func__, pinfo->cont_splash_enabled);
 	if (pinfo->cont_splash_enabled) {
 		pinfo->panel_power_on = 1;
-		pr_info("%s-: mdss_dsi_panel_power_on enable\n", __func__);
+		pr_info("%s: mdss_dsi_panel_power_on enable\n", __func__);
 		rc = mdss_dsi_panel_power_on(&(ctrl_pdata->panel_data), 1);
 		if (rc) {
 			pr_err("%s: Panel power on failed\n", __func__);

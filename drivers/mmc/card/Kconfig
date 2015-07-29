@@ -93,3 +93,10 @@ config LGE_MMC_RESET_IF_HANG
 	help
 		Reset eMMC if eMMC is unaccessible. continously error on r/w cmd.
 # LGE_CHANGE_E : bohyun.jung@lge.com 
+config MMC_FFU
+	bool "FFU SUPPORT"
+	default y
+	help
+	  This is an option to run firmware update on eMMC 5.0.
+	  Field firmware updates (FFU) enables features enhancement
+	  in the field.

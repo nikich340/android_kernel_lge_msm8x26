@@ -3683,7 +3683,7 @@ cantfind_ext4:
 /*
 add return code if ext4 superblock is damaged
 */
-    ret=-ESUPER;
+    ret = -ESUPER;
 #endif
 	goto failed_mount;
 
@@ -3725,7 +3725,7 @@ failed_mount3:
 failed_mount2:
     printk(KERN_ERR "EXT4-fs: failed_mount2\n");
 #ifdef CONFIG_MACH_LGE
-    ret=-ESUPER;
+    ret = -ESUPER;
 #endif
 	for (i = 0; i < db_count; i++)
 		brelse(sbi->s_group_desc[i]);

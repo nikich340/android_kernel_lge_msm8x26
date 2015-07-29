@@ -203,28 +203,52 @@ static struct gpiomux_setting lcd_rst_sus_cfg = {
 	.pull = GPIOMUX_PULL_DOWN,
 };
 
-
-/*
-static struct gpiomux_setting dsv_fd_enable_config = {
+static struct gpiomux_setting dsv_fd_act_config = {
 		.func = GPIOMUX_FUNC_GPIO,
 		.drv = GPIOMUX_DRV_8MA,
-		.pull = GPIOMUX_PULL_UP,
+		.pull = GPIOMUX_PULL_NONE,
 		.dir = GPIOMUX_OUT_HIGH,
 };
-*/
+
 static struct gpiomux_setting dsv_fd_sus_config = {
 		.func = GPIOMUX_FUNC_GPIO,
-		.drv = GPIOMUX_DRV_8MA,
-		.pull = GPIOMUX_PULL_UP,
-		.dir = GPIOMUX_OUT_HIGH,
+		.drv = GPIOMUX_DRV_2MA,
+		.pull = GPIOMUX_PULL_DOWN,
+};
+
+static struct gpiomux_setting lcd_pmode_en_act_cfg = {
+	.func = GPIOMUX_FUNC_GPIO,
+	.drv = GPIOMUX_DRV_8MA,
+	.pull = GPIOMUX_PULL_UP,
+	.dir = GPIOMUX_OUT_HIGH,
+};
+
+static struct gpiomux_setting lcd_pmode_en_sus_cfg = {
+	.func = GPIOMUX_FUNC_GPIO,
+	.drv = GPIOMUX_DRV_2MA,
+	.pull = GPIOMUX_PULL_DOWN,
 };
 
 static struct msm_gpiomux_config msm_lcd_configs[] __initdata = {
+	{
+		.gpio = 3,
+		.settings = {
+			[GPIOMUX_ACTIVE] = &dsv_fd_act_config,
+			[GPIOMUX_SUSPENDED] = &dsv_fd_sus_config,
+		},
+	},
 	{
 		.gpio = 25,
 		.settings = {
 			[GPIOMUX_ACTIVE]    = &lcd_rst_act_cfg,
 			[GPIOMUX_SUSPENDED] = &lcd_rst_sus_cfg,
+		},
+	},
+	{
+		.gpio = 64,
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &lcd_pmode_en_act_cfg,
+			[GPIOMUX_SUSPENDED] = &lcd_pmode_en_sus_cfg,
 		},
 	}
 };
@@ -276,12 +300,14 @@ static struct msm_gpiomux_config msm_i2c_configs[] __initdata = {
 		},
 	},
 #endif
+#if 0
 	{
 		.gpio      = 3,		/* BLSP1 QUP1 SPI_CLK */
 		.settings = {
 			[GPIOMUX_SUSPENDED] = &dsv_fd_sus_config,
 		},
 	},
+#endif
 	{
 		.gpio      = 6,	/* SENSOR0_I2C_SDA */
 		.settings = {
@@ -331,6 +357,7 @@ static struct msm_gpiomux_config msm_i2c_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &gpio_i2c_sus_config,
 		},
 	},
+#if 0
 	{
 		.gpio      = 64,		/* FM_I2S_FSYNC */
 		.settings = {
@@ -338,6 +365,7 @@ static struct msm_gpiomux_config msm_i2c_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &gpio_i2c_sus_config,
 		},
 	},
+#endif
 	{
 		.gpio      = 65,		/* FM_I2S_DATA_OUT */
 		.settings = {
@@ -1063,6 +1091,7 @@ static struct msm_gpiomux_config msm_pri_mi2s_configs[] __initdata = {
 			[GPIOMUX_ACTIVE] = &mi2s_act_cfg,
 		},
 	},
+#if 0
 	{
 		.gpio = 64,
 		.settings = {
@@ -1070,6 +1099,7 @@ static struct msm_gpiomux_config msm_pri_mi2s_configs[] __initdata = {
 			[GPIOMUX_ACTIVE] = &mi2s_act_cfg,
 		},
 	},
+#endif
 	{
 		.gpio = 65,
 		.settings = {
@@ -1171,6 +1201,7 @@ static struct msm_gpiomux_config msm_auxpcm_configs[] __initdata = {
 			[GPIOMUX_ACTIVE] = &auxpcm_act_cfg,
 		},
 	},
+#if 0
 	{
 		.gpio = 64,
 		.settings = {
@@ -1178,6 +1209,7 @@ static struct msm_gpiomux_config msm_auxpcm_configs[] __initdata = {
 			[GPIOMUX_ACTIVE] = &auxpcm_act_cfg,
 		},
 	},
+#endif
 	{
 		.gpio = 65,
 		.settings = {

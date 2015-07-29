@@ -209,14 +209,14 @@ static int tcp_write_timeout(struct sock *sk)
 		syn_set = true;
 /* 2013-10-30 beney.kim@lge.com LGP_DATA_TCPIP_DATASCHEDULER [START] */
 	} else if ((1 << sk->sk_state) & (TCPF_TIME_WAIT)) {
-		printk(KERN_INFO "tcp_write_timeout: TCP sk=%p, TIME_WAIT State, retry_timer is set to %d, DataScheduler 1.4\n", sk, sysctl_tcp_retries1);
-		printk(KERN_INFO "tcp_write_timeout: TCP sk=%p, timeout %lu, last rto %d, retransmit %d, backoff %d",
-                sk, icsk->icsk_timeout, icsk->icsk_rto, icsk->icsk_retransmits, icsk->icsk_backoff);
+		//printk(KERN_INFO "tcp_write_timeout: TCP sk=%p, TIME_WAIT State, retry_timer is set to %d, DataScheduler 1.4\n", sk, sysctl_tcp_retries1);
+		//printk(KERN_INFO "tcp_write_timeout: TCP sk=%p, timeout %lu, last rto %d, retransmit %d, backoff %d",
+    //            sk, icsk->icsk_timeout, icsk->icsk_rto, icsk->icsk_retransmits, icsk->icsk_backoff);
 		retry_until = sysctl_tcp_retries1;
 	} else if ((1 << sk->sk_state) & (TCPF_LAST_ACK)) {
-		printk(KERN_INFO "tcp_write_timeout: TCP sk=%p, LAST_ACK State, retry_timer is set to %d, DataScheduler 1.4\n", sk, sysctl_tcp_retries1);
-		printk(KERN_INFO "tcp_write_timeout: TCP sk=%p, timeout %lu, last rto %d, retransmit %d, backoff %d",
-                sk, icsk->icsk_timeout, icsk->icsk_rto, icsk->icsk_retransmits, icsk->icsk_backoff);
+		//printk(KERN_INFO "tcp_write_timeout: TCP sk=%p, LAST_ACK State, retry_timer is set to %d, DataScheduler 1.4\n", sk, sysctl_tcp_retries1);
+		//printk(KERN_INFO "tcp_write_timeout: TCP sk=%p, timeout %lu, last rto %d, retransmit %d, backoff %d",
+    //            sk, icsk->icsk_timeout, icsk->icsk_rto, icsk->icsk_retransmits, icsk->icsk_backoff);
 		do_reset = true;
 		retry_until = sysctl_tcp_retries1;
 /* 2013-10-30 beney.kim@lge.com LGP_DATA_TCPIP_DATASCHEDULER [END] */
@@ -245,7 +245,7 @@ static int tcp_write_timeout(struct sock *sk)
 				  syn_set ? 0 : icsk->icsk_user_timeout, syn_set)) {
 /* 2013-10-30 beney.kim@lge.com LGP_DATA_TCPIP_DATASCHEDULER [START] */
 		if (do_reset) {
-			printk(KERN_INFO "tcp_write_timeout: TCP sk=%p, Reset Connection, DataScheduler 1.4\n", sk);
+			//printk(KERN_INFO "tcp_write_timeout: TCP sk=%p, Reset Connection, DataScheduler 1.4\n", sk);
 			tcp_send_active_reset(sk, GFP_ATOMIC);
 		}
 /* 2013-10-30 beney.kim@lge.com LGP_DATA_TCPIP_DATASCHEDULER [END] */

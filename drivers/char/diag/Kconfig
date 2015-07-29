@@ -102,3 +102,12 @@ config LGE_ACG_CARRIER_CODE
     help
      LGE ACG Carrier Code
 endmenu
+
+menu "LGE DIAG BYPASS Support"
+config LGE_DIAG_BYPASS
+    tristate "Support LGE diag bypass for factory"
+    default n
+    depends on MACH_LGE
+    help
+      LGE diag bypass
+endmenu

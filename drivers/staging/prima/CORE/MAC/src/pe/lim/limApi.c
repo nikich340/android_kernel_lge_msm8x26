@@ -1765,7 +1765,11 @@ tAniBool limEncTypeMatched(tpAniSirGlobal pMac, tpSchBeaconStruct  pBeacon,
     if ( (pBeacon->capabilityInfo.privacy == 1) && (pBeacon->wpaPresent == 0) &&
             (pBeacon->rsnPresent == 0) &&
             ( (pSession->encryptType == eSIR_ED_WEP40) ||
-                     (pSession->encryptType == eSIR_ED_WEP104)))
+                     (pSession->encryptType == eSIR_ED_WEP104)
+#ifdef FEATURE_WLAN_WAPI
+                      || (pSession->encryptType == eSIR_ED_WPI)
+#endif
+        ))
         return eSIR_TRUE;
 
     /* WPA OR RSN*/
@@ -1835,10 +1839,7 @@ limDetectChangeInApCapabilities(tpAniSirGlobal pMac,
           (eSIR_FALSE == securityCapsMatched)
           ) ) )
     {
-        /* No need to send probe request if security
-         * capability doesnt match, Disconnect directly.*/
-        if( (false == psessionEntry->fWaitForProbeRsp) &&
-                              (eSIR_TRUE == securityCapsMatched))
+    if ( false == psessionEntry->fWaitForProbeRsp )
         {
             /* If Beacon capabilities is not matching with the current capability,
              * then send unicast probe request to AP and take decision after

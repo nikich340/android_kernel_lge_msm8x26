@@ -84,7 +84,7 @@
 	};
 
 	serial@f991f000 {
-		status = "ok";
+		status = "disable";
 	};
 
 	syncoam_sm100_rev_a {

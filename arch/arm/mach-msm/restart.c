@@ -257,7 +257,7 @@ static irqreturn_t resout_irq_handler(int irq, void *dev_id)
 extern unsigned int set_ram_test_flag;
 static void msm_restart_prepare(const char *cmd)
 {
-#if defined(CONFIG_MACH_MSM8926_AKA_CN) || defined(CONFIG_MACH_MSM8926_AKA_KR)
+#if defined(CONFIG_MACH_MSM8926_AKA_CN) || defined(CONFIG_MACH_MSM8926_AKA_KR) || defined(CONFIG_MACH_MSM8926_B2LN_KR) || defined(CONFIG_MACH_MSM8926_JAGN_KR)
 	int Reset_type = 0; //default Hard reset
 #endif
 #ifdef CONFIG_MSM_DLOAD_MODE
@@ -282,7 +282,8 @@ static void msm_restart_prepare(const char *cmd)
 	pm8xxx_reset_pwr_off(1);
 
 	/* Hard reset the PMIC unless memory contents must be maintained. */
-#if defined(CONFIG_MACH_MSM8926_AKA_CN) || defined(CONFIG_MACH_MSM8926_AKA_KR)
+#if defined(CONFIG_MACH_MSM8926_AKA_CN) || defined(CONFIG_MACH_MSM8926_AKA_KR) || defined(CONFIG_MACH_MSM8926_B2LN_KR) || defined(CONFIG_MACH_MSM8926_JAGN_KR)
+
 	if (cmd != NULL) {
 		if (!strncmp(cmd, "bootloader", 10)
 		    ||!strncmp(cmd, "recovery", 8)
@@ -296,6 +297,8 @@ static void msm_restart_prepare(const char *cmd)
 		    ||!strncmp(cmd, "edl", 3)
 #ifdef CONFIG_LGE_LCD_OFF_DIMMING
 		    ||!strncmp(cmd, "LCD off", 7)
+		    ||!strncmp(cmd, "FOTA OUT LCD off", 16)
+		    ||!strncmp(cmd, "FOTA LCD off", 12)
 #endif
 		)
 		    Reset_type = 1; //Warm reset;
@@ -305,7 +308,8 @@ static void msm_restart_prepare(const char *cmd)
 #else
 	if (get_dload_mode() || Reset_type )
 #endif
-#else //CONFIG_MACH_MSM8926_AKA_CN  CONFIG_MACH_MSM8926_AKA_KR
+#else //CONFIG_MACH_MSM8926_AKA_CN  CONFIG_MACH_MSM8926_AKA_KR CONFIG_MACH_MSM8926_B2LN_KR CONFIG_MACH_MSM8926_JAGN_KR
+
 #ifdef CONFIG_LAF_G_DRIVER
 	if (get_dload_mode() || in_panic || (cmd != NULL && cmd[0] != '\0') || (restart_mode == RESTART_DLOAD))
 #else
@@ -329,8 +333,12 @@ static void msm_restart_prepare(const char *cmd)
 			__raw_writel(0x77665555, restart_reason);
 #endif
 #ifdef CONFIG_LGE_LCD_OFF_DIMMING
-        } else if (!strncmp(cmd, "LCD off", 7)) {
+        } else if (!strncmp(cmd, "FOTA LCD off", 12)) {
             __raw_writel(0x77665560, restart_reason);
+		} else if (!strncmp(cmd, "FOTA OUT LCD off", 16)) {
+            __raw_writel(0x77665561, restart_reason);
+		} else if (!strncmp(cmd, "LCD off", 7)) {
+            __raw_writel(0x77665562, restart_reason);
 #endif
 		} else if (!strcmp(cmd, "rtc")) {
 			__raw_writel(0x77665503, restart_reason);

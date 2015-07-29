@@ -122,6 +122,13 @@ config MACH_MSM8926_E8LTE
         help
           Support for the Qualcomm MSM8926 E8 LTE device.
 
+config MACH_MSM8926_E8LTE_KR
+        depends on ARCH_MSM8226
+        select MACH_LGE
+        bool "MSM8926 E8LTE KR OPEN"
+        help
+          Support for the Qualcomm MSM8926 E8 LTE KR device.
+
 config MACH_MSM8226_E7WIFI
         depends on ARCH_MSM8226
         select MACH_LGE
@@ -177,6 +184,27 @@ config MACH_MSM8926_T8LTE_ACG_US
         bool "MSM8926 T8LTE ACG US"
         help
           Support for the Qualcomm MSM8926 T8 LTE device.
+
+config MACH_MSM8926_T8LTE_RGS_CA
+        depends on ARCH_MSM8226
+        select MACH_LGE
+        bool "MSM8926 T8LTE RGS CA"
+        help
+          Support for the Qualcomm MSM8926 T8 LTE device.
+
+config MACH_MSM8226_T8WIFI
+        depends on ARCH_MSM8226
+        select MACH_LGE
+        bool "MSM8226 T8WIFI"
+        help
+          Support for the Qualcomm APQ8026 T8 WiFi-Only device.
+
+config MACH_MSM8226_T8WIFI_GLOBAL_COM
+        depends on ARCH_MSM8226
+        select MACH_LGE
+        bool "MSM8226 T8WIFI"
+        help
+          Support for the Qualcomm APQ8026 T8 WiFi-Only device.
 
 config MACH_MSM8926_E9LTE_VZW_US
         depends on ARCH_MSM8226
@@ -1048,4 +1076,11 @@ config PRE_SELF_DIAGNOSIS
 	help
 	  LGE self diagnosis
 
+config LGE_LCD_OFF_DIMMING
+        tristate "Support LGE LCD off dimming reboot"
+        default n
+        depends on MACH_LGE
+        help
+          Support lcd off or dimming reboot when reboot reason is "LCD off". lcd stay dimming until
+          lcd is off and on again.
 endmenu

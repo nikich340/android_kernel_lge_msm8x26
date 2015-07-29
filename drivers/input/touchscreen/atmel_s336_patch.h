@@ -63,10 +63,10 @@
 #define MXT_XML_SRC_KVAL		"KVAL"
 #define MXT_XML_SRC_T9STATUS		"T9STATUS"
 #define MXT_XML_SRC_USER1		"USR1"
-#define MXT_XML_SRC_USER2 		"USR2"
+#define MXT_XML_SRC_USER2		"USR2"
 #define MXT_XML_SRC_USER3		"USR3"
-#define MXT_XML_SRC_USER4 		"USR4"
-#define MXT_XML_SRC_USER5 		"USR5"
+#define MXT_XML_SRC_USER4		"USR4"
+#define MXT_XML_SRC_USER5		"USR5"
 #define MXT_XML_ACT_NONE		"0"
 #define MXT_XML_ACT_CAL		"CAL"
 #define MXT_XML_ACT_EXTMR		"EXTMR"
@@ -83,7 +83,7 @@
 #define MXT_MSG_T15_KEYSTATE		0x01
 #define MXT_MSGB_T15_DETECT		0x80
 
-enum{
+enum {
 	MXT_PATCH_CON_NONE = 0,
 	MXT_PATCH_CON_EQUAL,
 	MXT_PATCH_CON_BELOW,
@@ -130,7 +130,7 @@ enum {
 	MXT_PATCH_ACTION_END
 };
 
-struct patch_header{ /* 32b */
+struct patch_header { /* 32b */
 	u32	magic;
 	u32	size;
 	u32	date;
@@ -144,7 +144,7 @@ struct patch_header{ /* 32b */
 	u8	reserved[12];
 };
 
-struct stage_def{	/* 8b */
+struct stage_def {	/* 8b */
 	u8	stage_id;
 	u8	option;
 	u16	stage_period;
@@ -153,14 +153,14 @@ struct stage_def{	/* 8b */
 	u16	reset_period;
 };
 
-struct stage_cfg{	/* 4b */
+struct stage_cfg {	/* 4b */
 	u8	obj_type;
 	u8	option;
 	u8	offset;
 	u8	val;
 };
 
-struct test_line{	/* 12b */
+struct test_line {	/* 12b */
 	u8	test_id;
 	u8	item_cnt;
 	u8	cfg_cnt;
@@ -171,20 +171,20 @@ struct test_line{	/* 12b */
 	u8	reserved[2];
 };
 
-struct action_cfg{	/* 4b */
+struct action_cfg {	/* 4b */
 	u8	obj_type;
 	u8	option;
 	u8	offset;
 	u8	val;
 };
 
-struct item_val{	/* 4b */
+struct item_val {	/* 4b */
 	u8	val_id;
 	u8	val_eq;
 	u16	val;
 };
 
-struct test_item{	/* 8b */
+struct test_item {	/* 8b */
 	u8	src_id;
 	u8	cond;
 	u8	reserved[2];
@@ -192,7 +192,7 @@ struct test_item{	/* 8b */
 };
 
 /* Message Trigger */
-struct trigger{		/* 12b */
+struct trigger {		/* 12b */
 	u8	tid;
 	u8	option;
 	u8	object;
@@ -204,7 +204,7 @@ struct trigger{		/* 12b */
 	u16	act_val;
 };
 
-struct match{		/*8b */
+struct match {		/*8b */
 	u8	offset;
 	u8	cond;
 	u16	mask;
@@ -212,7 +212,7 @@ struct match{		/*8b */
 	u16	val;
 };
 
-struct trigger_cfg{	/* 4b */
+struct trigger_cfg {	/* 4b */
 	u8	obj_type;
 	u8	reserved;
 	u8	offset;
@@ -220,21 +220,21 @@ struct trigger_cfg{	/* 4b */
 };
 
 /* Event */
-struct user_event{	/* 8b */
+struct user_event {	/* 8b */
 	u8	eid;
 	u8	option;
 	u8	cfg_cnt;
 	u8	reserved[5];
 };
 
-struct event_cfg{	/* 4b */
+struct event_cfg {	/* 4b */
 	u8	obj_type;
 	u8	reserved;
 	u8	offset;
 	u8	val;
 };
 
-struct test_src{
+struct test_src {
 	int	charger;
 	int	finger_cnt;
 	int	area;
@@ -254,7 +254,7 @@ struct test_src{
 	int	user7;
 };
 
-struct touch_pos{
+struct touch_pos {
 	u8	tcount[MXT_MAX_FINGER];
 	u16	initx[MXT_MAX_FINGER];
 	u16	inity[MXT_MAX_FINGER];
@@ -310,7 +310,7 @@ struct touch_pos{
 	u16	yhi_limit;
 };
 
-struct touch_supp{
+struct touch_supp {
 	u32	old_time;
 	u8	repeat_cnt;
 	u8	time_gap;

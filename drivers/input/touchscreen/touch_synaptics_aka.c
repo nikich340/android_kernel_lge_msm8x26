@@ -1894,8 +1894,8 @@ static ssize_t store_reg_ctrl(struct i2c_client *client, const char *buf, size_t
 static ssize_t show_object_report(struct i2c_client *client, char *buf)
 {
 	int ret = 0;
-	u8 object_report_enable_reg_addr;
-	u8 object_report_enable_reg;
+	u8 object_report_enable_reg_addr = 0;
+	u8 object_report_enable_reg = 0;
 
 	object_report_enable_reg_addr = f12_info.ctrl_reg_addr[23];
 
@@ -1939,9 +1939,9 @@ static ssize_t store_object_report(struct i2c_client *client, const char *buf, s
 	int select_cnt;
 	int i;
 	u8 bit_select = 0;
-	u8 object_report_enable_reg_addr;
-	u8 object_report_enable_reg_old;
-	u8 object_report_enable_reg_new;
+	u8 object_report_enable_reg_addr = 0;
+	u8 object_report_enable_reg_old = 0;
+	u8 object_report_enable_reg_new = 0;
 	u8 old[8];
 	u8 new[8];
 
@@ -2880,12 +2880,11 @@ static int synaptics_ts_noise_log(struct i2c_client *client, struct touch_data* 
 
 	DO_SAFE((synaptics_ts_page_data_read(client, ANALOG_PAGE, 0x08, 1, &cns) < 0), error);
 	cns_sum += cns;
-
-	DO_SAFE((synaptics_ts_page_data_read(client, ANALOG_PAGE, 0x09, 2, buffer) < 0), error);
+	DO_SAFE((synaptics_ts_page_data_read(client, ANALOG_PAGE, 0x0A, 2, buffer) < 0), error);
 	cid_im = (buffer[1]<<8)|buffer[0];
 	cid_im_sum += cid_im;
 
-	DO_SAFE((synaptics_ts_page_data_read(client, ANALOG_PAGE, 0x0A, 2, buffer) < 0), error);
+	DO_SAFE((synaptics_ts_page_data_read(client, ANALOG_PAGE, 0x0B, 2, buffer) < 0), error);
 	freq_scan_im = (buffer[1]<<8)|buffer[0];
 	freq_scan_im_sum += freq_scan_im;
 

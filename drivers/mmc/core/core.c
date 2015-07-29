@@ -72,8 +72,8 @@ static void mmc_clk_scaling(struct mmc_host *host, bool from_wq);
 #if defined(CONFIG_FMBT_TRACE_EMMC)
 #include <linux/mmc/mem_log.h>
 #define eftech_printf(fmt, args...) printk(fmt, ## args)
-unsigned long long glTimeGap2 = 0;
-unsigned long long glTimeGap1 = 0;
+unsigned long long glTimeGap2;
+unsigned long long glTimeGap1;
 #endif
 
 static struct workqueue_struct *workqueue;
@@ -108,10 +108,10 @@ MODULE_PARM_DESC(
 
 /*
  * LGE_CHANGE_S
- * Date 	: 2014.03.19
- * Author 	: bohyun.jung@lge.com
- * Comment 	: Dynamic MMC log 
- * 			  set mmc log level by accessing '/sys/module/mmc_core/parameters/debug_level' through adb shell.
+ * Date	: 2014.03.19
+ * Author	: bohyun.jung@lge.com
+ * Comment	: Dynamic MMC log
+ *		      set mmc log level by accessing '/sys/module/mmc_core/parameters/debug_level' through adb shell.
  */
 #if defined(CONFIG_LGE_MMC_DYNAMIC_LOG)
 
@@ -316,28 +316,22 @@ void mmc_request_done(struct mmc_host *host, struct mmc_request *mrq)
  * 2013-11-22, p1-fs@lge.com
  */
 #if defined(CONFIG_FMBT_TRACE_EMMC)
-			if(!strncmp(mmc_hostname(host), "mmc0",4))
-			{
+			if (!strncmp(mmc_hostname(host), "mmc0", 4)) {
 				currentTime = sched_clock();
 				memlog_emmc_add(mrq, currentTime, currentTime - glTimeGap2);
 
 				if((lge_packed_cmd_info.packed_cmd_hdr[3] == mrq->cmd->arg) && (mrq->cmd->opcode == 25)
-						&& (mrq->data->blocks == lge_packed_cmd_info.packed_blocks) )
-				{
-					memlog_packed_add(lge_packed_cmd_info.packed_cmd_hdr[0],0);
-					for(i=2; i<(lge_packed_cmd_info.num_packed*2+1); i=i+2)
-					{
-						memlog_packed_add(lge_packed_cmd_info.packed_cmd_hdr[i],1);
-						memlog_packed_add(lge_packed_cmd_info.packed_cmd_hdr[i+1],2);
+						&& (mrq->data->blocks == lge_packed_cmd_info.packed_blocks)) {
+					memlog_packed_add(lge_packed_cmd_info.packed_cmd_hdr[0], 0);
+					for (i = 2; i < (lge_packed_cmd_info.num_packed * 2 + 1); i = i + 2) {
+						memlog_packed_add(lge_packed_cmd_info.packed_cmd_hdr[i], 1);
+						memlog_packed_add(lge_packed_cmd_info.packed_cmd_hdr[i + 1], 2);
 					}
 				}
 			}
-		}
-		else {
-			if(!strncmp(mmc_hostname(host), "mmc0",4))
-			{
-				if(mrq->cmd->opcode != MMC_SEND_STATUS)
-				{
+		} else {
+			if (!strncmp(mmc_hostname(host), "mmc0",4)) {
+				if (mrq->cmd->opcode != MMC_SEND_STATUS) {
 					currentTime = sched_clock();
 					memlog_emmc_add(mrq, currentTime, currentTime - glTimeGap1);
 				}
@@ -427,7 +421,7 @@ mmc_start_request(struct mmc_host *host, struct mmc_request *mrq)
 		if (host->perf_enable)
 			host->perf.start = ktime_get();
 #endif
-/* 
+/*
  * LGE_CHANGE_S
  * Comment : FMBT porting
  * 2013-11-22, p1-fs@lge.com
@@ -436,12 +430,10 @@ mmc_start_request(struct mmc_host *host, struct mmc_request *mrq)
 		glTimeGap2 = sched_clock();
 
 	}
-	else
-	{
+	else {
 		glTimeGap1 = sched_clock();
 #endif
 /* LGE_CHANGE_E */
-	
 	}
 	mmc_host_clk_hold(host);
 #ifndef CONFIG_MACH_LGE
@@ -2193,7 +2185,7 @@ int mmc_resume_bus(struct mmc_host *host)
 
 	mmc_bus_put(host);
 	pr_debug("%s: Deferred resume completed\n", mmc_hostname(host));
-	
+
 	return 0;
 }
 
@@ -2246,8 +2238,8 @@ void mmc_detach_bus(struct mmc_host *host)
 }
 
 #ifdef CONFIG_LGE_ENABLE_MMC_STRENGTH_CONTROL
-	extern char clock_flag;
-	char voltage_flag = 0; 
+extern char clock_flag;
+char voltage_flag;
 #endif
 /**
  *	mmc_detect_change - process change of state on a MMC socket
@@ -2267,19 +2259,15 @@ void mmc_detect_change(struct mmc_host *host, unsigned long delay)
 	WARN_ON(host->removed);
 	spin_unlock_irqrestore(&host->lock, flags);
 #endif
-	
 	pr_debug("%s: %s\n", mmc_hostname(host), __func__);
 
 	host->detect_change = 1;
 #ifdef CONFIG_LGE_ENABLE_MMC_STRENGTH_CONTROL
-	if(host->index == 1)
-	{
-		if(host->card)
-		{	
+	if(host->index == 1) {
+		if(host->card) {
 			clock_flag = 0;
 			voltage_flag = 0;
 		}
-		
 	}
 #endif
 #if defined(CONFIG_MACH_MSM8926_JAGN_KR) || defined(CONFIG_MACH_MSM8926_B2LN_KR) || defined(CONFIG_MACH_MSM8926_VFP_KR) || defined(CONFIG_MACH_MSM8926_AKA_CN) || defined(CONFIG_MACH_MSM8926_E9LTE) || defined(CONFIG_MACH_MSM8926_AKA_KR)
@@ -3377,16 +3365,14 @@ void mmc_rescan(struct work_struct *work)
 	if (host->bus_ops && host->bus_ops->detect && !host->bus_dead
 	    && !(host->caps & MMC_CAP_NONREMOVABLE))
 	{
-		
-	#ifdef CONFIG_MACH_LGE	
-		if(host->bus_ops->detect(host))
-		{
+	#ifdef CONFIG_MACH_LGE
+		if(host->bus_ops->detect(host)) {
 			mmc_bus_put(host);
 			goto out;
 		}
 	#else
 	host->bus_ops->detect(host);
-	#endif 
+	#endif
 	}
 	host->detect_change = 0;
 	/* If the card was removed the bus will be marked
@@ -3876,18 +3862,16 @@ int mmc_pm_notify(struct notifier_block *notify_block,
 		host->rescan_disable = 0;
 		spin_unlock_irqrestore(&host->lock, flags);
 #if defined(CONFIG_MMC_DAMAGED_SDCARD_CTRL)
-		if ( !(host->caps & MMC_CAP_NONREMOVABLE))		// SD Card.
-		{
-			/* LGE_CHANGE_S : bohyun.jung@lge.com 
+		if (!(host->caps & MMC_CAP_NONREMOVABLE)) {		/* SD Card. */
+			/* LGE_CHANGE_S : bohyun.jung@lge.com
 			 * PM manager (kernel/notifier) calls each pm_notifier suspend/restore scenario.
-			 * In case of damaged SD card, init card fails and block to enter deep sleep. 
+			 * In case of damaged SD card, init card fails and block to enter deep sleep.
 			 * Not call mmc_detect_change() for Damaged SD Card.
 			 */
 			if (!host->damaged)
 				mmc_detect_change(host, 0);
 		}
-		else	
-		{
+		else {
 			mmc_detect_change(host, 0);
 		}
 #else

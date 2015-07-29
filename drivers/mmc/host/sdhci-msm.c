@@ -44,8 +44,8 @@
 
 #include "sdhci-pltfm.h"
 
-/// SD_CARD_DET polarity change.
-#if defined(CONFIG_MACH_MSM8226_W7_GLOBAL_COM) || defined(CONFIG_MACH_MSM8226_W7_GLOBAL_SCA) || defined(CONFIG_MACH_MSM8226_W7N_GLOBAL_COM) || defined(CONFIG_MACH_MSM8226_W7N_GLOBAL_SCA) || defined(CONFIG_MACH_MSM8226_G2MDS_OPEN_CIS) || defined(CONFIG_MACH_MSM8226_G2MDS_GLOBAL_COM) || defined(CONFIG_MACH_MSM8226_G2MSS_GLOBAL_COM)|| defined(CONFIG_MACH_MSM8226_JAG3GDS_GLOBAL_COM) || defined(CONFIG_MACH_MSM8226_JAG3GSS_GLOBAL_COM) || defined(CONFIG_MACH_MSM8226_E7WIFI) || defined(CONFIG_MACH_MSM8226_E9WIFI) || defined(CONFIG_MACH_MSM8226_E9WIFIN) || defined(CONFIG_MACH_MSM8226_E8WIFI) || defined(CONFIG_MACH_MSM8926_E8LTE)
+/* SD_CARD_DET polarity change. */
+#if defined(CONFIG_MACH_MSM8226_W7_GLOBAL_COM) || defined(CONFIG_MACH_MSM8226_W7_GLOBAL_SCA) || defined(CONFIG_MACH_MSM8226_W7N_GLOBAL_COM) || defined(CONFIG_MACH_MSM8226_W7N_GLOBAL_SCA) || defined(CONFIG_MACH_MSM8226_G2MDS_OPEN_CIS) || defined(CONFIG_MACH_MSM8226_G2MDS_GLOBAL_COM) || defined(CONFIG_MACH_MSM8226_G2MSS_GLOBAL_COM) || defined(CONFIG_MACH_MSM8226_JAG3GDS_GLOBAL_COM) || defined(CONFIG_MACH_MSM8226_JAG3GSS_GLOBAL_COM) || defined(CONFIG_MACH_MSM8226_E7WIFI) || defined(CONFIG_MACH_MSM8226_E9WIFI) || defined(CONFIG_MACH_MSM8226_E9WIFIN) || defined(CONFIG_MACH_MSM8226_E8WIFI) || defined(CONFIG_MACH_MSM8926_E8LTE)
 #include <mach/board_lge.h>
 #endif /* CONFIG_MACH_MSM8226_W7_OPEN_CIS || CONFIG_MACH_MSM8226_W7_OPEN_EU || CONFIG_MACH_MSM8226_W7_GLOBAL_COM || CONFIG_MACH_MSM8226_W7_GLOBAL_SCA */
 
@@ -1370,7 +1370,7 @@ static struct sdhci_msm_pltfm_data *sdhci_msm_populate_pdata(struct device *dev)
 	int clk_table_len;
 	u32 *clk_table = NULL;
 	enum of_gpio_flags flags = OF_GPIO_ACTIVE_LOW;
-/// SD_CARD_DET polarity change.
+/* SD_CARD_DET polarity change. */
 #if defined(CONFIG_MACH_MSM8226_W7_GLOBAL_COM) || defined(CONFIG_MACH_MSM8226_W7_GLOBAL_SCA) || defined(CONFIG_MACH_MSM8226_W7N_GLOBAL_COM) || defined(CONFIG_MACH_MSM8226_W7N_GLOBAL_SCA) || defined(CONFIG_MACH_MSM8226_E7WIFI) || defined(CONFIG_MACH_MSM8226_E9WIFI) || defined(CONFIG_MACH_MSM8226_E9WIFIN) || defined(CONFIG_MACH_MSM8226_E8WIFI) || defined(CONFIG_MACH_MSM8926_E8LTE)
 	hw_rev_type hw_rev;
 	hw_rev = lge_get_board_revno();
@@ -1384,9 +1384,9 @@ static struct sdhci_msm_pltfm_data *sdhci_msm_populate_pdata(struct device *dev)
 
 	pdata->status_gpio = of_get_named_gpio_flags(np, "cd-gpios", 0, &flags);
 
-/// SD_CARD_DET polarity change.
+/* SD_CARD_DET polarity change. */
 #if defined(CONFIG_MACH_MSM8226_W7_GLOBAL_COM) || defined(CONFIG_MACH_MSM8226_W7_GLOBAL_SCA) || defined(CONFIG_MACH_MSM8226_W7N_GLOBAL_COM) || defined(CONFIG_MACH_MSM8226_W7N_GLOBAL_SCA) || defined(CONFIG_MACH_MSM8226_E7WIFI) || defined(CONFIG_MACH_MSM8226_E9WIFI) || defined(CONFIG_MACH_MSM8226_E9WIFIN) || defined(CONFIG_MACH_MSM8226_E8WIFI) || defined(CONFIG_MACH_MSM8926_E8LTE)
-	if( hw_rev <= HW_REV_A )
+	if (hw_rev <= HW_REV_A)
 		flags = OF_GPIO_ACTIVE_LOW;
 	else
 		flags = 0x0;
@@ -2668,8 +2668,8 @@ static void sdhci_msm_disable_data_xfer(struct sdhci_host *host)
 			!(value & CORE_DEBUG_REG_AHB_HTRANS),
 			CORE_AHB_DATA_DELAY_US, 1);
 #ifdef CONFIG_MACH_MSM8926_X5_SPR
-	if(ret){
-		for(i=0; i<500; i++){
+	if (ret) {
+		for(i = 0; i < 500; i++) {
 			pr_err("%s: %s: can't stop ongoing AHB bus access by ADMA. retry : %d\n",
 					mmc_hostname(host->mmc), __func__, i);
 			ret = readl_poll_timeout_noirq(msm_host->core_mem
@@ -2679,8 +2679,8 @@ static void sdhci_msm_disable_data_xfer(struct sdhci_host *host)
 			if(!ret)
 				break;
 		}
-	}			 
-#endif 
+	}
+#endif
 	if (ret) {
 		pr_err("%s: %s: can't stop ongoing AHB bus access by ADMA\n",
 				mmc_hostname(host->mmc), __func__);
@@ -3037,8 +3037,8 @@ static int __devinit sdhci_msm_probe(struct platform_device *pdev)
 	init_completion(&msm_host->pwr_irq_completion);
 
 #ifdef CONFIG_LGE_ENABLE_MMC_STRENGTH_CONTROL
-	if(msm_host->mmc->index == 1)
-		mmc_control_mmchost = msm_host ;
+	if (msm_host->mmc->index == 1)
+		mmc_control_mmchost = msm_host;
 #endif
 	if (gpio_is_valid(msm_host->pdata->status_gpio)) {
 		ret = mmc_cd_gpio_request(msm_host->mmc,

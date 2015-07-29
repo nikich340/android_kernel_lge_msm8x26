@@ -19,6 +19,14 @@
 /include/ "msm8226-g2mds-camera.dtsi"
 /include/ "msm8226-g2mds-input.dtsi"
 
+/{
+        memory {
+                secure_mem: secure_region {
+                        status = "disabled";
+                };
+	};
+};
+
 &soc {
 	serial@f991f000 {
 		status = "disabled";
@@ -32,6 +40,12 @@
 	i2c@f9925000 {
 		lp5521@32 {
 			status = "disable";
+		};
+	};
+
+	qcom,ion {
+		qcom,ion-heap@8 { /* CP_MM HEAP */
+			status = "disabled";
 		};
 	};
 };

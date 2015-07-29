@@ -140,4 +140,9 @@ config SSM
 	  This driver uses Secure Channel Manager interface for trustzone
 	  communication and communicates with modem over SMD channel.
 
+config LGE_PM_HARDRESET_DISABLE
+	tristate "Disable Hard Reset"
+	default n
+	help
+	  This option disables HARD-RESET at LGE's removal battery Model.
 endmenu

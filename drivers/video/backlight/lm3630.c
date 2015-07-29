@@ -92,7 +92,7 @@ static int lm3630_write_reg(struct i2c_client *client, unsigned char reg, unsign
 static int cur_main_lcd_level = DEFAULT_BRIGHTNESS;
 static int saved_main_lcd_level = DEFAULT_BRIGHTNESS;
 
-#if defined(CONFIG_MACH_LGE) && !defined(CONFIG_MACH_MSM8974_VU3_KR) && !defined(CONFIG_MACH_MSM8974_Z_KR) && !defined(CONFIG_MACH_MSM8974_Z_US) && !defined(CONFIG_OLED_SUPPORT) && !defined(CONFIG_MACH_MSM8926_T8LTE_ATT_US)
+#if defined(CONFIG_MACH_LGE) && !defined(CONFIG_MACH_MSM8974_VU3_KR) && !defined(CONFIG_MACH_MSM8974_Z_KR) && !defined(CONFIG_MACH_MSM8974_Z_US) && !defined(CONFIG_OLED_SUPPORT)
 int backlight_status = BL_OFF;
 #else
 static int backlight_status = BL_OFF;
@@ -236,7 +236,7 @@ void lm3630_backlight_on(int level)
 		pr_info("%s with level %d\n", __func__, level);
 		lm3630_hw_reset();
 
-#if defined(CONFIG_MACH_MSM8226_E7WIFI) || defined(CONFIG_MACH_MSM8226_E8WIFI) || defined(CONFIG_MACH_MSM8926_E8LTE) || defined ( CONFIG_MACH_MSM8926_E7LTE_ATT_US) || defined(CONFIG_MACH_MSM8926_E7LTE_VZW_US) || defined (CONFIG_MACH_MSM8926_E7LTE_USC_US) || defined(CONFIG_MACH_MSM8926_T8LTE_ATT_US)
+#if defined(CONFIG_MACH_MSM8226_E7WIFI) || defined(CONFIG_MACH_MSM8226_E8WIFI) || defined(CONFIG_MACH_MSM8926_E8LTE) || defined ( CONFIG_MACH_MSM8926_E7LTE_ATT_US) || defined(CONFIG_MACH_MSM8926_E7LTE_VZW_US) || defined (CONFIG_MACH_MSM8926_E7LTE_USC_US) || defined (CONFIG_MACH_MSM8926_E8LTE_KR)
 		lm3630_write_reg(main_lm3630_dev->client, 0x02, 0x50); //OVP 32V, OCP 1.0A Boost Freq. 500Khz
 
 		if( lm3630_pwm_enable ) {

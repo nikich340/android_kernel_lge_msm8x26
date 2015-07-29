@@ -99,11 +99,11 @@ static ssize_t power_supply_show_property(struct device *dev,
 		, "BMS"
 		, "Max17048"
 #endif
-#ifdef CONFIG_CHG_DETECTOR_MAX14656
-                , "Max14656"
-#endif
 #ifdef CONFIG_LGE_WIRELESS_CHARGER_RT9536
 		, "Wireless"
+#ifdef CONFIG_CHG_DETECTOR_MAX14656
+		, "Max14656"
+#endif
 #endif
 	};
 	static char *status_text[] = {
@@ -478,11 +478,6 @@ static struct device_attribute power_supply_attrs[] = {
 #ifdef CONFIG_MAX17048_FUELGAUGE
 	POWER_SUPPLY_ATTR(use_fuelgauge),
 #endif
-#ifdef CONFIG_CHG_DETECTOR_MAX14656
-	POWER_SUPPLY_ATTR(usb_chg_detect_done),
-	POWER_SUPPLY_ATTR(usb_chg_type),
-	POWER_SUPPLY_ATTR(usb_dcd_timeout),
-#endif
 #ifdef CONFIG_LGE_WIRELESS_CHARGER_RT9536
 	POWER_SUPPLY_ATTR(enabled),
 #endif
@@ -490,7 +485,15 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(charger_timer),
 #endif
 #ifdef CONFIG_LGE_PM_FIX_CEC_FAIL
-POWER_SUPPLY_ATTR(cv_lock),
+	POWER_SUPPLY_ATTR(cv_lock),
+#endif
+#ifdef CONFIG_LGE_PM_SUPPORT_WEAK_BATTERYPACK
+	POWER_SUPPLY_ATTR(batterypack_online),
+#endif
+#ifdef CONFIG_CHG_DETECTOR_MAX14656
+	POWER_SUPPLY_ATTR(usb_chg_detect_done),
+	POWER_SUPPLY_ATTR(usb_chg_type),
+	POWER_SUPPLY_ATTR(usb_dcd_timeout),
 #endif
 	/* Properties of type `const char *' */
 	POWER_SUPPLY_ATTR(model_name),

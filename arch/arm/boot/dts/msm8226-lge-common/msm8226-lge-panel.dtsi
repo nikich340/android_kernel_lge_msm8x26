@@ -201,7 +201,7 @@
 		qcom,mdss-pan-physical-height-dimension = < 103 >;
 		qcom,mdss-dsi-bpp = <24>;
 		qcom,mdss-dsi-color-order = "rgb_swap_rgb";
-		qcom,mdss-dsi-underflow-color = <0x0>;
+		qcom,mdss-dsi-underflow-color = <0xff>;
 		qcom,mdss-dsi-border-color = <0>;
 		qcom,mdss-dsi-on-command = [39 01 00 00 00 00 04 /* set EXTC */
 		B9 FF 83 89
@@ -876,7 +876,7 @@
 			39 01 00 00 00 00 04
 			B9 00 03 04
 			15 01 00 00 00 00 02
-			BB 24
+			BB 25
 
 			15 01 00 00 00 00 02
 			36 00
@@ -888,20 +888,20 @@
 			39 01 00 00 00 00 03
 			D7 00 B6
 			39 01 00 00 00 00 03
-			BD 00 23
+			BD 03 23
 
 			39 01 00 00 00 00 0A
-			D0 00 26 74 14 00 00 32 03 03
+			D0 00 37 74 23 00 00 32 03 03
 			39 01 00 00 00 00 0A
-			D1 00 26 74 14 00 00 32 03 03
+			D1 00 37 74 23 08 00 32 03 03
 			39 01 00 00 00 00 0A
-			D2 00 26 74 14 00 00 32 03 03
+			D2 00 37 74 23 00 00 32 03 03
 			39 01 00 00 00 00 0A
-			D3 00 26 74 14 00 00 32 03 03
+			D3 00 37 74 23 08 00 32 03 03
 			39 01 00 00 00 00 0A
-			D4 00 26 74 14 00 00 32 03 03
+			D4 00 37 74 23 00 00 32 03 03
 			39 01 00 00 00 00 0A
-			D5 00 26 74 14 00 00 32 03 03
+			D5 00 37 74 23 08 00 32 03 03
 
 			/* Image Enhancer for Sharpen */
 			39 01 00 00 00 00 04
@@ -1919,7 +1919,7 @@
 		qcom,mdss-pan-physical-height-dimension = < 110 >;
 		qcom,mdss-dsi-bpp = <24>;
 		qcom,mdss-dsi-color-order = "rgb_swap_rgb";
-		qcom,mdss-dsi-underflow-color = <0x0>;
+		qcom,mdss-dsi-underflow-color = <0xff>;
 		qcom,mdss-dsi-lp11-init =<1>;
 		qcom,mdss-dsi-border-color = <0>;
 
@@ -2258,7 +2258,7 @@ dsi_lh500wx9_vid_b: qcom,mdss_dsi_lh500wx9_720p_video_b {
 		qcom,mdss-pan-physical-height-dimension = < 110 >;
 		qcom,mdss-dsi-bpp = <24>;
 		qcom,mdss-dsi-color-order = "rgb_swap_rgb";
-		qcom,mdss-dsi-underflow-color = <0x0>;
+		qcom,mdss-dsi-underflow-color = <0xff>;
 		qcom,mdss-dsi-lp11-init =<1>;
 		qcom,mdss-dsi-border-color = <0>;
 		qcom,mdss-dsi-on-command = [

@@ -126,9 +126,9 @@
 
 #ifdef CONFIG_LGE_AUDIO_AUX
 #define WCD9XXX_V_CS_HS_MAX 850
-#else // Original
+#else /* Original */
 #define WCD9XXX_V_CS_HS_MAX 500
-#endif //CONFIG_LGE_AUDIO_AUX
+#endif /* CONFIG_LGE_AUDIO_AUX */
 #ifdef CONFIG_MACH_LGE
 #define WCD9XXX_V_CS_NO_MIC 10
 #else
@@ -206,14 +206,14 @@ enum {
 static ssize_t lge_hsd_print_name(struct switch_dev *sdev, char *buf)
 {
 	switch (switch_get_state(sdev)) {
-		case NO_DEVICE:
-			return sprintf(buf, "No Device");
-		case LGE_HEADSET:
-			return sprintf(buf, "Headset");
-		case LGE_HEADSET_NO_MIC:
-			return sprintf(buf, "Headphone");
-		default:
-			break;
+	case NO_DEVICE:
+		return sprintf(buf, "No Device");
+	case LGE_HEADSET:
+		return sprintf(buf, "Headset");
+	case LGE_HEADSET_NO_MIC:
+		return sprintf(buf, "Headphone");
+	default:
+		break;
 	}
 	return -EINVAL;
 }
@@ -607,6 +607,24 @@ static void wcd9xxx_codec_switch_cfilt_mode(struct wcd9xxx_mbhc *mbhc,
 	}
 }
 
+#if defined(CONFIG_LGE_MBHC_TWIST_HEADSET)
+static bool wcd9xxx_check_jack_report(struct wcd9xxx_mbhc *mbhc,
+				struct snd_soc_jack *jack, int old_jack, int new_jack, int status)
+{
+	if(((old_jack&SND_JACK_HEADSET) && (new_jack&SND_JACK_LINEOUT))||
+		((old_jack&SND_JACK_LINEOUT) && (new_jack&SND_JACK_HEADSET))){
+		wcd9xxx_resmgr_cond_update_cond(mbhc->resmgr,
+						WCD9XXX_COND_HPH_MIC,
+						status & SND_JACK_MICROPHONE);
+		wcd9xxx_resmgr_cond_update_cond(mbhc->resmgr,
+						WCD9XXX_COND_HPH,
+						status & SND_JACK_HEADPHONE);
+		return true;
+	}
+	return false;
+}
+#endif
+
 static void wcd9xxx_jack_report(struct wcd9xxx_mbhc *mbhc,
 				struct snd_soc_jack *jack, int status, int mask)
 {
@@ -882,13 +900,20 @@ static void wcd9xxx_insert_detect_setup(struct wcd9xxx_mbhc *mbhc, bool ins)
 static void wcd9xxx_report_plug(struct wcd9xxx_mbhc *mbhc, int insertion,
 				enum snd_jack_types jack_type)
 {
+#if defined(CONFIG_LGE_MBHC_TWIST_HEADSET)
+	bool lineout_flag=false;
+#endif
 	WCD9XXX_BCL_ASSERT_LOCKED(mbhc->resmgr);
 
 	pr_debug("%s: enter insertion %d hph_status %x\n",
 		 __func__, insertion, mbhc->hph_status);
 	if (!insertion) {
 		/* Report removal */
+#if defined(CONFIG_LGE_MBHC_TWIST_HEADSET)
+		mbhc->hph_status = 0;
+#else
 		mbhc->hph_status &= ~jack_type;
+#endif
 		/*
 		 * cancel possibly scheduled btn work and
 		 * report release if we reported button press
@@ -948,6 +973,11 @@ static void wcd9xxx_report_plug(struct wcd9xxx_mbhc *mbhc, int insertion,
 			pr_debug("%s: Reporting removal (%x)\n",
 				 __func__, mbhc->hph_status);
 			mbhc->zl = mbhc->zr = 0;
+#if defined(CONFIG_LGE_MBHC_TWIST_HEADSET)
+			if(wcd9xxx_check_jack_report(mbhc,&mbhc->headset_jack,mbhc->hph_status,jack_type, 0))
+				lineout_flag = true;
+			else
+#endif
 			wcd9xxx_jack_report(mbhc, &mbhc->headset_jack,
 					    0, WCD9XXX_JACK_MASK);
 			mbhc->hph_status &= ~(SND_JACK_HEADSET |
@@ -985,6 +1015,10 @@ static void wcd9xxx_report_plug(struct wcd9xxx_mbhc *mbhc, int insertion,
 
 		pr_debug("%s: Reporting insertion %d(%x)\n", __func__,
 			 jack_type, mbhc->hph_status);
+
+#if defined(CONFIG_LGE_MBHC_TWIST_HEADSET)
+		if (!((jack_type == SND_JACK_LINEOUT) && (lineout_flag == true)))
+#endif
 		wcd9xxx_jack_report(mbhc, &mbhc->headset_jack,
 				    mbhc->hph_status, WCD9XXX_JACK_MASK);
 		pr_info("[LGE MBHC] Headset is Inserted. jack_type:0x%x\n", jack_type);
@@ -1541,11 +1575,11 @@ wcd9xxx_cs_find_plug_type(struct wcd9xxx_mbhc *mbhc,
 
 #ifdef CONFIG_LGE_AUDIO_AUX
     if ((dt->_type == PLUG_TYPE_HEADSET) && (680 < vdce)) {
-        if (mbhc->mbhc_cfg->micbias_enable_flags & (1 << MBHC_MICBIAS_ENABLE_THRESHOLD_HEADSET))
-            mbhc->micbias_enable = true;
-        printk("[LGE MBHC]: Iphone5 earjack Bias Always on\n");
+		if (mbhc->mbhc_cfg->micbias_enable_flags & (1 << MBHC_MICBIAS_ENABLE_THRESHOLD_HEADSET))
+			mbhc->micbias_enable = true;
+		printk("[LGE MBHC]: Iphone5 earjack Bias Always on\n");
     }
-#endif //CONFIG_LGE_AUDIO_AUX
+#endif /* CONFIG_LGE_AUDIO_AUX */
 	if (dmicbias) {
 		if (dmicbias->_type == PLUG_TYPE_HEADSET &&
 		    (dt->_type == PLUG_TYPE_HIGH_HPH ||
@@ -1604,8 +1638,7 @@ wcd9xxx_cs_find_plug_type(struct wcd9xxx_mbhc *mbhc,
 			type = PLUG_TYPE_HEADSET;
 			mbhc->micbias_enable = true;
 			pr_info("[LGE MBHC] High Impedance Headset(Apple) is detected. Enable MICBIAS and report 4pin headset.\n");
-		}
-		else {
+		} else {
 			type = PLUG_TYPE_LGE_AUX;
 			pr_info("[LGE MBHC] AUX cable is found. Wait until insertion becomes stable.\n");
 		}
@@ -2929,17 +2962,17 @@ static bool wcd9xxx_mbhc_fw_validate(const void *data, size_t size)
 	 * Previous check guarantees that there is enough fw data up
 	 * to num_btn
 	 */
-        btn_cfg = WCD9XXX_MBHC_CAL_BTN_DET_PTR(fw.data);
-        cfg_offset = (u32) ((void *) btn_cfg - (void *) fw.data);
-        if (fw.size < (cfg_offset + WCD9XXX_MBHC_CAL_BTN_SZ(btn_cfg)))
+		btn_cfg = WCD9XXX_MBHC_CAL_BTN_DET_PTR(fw.data);
+		cfg_offset = (u32) ((void *) btn_cfg - (void *) fw.data);
+		if (fw.size < (cfg_offset + WCD9XXX_MBHC_CAL_BTN_SZ(btn_cfg)))
 		return false;
 
 	/*
 	 * Previous check guarantees that there is enough fw data up
 	 * to start of impedance detection configuration
 	 */
-        imped_cfg = WCD9XXX_MBHC_CAL_IMPED_DET_PTR(fw.data);
-        cfg_offset = (u32) ((void *) imped_cfg - (void *) fw.data);
+		imped_cfg = WCD9XXX_MBHC_CAL_IMPED_DET_PTR(fw.data);
+		cfg_offset = (u32) ((void *) imped_cfg - (void *) fw.data);
 
 	if (fw.size < (cfg_offset + WCD9XXX_MBHC_CAL_IMPED_MIN_SZ))
 		return false;
@@ -3800,7 +3833,7 @@ irqreturn_t wcd9xxx_dce_handler(int irq, void *data)
 
 		mask = wcd9xxx_get_button_mask(btn);
 #ifdef CONFIG_MACH_LGE
-		if (!(mask & (SND_JACK_BTN_0 |SND_JACK_BTN_1 | SND_JACK_BTN_2 | SND_JACK_BTN_3))) {
+		if (!(mask & (SND_JACK_BTN_0 | SND_JACK_BTN_1 | SND_JACK_BTN_2 | SND_JACK_BTN_3))) {
 			pr_info("[LGE MBHC] Unsupported button event. Ignore button event.\n");
 			goto done;
 		}
@@ -4313,7 +4346,7 @@ static void wcd9xxx_mbhc_fw_read(struct work_struct *work)
 	struct wcd9xxx_mbhc *mbhc;
 	struct snd_soc_codec *codec;
 	const struct firmware *fw;
-        struct firmware_cal *fw_data = NULL;
+	struct firmware_cal *fw_data = NULL;
 	int ret = -1, retry = 0;
 	bool use_default_cal = false;
 
@@ -4324,13 +4357,13 @@ static void wcd9xxx_mbhc_fw_read(struct work_struct *work)
 	while (retry < FW_READ_ATTEMPTS) {
 		retry++;
 		pr_debug("%s:Attempt %d to request MBHC firmware\n",
-                               __func__, retry);
+					__func__, retry);
 		if (mbhc->mbhc_cb->get_hwdep_fw_cal)
 			fw_data = mbhc->mbhc_cb->get_hwdep_fw_cal(codec,
 					WCD9XXX_MBHC_CAL);
 		if (!fw_data)
 			ret = request_firmware(&fw, "wcd9320/wcd9320_mbhc.bin",
-                                       codec->dev);
+									codec->dev);
 		/*
 		* if request_firmware and hwdep cal both fail then
 		* retry for few times before bailing out

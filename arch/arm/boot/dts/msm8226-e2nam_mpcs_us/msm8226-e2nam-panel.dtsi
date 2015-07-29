@@ -25,7 +25,6 @@
 		vddio-supply = <&pm8226_l8>;
 		vdda-supply = <&pm8226_l4>;
 
-		/delete-property/ qcom,platform-enable-gpio;
 		qcom,platform-enable-1st-gpio = <&msmgpio 60 0>; /* not used after rev 1.0 */
 		qcom,platform-enable-2nd-gpio = <&msmgpio 64 0>; /* used rev 1.0 */
 		qcom,platform-iovcc-gpio = <&msmgpio 23 0>;

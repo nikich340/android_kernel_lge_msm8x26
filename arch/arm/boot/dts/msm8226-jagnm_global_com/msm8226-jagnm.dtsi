@@ -21,6 +21,14 @@
 /include/ "msm8226-jagnm-nfc.dtsi"  /* LGE_CHANGE, [NFC][garam.kim@lge.com], NFC Bring up */
 /include/ "msm8226-jagnm-bt.dtsi" /* LGE_CHANGE, [BT] Bring up */
 
+/{
+        memory {
+                secure_mem: secure_region {
+                        status = "disabled";
+                };
+	};
+};
+
 &soc {
 	serial@f991f000 {
 		status = "disabled";
@@ -106,6 +114,12 @@
 		status = "ok";
 	};
 	/* LGE_CHANGE_E, 2014-02-26, cheolyong.yu@lge.com, IrRC Bring up */
+
+	qcom,ion {
+		qcom,ion-heap@8 { /* CP_MM HEAP */
+			status = "disabled";
+		};
+	};
 };
 
 &soc {

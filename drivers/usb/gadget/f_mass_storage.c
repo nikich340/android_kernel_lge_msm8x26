@@ -406,7 +406,7 @@ static char *envp_mode[][2] = {
 static char *envp_mode[2] = {"AUTORUN=change_mode", NULL};
 #endif
 
-enum chg_mode_state{
+enum chg_mode_state {
 	MODE_STATE_UNKNOWN = 0,
 	MODE_STATE_ACM,
 	MODE_STATE_MTP,
@@ -714,14 +714,14 @@ static void bulk_in_complete(struct usb_ep *ep, struct usb_request *req)
 		usb_ep_fifo_flush(ep);
 
 #ifdef CONFIG_USB_G_LGE_ANDROID
-    if (!common) {
+	if (!common) {
 		pr_info("QCT_TESTCODE %s: Driver_data is already free!!\n", __func__);
 		return;
-    }
-    if (!common->running) {
-        pr_info("%s: is not running\n", __func__);
-        return;
-    }
+	}
+	if (!common->running) {
+		pr_info("%s: is not running\n", __func__);
+		return;
+	}
 #endif
 
 	/* Hold the lock while we update the request and buffer states */
@@ -746,14 +746,14 @@ static void bulk_out_complete(struct usb_ep *ep, struct usb_request *req)
 		usb_ep_fifo_flush(ep);
 
 #ifdef CONFIG_USB_G_LGE_ANDROID
-    if (!common) {
+	if (!common) {
 		pr_info("QCT_TESTCODE %s: Driver_data is already free!!\n", __func__);
 		return;
-    }
-    if (!common->running) {
-        pr_info("%s: is not running\n", __func__);
-        return;
-    }
+	}
+	if (!common->running) {
+		pr_info("%s: is not running\n", __func__);
+		return;
+	}
 #endif
 
 	/* Hold the lock while we update the request and buffer states */
@@ -1467,29 +1467,31 @@ static int do_ack_status(struct fsg_common *common, struct fsg_buffhd *bh, u8 ac
 {
 	u8	*buf = (u8 *) bh->buf;
 
-	if (!common->curlun) {		/* Unsupported LUNs are okay */
+	/* Unsupported LUNs are okay */
+	if (!common->curlun) {
 		common->bad_lun_okay = 1;
-		memset(buf, 0, 1);
 		buf[0] = 0xf;
 		return 1;
 	}
 
 	buf[0] = ack;
 
-/*  Old froyo version */
-/* 	if(ack == SUB_ACK_STATUS_ACM)
+	/*  Old froyo version */
+	/*
+	if (ack == SUB_ACK_STATUS_ACM)
 		buf[0] = SUB_ACK_STATUS_ACM;
-	else if(ack == SUB_ACK_STATUS_MTP)
+	else if (ack == SUB_ACK_STATUS_MTP)
 		buf[0] = SUB_ACK_STATUS_MTP;
-	else if(ack == SUB_ACK_STATUS_UMS)
+	else if (ack == SUB_ACK_STATUS_UMS)
 		buf[0] = SUB_ACK_STATUS_UMS;
-	else if(ack == SUB_ACK_STATUS_ASK)
+	else if (ack == SUB_ACK_STATUS_ASK)
 		buf[0] = SUB_ACK_STATUS_ASK;
-	else if(ack == SUB_ACK_STATUS_CGO)
+	else if (ack == SUB_ACK_STATUS_CGO)
 		buf[0] = SUB_ACK_STATUS_CGO;
-	else if(ack == SUB_ACK_STATUS_TET)
+	else if (ack == SUB_ACK_STATUS_TET)
 		buf[0] = SUB_ACK_STATUS_TET;
-*/
+	*/
+
 	return 1;
 }
 
@@ -1499,9 +1501,9 @@ static int do_get_sw_ver(struct fsg_common *common, struct fsg_buffhd *bh)
 	char sw_ver[9] = {0, };
 	/* msm_get_SW_VER_type(sw_ver); */
 	if (lgeusb_get_sw_ver(sw_ver) < 0)
-		strcpy(sw_ver, "00000000");
+		strlcpy(sw_ver, "00000000", sizeof(sw_ver) - 1);
 	memset(buf, 0, 9);
-	strcpy(buf, sw_ver);
+	strlcpy(buf, sw_ver, FSG_BUFLEN - 1);
 	pr_info("[AUTORUN] %s: sw_ver: %s\n", __func__, buf);
 	return strlen(buf);
 }
@@ -1514,14 +1516,14 @@ static int do_get_serial(struct fsg_common *common, struct fsg_buffhd *bh)
 	u8 imei_hex[7];
 	/* msm_get_MEID_type(imei_temp); */
 	if (lgeusb_get_phone_id(imei_temp) < 0)
-		strcpy(imei_temp, "00000000000000");
+		strlcpy(imei_temp, "00000000000000", sizeof(imei_temp) - 1);
 	ret = hex2bin(imei_hex, imei_temp, 7);
 	if (ret < 0)
 		pr_debug("do_get_serial: invalid hex string\n");
 
-	for (i = 0; i < 7; i++) {
+	for (i = 0; i < 7; i++)
 		buf[6-i] = imei_hex[i];
-	}
+
 	pr_info("[AUTORUN] %s: meid: %s\n", __func__, buf);
 	return 7;
 }
@@ -1532,9 +1534,9 @@ static int do_get_model(struct fsg_common *common, struct fsg_buffhd *bh)
 
 	char model[7] = {0, };
 	if (lgeusb_get_model_name(model) < 0)
-		strcpy(buf, "VS930");
+		strlcpy(buf, "VS930", FSG_BUFLEN - 1);
 	else
-		strcpy(buf, model);
+		strlcpy(buf, model, FSG_BUFLEN - 1);
 	pr_info("[AUTORUN] %s: model: %s\n", __func__, buf);
 	return strlen(buf);
 }
@@ -1553,7 +1555,8 @@ static int do_get_sub_ver(struct fsg_common *common, struct fsg_buffhd *bh)
 			*buf = 'a' + sub_ver[1] - '0' - 87;
 		else if (sub_ver[0] == '2')
 			*buf = 'k' + sub_ver[1] - '0' - 87;
-		else if (sub_ver[0] == '3' && (sub_ver[1] < '6' &&  sub_ver[1] >= '0'))
+		else if (sub_ver[0] == '3' &&
+				(sub_ver[1] < '6' &&  sub_ver[1] >= '0'))
 			*buf = 'u' + sub_ver[1] - '0' - 87;
 		else
 			*buf = 0;
@@ -2345,7 +2348,7 @@ void send_drv_state_uevent(int usb_drv_state)
 	char *uninstalled[2] = {"USB_DRV=uninstalled", NULL};
 	char *installed[2]   = {"USB_DRV=installed", NULL};
 	char **uevent_envp = NULL;
-	
+
 	uevent_envp = usb_drv_state ? installed : uninstalled;
 	kobject_uevent_env(&autorun_device.this_device->kobj, KOBJ_CHANGE, uevent_envp);
 	pr_err("%s: snet uevent %s\n", __func__, uevent_envp[0]);
@@ -3082,10 +3085,10 @@ static void handle_exception(struct fsg_common *common)
 			for (i = 0; i < fsg_num_buffers; ++i) {
 				bh = &common->buffhds[i];
 #ifdef CONFIG_USB_G_LGE_ANDROID
-                if (common->fsg->bulk_in->desc == NULL)
-                    bh->inreq_busy = 0;
-                if (common->fsg->bulk_out->desc == NULL)
-                    bh->outreq_busy = 0;
+				if (common->fsg->bulk_in->desc == NULL)
+					bh->inreq_busy = 0;
+				if (common->fsg->bulk_out->desc == NULL)
+					bh->outreq_busy = 0;
 #endif
 				num_active += bh->inreq_busy + bh->outreq_busy;
 			}
@@ -3300,7 +3303,7 @@ static ssize_t fsg_show_usbmode(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	int ret;
-	ret = sprintf(buf, "%d", user_mode);
+	ret = snprintf(buf, PAGE_SIZE, "%d", user_mode);
 	return ret;
 }
 
@@ -3310,7 +3313,7 @@ static ssize_t fsg_store_usbmode(struct device *dev,
 	int ret = 0;
 	unsigned long tmp;
 
-	ret = strict_strtoul(buf, 10, &tmp);
+	ret = kstrtoul(buf, 10, &tmp);
 	if (ret)
 		return -EINVAL;
 

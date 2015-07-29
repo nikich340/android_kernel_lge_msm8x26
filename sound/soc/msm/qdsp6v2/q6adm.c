@@ -9,7 +9,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-	 
+
 
 #include <linux/slab.h>
 #include <linux/wait.h>
@@ -27,6 +27,11 @@
 
 #include "audio_acdb.h"
 
+#define LVVE
+#if defined(LVVE)
+#define VPM_TX_SM_LVVEFQ    (0x1000BFF0)
+#define VPM_TX_DM_LVVEFQ    (0x1000BFF1)
+#endif
 
 #define TIMEOUT_MS 1000
 
@@ -1203,6 +1208,10 @@ int adm_open(int port_id, int path, int rate, int channel_mode, int topology,
 
 		open.topology_id = topology;
 		if ((open.topology_id == VPM_TX_SM_ECNS_COPP_TOPOLOGY) ||
+#if defined(LVVE)
+			(open.topology_id == VPM_TX_SM_LVVEFQ)||
+			(open.topology_id == VPM_TX_DM_LVVEFQ)||
+#endif
 			(open.topology_id == VPM_TX_DM_FLUENCE_COPP_TOPOLOGY) ||
 			(open.topology_id == VPM_TX_DM_RFECNS_COPP_TOPOLOGY))
 				rate = 16000;

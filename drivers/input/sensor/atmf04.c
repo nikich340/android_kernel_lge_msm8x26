@@ -29,10 +29,6 @@
 #include <linux/sysdev.h>
 #endif
 
-#ifdef CONFIG_MACH_MSM8926_T8LTE
-#include <mach/board_lge.h>
-#endif
-
 #include "bs_log.h"
 
 #include "atmf04.h"
@@ -43,6 +39,18 @@
 #define ATMF04_STATUS_RESUME        0
 #define ATMF04_STATUS_SUSPEND       1
 #define ATMF04_STATUS_QUEUE_WORK    2
+
+/* Calibration Check */
+
+#if defined(CONFIG_MACH_MSM8926_T8LTE) || defined(CONFIG_MACH_MSM8226_T8WIFI)
+#define ATMF04_CRCS_DUTY_LOW        535
+#define ATMF04_CRCS_DUTY_HIGH       890
+#define ATMF04_CRCS_COUNT           75
+#else
+#define ATMF04_CRCS_DUTY_LOW        385
+#define ATMF04_CRCS_DUTY_HIGH       645
+#define ATMF04_CRCS_COUNT           50
+#endif
 
 /* I2C Register */
 
@@ -86,6 +94,19 @@
 #define I2C_ADDR_PGM_VER_SUB        0x17
 #endif
 
+#ifdef NEW_ALGORITHM
+/* Calibration Data Backup/Restore */
+#define I2C_ADDR_CMD_OPT 					0x7E
+#define I2C_ADDR_COMMAND 					0x7F
+#define I2C_ADDR_REQ_DATA					0x80
+#define CMD_R_CD_DUTY						0x04		/* Cal Data Duty Read */
+#define CMD_R_CD_REF						0x05		/* Cal Data Ref Read */
+#define CMD_W_CD_DUTY						0x84		/* Cal Data Duty Read */
+#define CMD_W_CD_REF						0x85		/* Cal Data Ref Read */
+#define SZ_CALDATA_UNIT 					16
+int CalData[4][SZ_CALDATA_UNIT];
+#endif
+
 #define BIT_PERCENT_UNIT            8.192
 #define MK_INT(X, Y)                (((int)X << 8)+(int)Y)
 
@@ -96,10 +117,10 @@
 #define OFF_SENSOR                  2
 #define PATH_CAPSENSOR_CAL  "/sns/capsensor_cal.dat"
 
-#ifdef NEW_ALGORITHM
-#define CNT_INITCODE                8
-const unsigned char InitCodeAddr[CNT_INITCODE] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x0E };
-const unsigned char InitCodeVal[CNT_INITCODE] = { 0x00, 0x0C, 0x33, 0x0B, 0x08, 0x64, 0x64, 0x1E };
+#if defined(CONFIG_MACH_MSM8926_T8LTE) || defined(CONFIG_MACH_MSM8226_T8WIFI)
+#define CNT_INITCODE                13
+const unsigned char InitCodeAddr[CNT_INITCODE] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x0C, 0x0D, 0x0E, 0x20, 0x21 };
+const unsigned char InitCodeVal[CNT_INITCODE] = { 0x00, 0x7B, 0x33, 0x0B, 0x08, 0x6F, 0x6C, 0x07, 0x00, 0x13, 0x32, 0x81, 0x20 };
 #else
 #define CNT_INITCODE                7
 const unsigned char InitCodeAddr[CNT_INITCODE] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
@@ -108,6 +129,8 @@ const unsigned char InitCodeVal[CNT_INITCODE] = { 0x00, 0x0A, 0x69, 0x67, 0x0B, 
 
 static struct i2c_driver atmf04_driver;
 static struct workqueue_struct *atmf04_workqueue;
+
+unsigned char fuse_data[SZ_PAGE_DATA];
 
 #ifdef CONFIG_OF
 enum sensor_dt_entry_status {
@@ -206,6 +229,160 @@ void chg_mode(unsigned char flag, struct i2c_client *client)
 	}
 	mdelay(1);
 }
+
+#ifdef NEW_ALGORITHM
+int Backup_CalData(struct i2c_client *client)
+{
+	int loop, dloop;
+	int ret;
+
+	for(loop = 0 ; loop < 2 ; loop++)
+	{
+		ret = i2c_smbus_write_byte_data(client,I2C_ADDR_CMD_OPT, loop);
+		if (ret) {
+			PERR("i2c_write_fail(%d)", ret);
+			return ret;
+		}
+		ret = i2c_smbus_write_byte_data(client,I2C_ADDR_COMMAND, CMD_R_CD_DUTY);
+		if (ret) {
+			PERR("i2c_write_fail(%d)", ret);
+			return ret;
+		}
+
+		mdelay(1);		/* 1 ms Delay */
+
+		for(dloop = 0; dloop < SZ_CALDATA_UNIT ; dloop++)
+			CalData[loop][dloop] = i2c_smbus_read_byte_data(client,I2C_ADDR_REQ_DATA + dloop);
+	}
+
+	for(loop = 0 ; loop < 2 ; loop++)
+	{
+		ret = i2c_smbus_write_byte_data(client,I2C_ADDR_CMD_OPT, loop);
+		if (ret) {
+			PERR("i2c_write_fail(%d)", ret);
+			return ret;
+		}
+		ret = i2c_smbus_write_byte_data(client,I2C_ADDR_COMMAND, CMD_R_CD_REF);
+		if (ret) {
+			PERR("i2c_write_fail(%d)", ret);
+			return ret;
+		}
+
+		mdelay(1);		/* 1 ms Delay */
+
+		for(dloop = 0; dloop < SZ_CALDATA_UNIT ; dloop++)
+			CalData[2+loop][dloop] = i2c_smbus_read_byte_data(client,I2C_ADDR_REQ_DATA + dloop);
+	}
+
+	if (CalData[0][0] == 0xFF || (CalData[0][0] == 0x00 && CalData[0][1] == 0x00))
+	{
+		PERR("atmf04: Invalid cal data, Not back up this value.");
+		return -1;
+	}
+
+	for(loop =0;loop<2;loop++)
+	{
+		for(dloop=0;dloop < SZ_CALDATA_UNIT ; dloop++)
+			PINFO("atmf04: backup_caldata data[%d][%d] : %d", loop, dloop, CalData[loop][dloop]);
+	}
+
+	PINFO("atmf04 backup_cal success");
+	return 0;
+}
+
+int Write_CalData(struct i2c_client *client)
+{
+	int loop, dloop;
+	int ret;
+
+	for(loop = 0 ; loop < 2 ; loop++)
+	{
+		ret = i2c_smbus_write_byte_data(client,I2C_ADDR_CMD_OPT, loop);
+		if (ret) {
+			PERR("i2c_write_fail(%d)", ret);
+			return ret;
+		}
+		ret =i2c_smbus_write_byte_data(client,I2C_ADDR_COMMAND, CMD_W_CD_DUTY);
+		if (ret) {
+			PERR("i2c_write_fail(%d)", ret);
+			return ret;
+		}
+
+		mdelay(1);		/* 1 ms Delay */
+
+		for(dloop = 0; dloop < SZ_CALDATA_UNIT ; dloop++)
+		{
+			ret = i2c_smbus_write_byte_data(client,I2C_ADDR_REQ_DATA + dloop, CalData[loop][dloop]);
+			if (ret) {
+				PERR("i2c_write_fail(%d)", ret);
+				return ret;
+			}
+
+		}
+	}
+
+	for(loop = 0 ; loop < 2 ; loop++)
+	{
+		ret = i2c_smbus_write_byte_data(client,I2C_ADDR_CMD_OPT, loop);
+		if (ret) {
+			PERR("i2c_write_fail(%d)", ret);
+			return ret;
+		}
+		ret = i2c_smbus_write_byte_data(client,I2C_ADDR_COMMAND, CMD_W_CD_REF);
+		if (ret) {
+			PERR("i2c_write_fail(%d)", ret);
+			return ret;
+		}
+
+		mdelay(1);		/* 1 ms Delay */
+
+		for(dloop = 0; dloop < SZ_CALDATA_UNIT ; dloop++)
+		{
+			ret = i2c_smbus_write_byte_data(client,I2C_ADDR_REQ_DATA + dloop, CalData[2+loop][dloop]);
+			if (ret) {
+				PERR("i2c_write_fail(%d)", ret);
+				return ret;
+			}
+
+		}
+	}
+	return 0;
+}
+
+int RestoreProc_CalData(struct atmf04_data *data, struct i2c_client *client)
+{
+	int loop;
+	int ret;
+	/* Power On */
+	gpio_direction_output(data->platform_data->chip_enable, 0);
+	mdelay(450);
+
+
+	/* Calibration data write */
+	ret = Write_CalData(client);
+	if(ret)
+		return ret;
+
+	/* Initial code write */
+	for(loop = 0 ; loop < CNT_INITCODE ; loop++) {
+		ret = i2c_smbus_write_byte_data(client, InitCodeAddr[loop], InitCodeVal[loop]);
+		if (ret) {
+			PINFO("i2c_write_fail[0x%x]", InitCodeAddr[loop]);
+		}
+		PINFO("[0x%x][0x%x]", InitCodeAddr[loop], i2c_smbus_read_byte_data(client, InitCodeAddr[loop]));
+	}
+
+	/* E-flash Data Save Command */
+	i2c_smbus_write_byte_data(client, I2C_ADDR_SYS_CTRL, 0x80);
+
+	mdelay(50);		/* 50ms delay */
+
+	/* Software Reset2 */
+	i2c_smbus_write_byte_data(client,I2C_ADDR_SYS_CTRL, 0x02);
+	PINFO("atmf04 restore_cal success");
+	return 0;
+}
+#endif
 
 unsigned char chk_done(unsigned int wait_cnt, struct i2c_client *client)
 {
@@ -339,6 +516,9 @@ unsigned char load_firmware(struct atmf04_data *data, struct i2c_client *client,
 	unsigned char page_addr[2];
 	unsigned char fw_version, ic_fw_version, page_num;
 	int version_addr;
+#ifdef NEW_ALGORITHM
+	int restore = 0;
+#endif
 
 	gpio_direction_output(data->platform_data->chip_enable, 0);
 
@@ -363,10 +543,40 @@ unsigned char load_firmware(struct atmf04_data *data, struct i2c_client *client,
 	ic_fw_version = MK_INT(main_version, sub_version);
 	PINFO("ic version : %d.%d, ic_fw_version : %d\n", main_version, sub_version, ic_fw_version);
 
-	if (fw_version > ic_fw_version) {
+	if (fw_version > ic_fw_version || fw->data[version_addr] > main_version) {
 		//mdelay(200);
+#ifdef NEW_ALGORITHM
+		if (ic_fw_version == 0)
+			restore = 0;
+		else {
+			if (Backup_CalData(client) < 0)
+				restore = 0;
+			else
+				restore = 1;
+		}
+#endif
+		/* IC Download Mode Change */
 		chg_mode(ON, client);
 
+		/* fuse data process */
+		page_addr[0] = 0x00;
+		page_addr[1] = 0x00;
+
+		rtn = read_eflash_page(FLAG_FUSE, page_addr, fuse_data, client);
+		if (rtn != RTN_SUCC) {
+			PERR("read eflash page fail!");
+			return rtn;		/* fuse read fail */
+		}
+
+		fuse_data[51] |= 0x80;
+
+		rtn = write_eflash_page(FLAG_FUSE, page_addr, fuse_data, client);
+		if (rtn != RTN_SUCC) {
+			PERR("write eflash page fail!");
+			return rtn;		/* fuse write fail */
+		}
+
+		/* firmware write process */
 		rtn = erase_eflash(client);
 		if (rtn != RTN_SUCC) {
 			PERR("earse fail");
@@ -414,9 +624,22 @@ unsigned char load_firmware(struct atmf04_data *data, struct i2c_client *client,
 	else {
 		PINFO("Not update firmware. Firmware version is lower than ic.(Or same version)");
 	}
+
+	/* IC Download Mode Change */
 	chg_mode(OFF, client);
 	gpio_direction_output(data->platform_data->chip_enable, 1);
+#ifdef NEW_ALGORITHM
+	mdelay(10);
+	if(restore)
+	{
+		ret = RestoreProc_CalData(data, client);
+		if(ret)
+			PERR("restore fail ret: %d",ret);
+	}
+#endif
 	PINFO("disable ok");
+
+	release_firmware(fw);
 
 	return 0;
 }
@@ -469,6 +692,7 @@ static int write_calibration_data(struct atmf04_data *data, char *filename)
 		return -EINVAL;
 	}
 	sys_write(fd,0,sizeof(int));
+	sys_close(fd);
 	PINFO("sys open to save cal.dat");
 
 	return 0;
@@ -503,7 +727,7 @@ static ssize_t atmf04_show_docalibration(struct device *dev,
 	unsigned char  safe_duty;
 
 	/* check safe duty for validation of cal*/
-	safe_duty = i2c_smbus_read_byte_data(client, I2C_ADDR_SAFE_DUTY_CHK | 0x80);
+	safe_duty = i2c_smbus_read_byte_data(client, I2C_ADDR_SAFE_DUTY_CHK & 0x80);
 
 	return sprintf(buf, "%x\n", safe_duty);
 }
@@ -532,7 +756,7 @@ static ssize_t atmf04_store_docalibration(struct device *dev,
 	mdelay(450);
 #endif
 
-	safe_duty = i2c_smbus_read_byte_data(client, I2C_ADDR_SAFE_DUTY_CHK | 0x80);
+	safe_duty = i2c_smbus_read_byte_data(client, I2C_ADDR_SAFE_DUTY_CHK & 0x80);
 	PINFO("safe_duty : %x", safe_duty);
 
 	write_calibration_data(data, PATH_CAPSENSOR_CAL);
@@ -633,6 +857,9 @@ static ssize_t atmf04_show_regproxdata(struct device *dev,
 	char buf_regproxdata[256] = "";
 	char buf_line[64] = "";
 	unsigned char init_touch_md;
+#ifdef AUTO_CAL_ALGORITHM
+	int bit_mask;	/* bit for reading of I2C_ADDR_SYS_STAT */
+#endif
 
 	memset(buf_line, 0, sizeof(buf_line));
 	memset(buf_regproxdata, 0, sizeof(buf_regproxdata));
@@ -655,7 +882,15 @@ static ssize_t atmf04_show_regproxdata(struct device *dev,
 	cap_value = (int)cs_duty_val * (int)cs_per_result;
 	printk("H: %x L:%x H:%x L:%x\n", cr_duty[1], cr_duty[0], cs_duty[1], cs_duty[0]);
 
+#ifdef AUTO_CAL_ALGORITHM
+	if (get_bit(init_touch_md, 2))
+		bit_mask = 2;   /* Normal Mode */
+	else
+		bit_mask = 1;   /* Init Touch Mode */
+	sprintf(buf_line, "[R]%6d %6d %6d %6d %6d\n", get_bit(init_touch_md, bit_mask), cs_per_result, cr_duty_val, cs_duty_val, cap_value);
+#else
 	sprintf(buf_line, "[R]%6d %6d %6d %6d %6d\n", get_bit(init_touch_md,1), cs_per_result, cr_duty_val, cs_duty_val, cap_value);
+#endif
 	nlength = strlen(buf_regproxdata);
 	strcpy(&buf_regproxdata[nlength], buf_line);
 
@@ -682,7 +917,7 @@ static ssize_t atmf04_show_regproxctrl0(struct device *dev,
 {
 	PINFO("ON_SENSOR : %d", on_sensor);
 	if (on_sensor == true)
-#ifdef CONFIG_MACH_MSM8926_T8LTE
+#if defined(CONFIG_MACH_MSM8926_T8LTE) || defined(CONFIG_MACH_MSM8226_T8WIFI)
 		return sprintf(buf,"0x%02x\n",0x05);
 #else
 		return sprintf(buf,"0x%02x\n",0x0C);
@@ -731,6 +966,16 @@ static ssize_t atmf04_show_version(struct device *dev,
 	return sprintf(buf,"%s", buf_regproxdata);
 }
 
+static ssize_t atmf04_show_cal_check(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	struct i2c_client *client = to_i2c_client(dev);
+	unsigned char init_touch_md_check;
+
+	init_touch_md_check = i2c_smbus_read_byte_data(client, I2C_ADDR_SYS_STAT);
+
+	return sprintf(buf,"%d", get_bit(init_touch_md_check,1));
+}
+
 static DEVICE_ATTR(onoff,        0664, NULL, atmf04_store_onoffsensor);
 static DEVICE_ATTR(docalibration,0664, atmf04_show_docalibration, atmf04_store_docalibration);
 static DEVICE_ATTR(checkallnear, 0664, NULL, atmf04_store_checkallnear);
@@ -742,41 +987,41 @@ static DEVICE_ATTR(regreset,     0664, NULL, atmf04_store_regreset);
 static DEVICE_ATTR(regproxctrl0, 0664, atmf04_show_regproxctrl0, NULL);
 static DEVICE_ATTR(download,     0664, NULL, atmf04_store_firmware);
 static DEVICE_ATTR(version,      0664, atmf04_show_version, NULL);
+static DEVICE_ATTR(cal_check,    0664, atmf04_show_cal_check, NULL);
 
 static struct attribute *atmf04_attributes[] = {
-    &dev_attr_onoff.attr,
-    &dev_attr_docalibration.attr,
-    &dev_attr_checkallnear.attr,
-    &dev_attr_cntinputpins.attr,
-    &dev_attr_proxstatus.attr,
-    &dev_attr_reg_ctrl.attr,
-    &dev_attr_regproxdata.attr,
-    &dev_attr_regreset.attr,
-    &dev_attr_regproxctrl0.attr,
+	&dev_attr_onoff.attr,
+	&dev_attr_docalibration.attr,
+	&dev_attr_checkallnear.attr,
+	&dev_attr_cntinputpins.attr,
+	&dev_attr_proxstatus.attr,
+	&dev_attr_reg_ctrl.attr,
+	&dev_attr_regproxdata.attr,
+	&dev_attr_regreset.attr,
+	&dev_attr_regproxctrl0.attr,
 	&dev_attr_download.attr,
 	&dev_attr_version.attr,
-    NULL,
+	&dev_attr_cal_check.attr,
+	NULL,
 };
 
 static struct attribute_group atmf04_attr_group = {
-    .attrs = atmf04_attributes,
+	.attrs = atmf04_attributes,
 };
 
 static void atmf04_reschedule_work(struct atmf04_data *data,
 				     unsigned long delay)
 {
 	int ret;
-	struct i2c_client *client = data->client;
+
 	/*
 	 * If work is already scheduled then subsequent schedules will not
 	 * change the scheduled time that's why we have to cancel it first.
 	 */
-	dev_err(&client->dev, "atmf04_reschedule_work : set wake lock timeout!\n");
-	wake_lock_timeout(&data->cap_wlock, msecs_to_jiffies(1500));
-	cancel_delayed_work(&data->dwork);
+	__cancel_delayed_work(&data->dwork);
 	ret = queue_delayed_work(atmf04_workqueue, &data->dwork, delay);
 	if (ret < 0)
-		PINFO("queue_work fail, ret = %d\n", ret);
+		PERR("queue_work fail, ret = %d\n", ret);
 }
 
 /* assume this is ISR */
@@ -784,10 +1029,9 @@ static irqreturn_t atmf04_interrupt(int vec, void *info)
 {
 	struct i2c_client *client = (struct i2c_client *)info;
 	struct atmf04_data *data = i2c_get_clientdata(client);
-	int tmp = -1;
-	tmp = atomic_read(&data->i2c_status);
 
-	dev_err(&client->dev,"atmf04_interrupt\n");
+	PINFO("-----------> schedule work");
+
 	atmf04_reschedule_work(data, 0);
 
 	return IRQ_HANDLED;
@@ -798,20 +1042,25 @@ static void atmf04_work_handler(struct work_struct *work)
 	struct atmf04_data *data = container_of(work, struct atmf04_data, dwork.work);
 	struct i2c_client *client = data->client;
 
+	if (wake_lock_active(&data->cap_wlock))
+		wake_unlock(&data->cap_wlock);
+
+	wake_lock_timeout(&data->cap_wlock, msecs_to_jiffies(1500));
+
 	data->touch_out = i2c_smbus_read_byte_data(client, I2C_ADDR_TCH_OUTPUT);
 
 	if(data->touch_out) {
 
-        input_report_abs(data->input_dev_cap, ABS_DISTANCE, 0);/* FAR-to-NEAR detection */
-        input_sync(data->input_dev_cap);
+		input_report_abs(data->input_dev_cap, ABS_DISTANCE, 0);/* FAR-to-NEAR detection */
+		input_sync(data->input_dev_cap);
 
 		PINFO("far-to-NEAR");
 	} else {
 
-        input_report_abs(data->input_dev_cap, ABS_DISTANCE, 1);/* NEAR-to-FAR detection */
-        input_sync(data->input_dev_cap);
+		input_report_abs(data->input_dev_cap, ABS_DISTANCE, 1);/* NEAR-to-FAR detection */
+		input_sync(data->input_dev_cap);
 
-        PINFO("near-to-FAR");
+		PINFO("near-to-FAR");
 	}
 }
 
@@ -1153,6 +1402,9 @@ static ssize_t cap_show_regproxdata(struct atmf04_data *data, char *buf)
 	char buf_regproxdata[256] = "";
 	char buf_line[64] = "";
 	unsigned char init_touch_md;
+#ifdef AUTO_CAL_ALGORITHM
+	int bit_mask;	/* bit for reading of I2C_ADDR_SYS_STAT */
+#endif
 
 	memset(buf_line, 0, sizeof(buf_line));
 	memset(buf_regproxdata, 0, sizeof(buf_regproxdata));
@@ -1175,7 +1427,16 @@ static ssize_t cap_show_regproxdata(struct atmf04_data *data, char *buf)
 	cap_value = (int)cs_duty_val * (int)cs_per_result;
 	printk("H: %x L:%x H:%x L:%x\n", cr_duty[1], cr_duty[0], cs_duty[1], cs_duty[0]);
 
+#ifdef AUTO_CAL_ALGORITHM
+	if (get_bit(init_touch_md, 2))
+		bit_mask = 2;	/* Normal Mode */
+	else
+		bit_mask = 1;	/* Init Touch Mode */
+
+	sprintf(buf_line, "[R]%6d %6d %6d %6d %6d\n", get_bit(init_touch_md, bit_mask), cs_per_result, cr_duty_val, cs_duty_val, cap_value);
+#else
 	sprintf(buf_line, "[R]%6d %6d %6d %6d %6d\n", get_bit(init_touch_md,1), cs_per_result, cr_duty_val, cs_duty_val, cap_value);
+#endif
 	nlength = strlen(buf_regproxdata);
 	strcpy(&buf_regproxdata[nlength], buf_line);
 
@@ -1198,12 +1459,113 @@ static ssize_t cap_show_regproxctrl0(struct atmf04_data *data, char *buf)
 {
 	PINFO("atmf04_show_regproxctrl0: %d\n",on_sensor);
 	if (on_sensor == true)
-#ifdef CONFIG_MACH_MSM8926_T8LTE
+#if defined(CONFIG_MACH_MSM8926_T8LTE) || defined(CONFIG_MACH_MSM8226_T8WIFI)
 		return sprintf(buf,"0x%02x\n",0x05);
 #else
 		return sprintf(buf,"0x%02x\n",0x0C);
 #endif
 	return sprintf(buf,"0x%02x\n",0x00);
+}
+
+static ssize_t atmf04_show_check_far(struct atmf04_data *data, char *buf)
+{
+	unsigned char init_touch_md_check;
+	short tmp, cs_per[2], cs_per_result, crcs_count;
+	short cr_duty[2], cs_duty[2], cr_duty_val, cs_duty_val;
+	int bit_mask;   /* bit for reading of I2C_ADDR_SYS_STAT */
+
+	mutex_lock(&data->update_lock);
+
+	cs_per[0] = i2c_smbus_read_byte_data(data->client,I2C_ADDR_PER_H);
+	cs_per[1] = i2c_smbus_read_byte_data(data->client,I2C_ADDR_PER_L);
+	tmp = MK_INT(cs_per[0], cs_per[1]);
+	cs_per_result = tmp / 8;    // BIT_PERCENT_UNIT;
+
+	cr_duty[1] = i2c_smbus_read_byte_data(data->client, I2C_ADDR_CR_DUTY_H);
+	cr_duty[0] = i2c_smbus_read_byte_data(data->client, I2C_ADDR_CR_DUTY_L);
+	cr_duty_val = MK_INT(cr_duty[1], cr_duty[0]);
+
+	cs_duty[1] = i2c_smbus_read_byte_data(data->client, I2C_ADDR_CS_DUTY_H);
+	cs_duty[0] = i2c_smbus_read_byte_data(data->client, I2C_ADDR_CS_DUTY_L);
+	cs_duty_val = MK_INT(cs_duty[1], cs_duty[0]);
+
+	crcs_count = cr_duty_val - cs_duty_val;
+
+	init_touch_md_check = i2c_smbus_read_byte_data(data->client, I2C_ADDR_SYS_STAT);
+
+#ifdef AUTO_CAL_ALGORITHM
+	if (get_bit(init_touch_md_check, 2))
+		bit_mask = 2;   /* Normal Mode */
+	else
+#endif
+		bit_mask = 1;   /* Init Touch Mode */
+
+	if(gpio_get_value(data->platform_data->irq_gpio) == 1) {
+		if ((get_bit(init_touch_md_check, bit_mask) != 1) || (cs_duty_val < ATMF04_CRCS_DUTY_LOW)\
+				||(cr_duty_val < ATMF04_CRCS_DUTY_LOW) || (cs_duty_val > ATMF04_CRCS_DUTY_HIGH)\
+				|| (cr_duty_val > ATMF04_CRCS_DUTY_HIGH) || (cs_per_result < 0) || (crcs_count > ATMF04_CRCS_COUNT)) {
+			printk("1.cal_check : %d, cr_value : %d, cs_value : %d, status : %d Count : %d\n",get_bit(init_touch_md_check,1), cr_duty_val, cs_duty_val, cs_per_result, crcs_count);
+			mutex_unlock(&data->update_lock);
+			return sprintf(buf,"%d",0);
+		}
+		else {
+			printk("2.cal_check : %d, cr_value : %d, cs_value : %d, status : %d Count : %d\n",get_bit(init_touch_md_check,1), cr_duty_val, cs_duty_val, cs_per_result, crcs_count);
+			mutex_unlock(&data->update_lock);
+			return sprintf(buf,"%d",1);
+		}
+	}
+	else {
+		printk("3.cal_check : %d, cr_value : %d, cs_value : %d, status : %d Count : %d\n",get_bit(init_touch_md_check,1), cr_duty_val, cs_duty_val, cs_per_result, crcs_count);
+		mutex_unlock(&data->update_lock);
+		return sprintf(buf,"%d",0);
+	}
+}
+
+static ssize_t atmf04_show_check_mid(struct atmf04_data *data, char *buf)
+{
+	unsigned char init_touch_md_check;
+	short tmp, cs_per[2], cs_per_result, crcs_count;
+	short cr_duty[2], cs_duty[2], cr_duty_val, cs_duty_val;
+	int bit_mask;   /* bit for reading of I2C_ADDR_SYS_STAT */
+
+	mutex_lock(&data->update_lock);
+
+	cs_per[0] = i2c_smbus_read_byte_data(data->client,I2C_ADDR_PER_H);
+	cs_per[1] = i2c_smbus_read_byte_data(data->client,I2C_ADDR_PER_L);
+	tmp = MK_INT(cs_per[0], cs_per[1]);
+	cs_per_result = tmp / 8;    // BIT_PERCENT_UNIT;
+
+	cr_duty[1] = i2c_smbus_read_byte_data(data->client, I2C_ADDR_CR_DUTY_H);
+	cr_duty[0] = i2c_smbus_read_byte_data(data->client, I2C_ADDR_CR_DUTY_L);
+	cr_duty_val = MK_INT(cr_duty[1], cr_duty[0]);
+
+	cs_duty[1] = i2c_smbus_read_byte_data(data->client, I2C_ADDR_CS_DUTY_H);
+	cs_duty[0] = i2c_smbus_read_byte_data(data->client, I2C_ADDR_CS_DUTY_L);
+	cs_duty_val = MK_INT(cs_duty[1], cs_duty[0]);
+
+	crcs_count = cr_duty_val - cs_duty_val;
+
+	init_touch_md_check = i2c_smbus_read_byte_data(data->client, I2C_ADDR_SYS_STAT);
+
+#ifdef AUTO_CAL_ALGORITHM
+	if (get_bit(init_touch_md_check, 2))
+		bit_mask = 2;   /* Normal Mode */
+	else
+#endif
+		bit_mask = 1;   /* Init Touch Mode */
+
+	if ((get_bit(init_touch_md_check, bit_mask) != 1) || (cs_duty_val < ATMF04_CRCS_DUTY_LOW)\
+			||(cr_duty_val < ATMF04_CRCS_DUTY_LOW) || (cs_duty_val > ATMF04_CRCS_DUTY_HIGH)\
+			|| (cr_duty_val > ATMF04_CRCS_DUTY_HIGH) || (cs_per_result < -1) || (crcs_count > ATMF04_CRCS_COUNT)) {
+		printk("1.cal_check : %d, cr_value : %d, cs_value : %d, status : %d Count : %d\n",get_bit(init_touch_md_check,1), cr_duty_val, cs_duty_val, cs_per_result, crcs_count);
+		mutex_unlock(&data->update_lock);
+		return sprintf(buf, "%d", 0);
+	}
+	else {
+		printk("2.cal_check : %d, cr_value : %d, cs_value : %d, status : %d Count : %d\n",get_bit(init_touch_md_check,1), cr_duty_val, cs_duty_val, cs_per_result, crcs_count);
+		mutex_unlock(&data->update_lock);
+		return sprintf(buf, "%d", 1);
+	}
 }
 
 #define LGE_CAP_NAME "lge_cap"
@@ -1226,6 +1588,8 @@ static LGE_CAP_ATTR(proxstatus,   0664, cap_show_proxstatus, NULL);
 static LGE_CAP_ATTR(regproxdata,  0664, cap_show_regproxdata, NULL);
 static LGE_CAP_ATTR(regreset,     0664, NULL, cap_store_regreset);
 static LGE_CAP_ATTR(regproxctrl0, 0664, cap_show_regproxctrl0, NULL);
+static LGE_CAP_ATTR(check_far, 0664, atmf04_show_check_far, NULL);
+static LGE_CAP_ATTR(check_mid, 0664, atmf04_show_check_mid, NULL);
 
 static struct attribute *lge_cap_attribute_list[] = {
 	&lge_cap_attr_onoff.attr,
@@ -1236,6 +1600,8 @@ static struct attribute *lge_cap_attribute_list[] = {
 	&lge_cap_attr_regproxdata.attr,
 	&lge_cap_attr_regreset.attr,
 	&lge_cap_attr_regproxctrl0.attr,
+	&lge_cap_attr_check_far.attr,
+	&lge_cap_attr_check_mid.attr,
 	NULL,
 };
 
@@ -1336,14 +1702,8 @@ static int atmf04_probe(struct i2c_client *client,
 	if (platform_data->init)
 		err = platform_data->init(client);
 
-	if (platform_data->power_on) {
-#ifdef CONFIG_MACH_MSM8926_T8LTE
-		if ((lge_get_boot_mode() == LGE_BOOT_MODE_CHARGERLOGO))
-			err = platform_data->power_on(client, false);
-		else
-#endif
-			err = platform_data->power_on(client, true);
-	}
+	if (platform_data->power_on)
+		err = platform_data->power_on(client, true);
 #endif
 
 	client->adapter->retries = 15;

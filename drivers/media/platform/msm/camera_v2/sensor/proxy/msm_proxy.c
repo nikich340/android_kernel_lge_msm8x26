@@ -897,6 +897,7 @@ int msm_init_proxy(void)
 
 	proxy_i2c_client->cci_client->sid = 0x34 >> 1; // both imx219 and imx091 can use 0x34 for slave address.
 	ret = proxy_i2c_client->i2c_func_tbl->i2c_read(proxy_i2c_client, 0x00, &sensor_chipid, 2); // 2 : WORD_DATA
+
 	if(ret < 0)
 		pr_err("%s, sensor_chipid id read fail !!! ret = %d\n", __func__, ret);
 

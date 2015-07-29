@@ -92,7 +92,7 @@ static inline unsigned ecm_bitrate(struct usb_gadget *g)
  */
 
 #define LOG2_STATUS_INTERVAL_MSEC	5	/* 1 << 5 == 32 msec */
-#ifdef CONFIG_USB_G_LGE_ANDROID	
+#ifdef CONFIG_USB_G_LGE_ANDROID
 #define ECM_STATUS_BYTECOUNT		64  /* (8 byte header + data)*4 */
 #define ECM_STATUS_NOTIFY_REQ_LEN   16
 #else
@@ -221,7 +221,7 @@ static struct usb_endpoint_descriptor fs_ecm_out_desc = {
 
 	.bEndpointAddress =	USB_DIR_OUT,
 	.bmAttributes =		USB_ENDPOINT_XFER_BULK,
-#ifdef CONFIG_USB_G_LGE_ANDROID	
+#ifdef CONFIG_USB_G_LGE_ANDROID
 	.wMaxPacketSize =   cpu_to_le16(ECM_STATUS_BYTECOUNT),
 #endif
 };

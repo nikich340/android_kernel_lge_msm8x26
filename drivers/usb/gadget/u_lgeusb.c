@@ -13,7 +13,7 @@
  * GNU General Public License for more details.
  */
 
-/* 
+/*
  * DGMS MC-C05702-7 : Apply Autorun
  * CONFIG_USB_G_LGE_ANDROID_AUTORUN
  * CONFIG_USB_G_LGE_ANDROID_AUTORUN_LGE
@@ -25,10 +25,6 @@
 #include <linux/delay.h>
 #include <linux/slab.h>
 #include <linux/platform_device.h>
-#if 0 /* temporary comment out */
-#include <mach/msm_hsusb.h>
-#include <mach/rpc_hsusb.h>
-#endif
 #include <mach/board.h>
 #ifdef CONFIG_MACH_LGE
 #include <mach/board_lge.h>
@@ -46,9 +42,9 @@ static u16 user_mode;
 /* This length must be same as MAX_STR_LEN in android.c */
 #define MAX_SERIAL_NO_LEN 256
 
-#define LGE_VENDOR_ID 	0x1004
-#define LGE_PRODUCT_ID 	0x618E
-#define LGE_FACTORY_PID	0x6000
+#define LGE_VENDOR_ID   0x1004
+#define LGE_PRODUCT_ID  0x618E
+#define LGE_FACTORY_PID 0x6000
 
 struct lgeusb_dev {
 	struct device *dev;
@@ -75,57 +71,78 @@ static bool is_mac_os;
 
 static struct lgeusb_dev *_lgeusb_dev;
 
+#ifdef CONFIG_LGE_SUPPORT_TYPE_A_USB
+extern int get_battery_capacity(void);
+extern int uevnet_is_send;
+
+int send_usb_storage_limited(void) {
+	struct lgeusb_dev *dev = _lgeusb_dev;
+	int soc;
+	char *capacity[2]= { "BATTERY=UNDER_15_PERCENT", NULL };
+
+	soc = get_battery_capacity();
+	if ((soc >= 0) && (soc <= 15)) {
+		kobject_uevent_env(&dev->dev->kobj, KOBJ_CHANGE, capacity);
+		uevnet_is_send = 1;
+		pr_info("%s: storage limited uevent sent\n", __func__);
+		return 1;
+	} else {
+		pr_info("%s: at least a valid battery status ...\n", __func__);
+		return 0;
+	}
+}
+#endif
+
 /* Belows are borrowed from android gadget's ATTR macros ;) */
-#define LGE_ID_ATTR(field, format_string)               \
-static ssize_t                              \
-lgeusb_ ## field ## _show(struct device *dev, struct device_attribute *attr, \
-		char *buf)                      \
-{                                   \
-	struct lgeusb_dev *usbdev = _lgeusb_dev;		\
-	return sprintf(buf, format_string, usbdev->field);      \
-}                                   \
-static ssize_t                              \
-lgeusb_ ## field ## _store(struct device *dev, struct device_attribute *attr, \
-		const char *buf, size_t size)                   \
-{                                   \
-	int value;                              \
-	struct lgeusb_dev *usbdev = _lgeusb_dev;	\
-	if (sscanf(buf, format_string, &value) == 1) {          \
-		usbdev->field = value;              \
-		return size;                        \
-	}                               \
-	return -1;                          \
-}                                   \
+#define LGE_ID_ATTR(field, format_string)                                      \
+static ssize_t                                                                 \
+lgeusb_ ## field ## _show(struct device *dev, struct device_attribute *attr,   \
+		char *buf)                                                     \
+{                                                                              \
+	struct lgeusb_dev *usbdev = _lgeusb_dev;                               \
+	return snprintf(buf, PAGE_SIZE, format_string, usbdev->field);         \
+}                                                                              \
+static ssize_t                                                                 \
+lgeusb_ ## field ## _store(struct device *dev, struct device_attribute *attr,  \
+		const char *buf, size_t size)                                  \
+{                                                                              \
+	int value;                                                             \
+	struct lgeusb_dev *usbdev = _lgeusb_dev;                               \
+	if (sscanf(buf, format_string, &value) == 1) {                         \
+		usbdev->field = value;                                         \
+		return size;                                                   \
+	}                                                                      \
+	return -1;                                                        \
+}                                                                              \
 static DEVICE_ATTR(field, S_IRUGO | S_IWUSR, lgeusb_ ## field ## _show, lgeusb_ ## field ## _store);
 
-#define LGE_RDONLY_STRING_ATTR(field, string)               \
-static ssize_t                              \
+#define LGE_RDONLY_STRING_ATTR(field, string)                                  \
+static ssize_t                                                                 \
 lgeusb_ ## field ## _show(struct device *dev, struct device_attribute *attr,   \
-		char *buf)                      \
-{                                   \
-	struct lgeusb_dev *usbdev = _lgeusb_dev;		\
-	return sprintf(buf, "%s", usbdev->string);              \
-}                                   \
+		char *buf)                                                     \
+{                                                                              \
+	struct lgeusb_dev *usbdev = _lgeusb_dev;                               \
+	return snprintf(buf, PAGE_SIZE, "%s", usbdev->string);                 \
+}                                                                              \
 static DEVICE_ATTR(field, S_IRUGO | S_IWUSR, lgeusb_ ## field ## _show, NULL);
 
-#define LGE_STRING_ATTR(field, buffer)               \
-	static ssize_t                              \
-field ## _show(struct device *dev, struct device_attribute *attr,   \
-		        char *buf)                      \
-{                                   \
-	return snprintf(buf, PAGE_SIZE, "%s", buffer);          \
-}                                   \
-static ssize_t                              \
-field ## _store(struct device *dev, struct device_attribute *attr,  \
-		        const char *buf, size_t size)                   \
-{                                   \
-	if (size >= sizeof(buffer)) \
-	return -EINVAL;         \
-	if (sscanf(buf, "%31s", buffer) == 1) {            \
-		return size;                        \
-	}                               \
-	return -1;                          \
-}                                   \
+#define LGE_STRING_ATTR(field, buffer)                                         \
+static ssize_t                                                                 \
+field ## _show(struct device *dev, struct device_attribute *attr, char *buf)   \
+{                                                                              \
+	return snprintf(buf, PAGE_SIZE, "%s", buffer);                         \
+}                                                                              \
+static ssize_t                                                                 \
+field ## _store(struct device *dev, struct device_attribute *attr,             \
+		const char *buf, size_t size)                                  \
+{                                                                              \
+	if (size >= sizeof(buffer))                                            \
+		return -EINVAL;                                                \
+	if (sscanf(buf, "%31s", buffer) == 1) {                                \
+		return size;                                                   \
+	}                                                                      \
+	return -1;                                                        \
+}                                                                              \
 static DEVICE_ATTR(field, S_IRUGO | S_IWUSR, field ## _show, field ## _store);
 
 LGE_ID_ATTR(vendor_id, "%04X\n")
@@ -158,16 +175,16 @@ static ssize_t lgeusb_mode_show(struct device *dev,
 
 	switch (is_factory_cable) {
 	case LGEUSB_FACTORY_56K:
-		ret = sprintf(buf, "%s\n", "factory_56k");
+		ret = snprintf(buf, PAGE_SIZE, "%s\n", "factory_56k");
 		break;
 	case LGEUSB_FACTORY_130K:
-		ret = sprintf(buf, "%s\n", "factory_130k");
+		ret = snprintf(buf, PAGE_SIZE, "%s\n", "factory_130k");
 		break;
 	case LGEUSB_FACTORY_910K:
-		ret = sprintf(buf, "%s\n", "factory_910k");
+		ret = snprintf(buf, PAGE_SIZE, "%s\n", "factory_910k");
 		break;
 	default:
-		ret = sprintf(buf, "%s\n", "normal");
+		ret = snprintf(buf, PAGE_SIZE, "%s\n", "normal");
 		break;
 	}
 
@@ -182,7 +199,7 @@ static int autorun_user_mode_show(struct device *dev,
 {
 	int ret;
 
-	ret = sprintf(buf, "%d", user_mode);
+	ret = snprintf(buf, PAGE_SIZE, "%d", user_mode);
 	return ret;
 }
 
@@ -192,7 +209,7 @@ static int autorun_user_mode_store(struct device *dev,
 	int ret = 0;
 	unsigned long tmp;
 
-	ret = strict_strtoul(buf, 10, &tmp);
+	ret = kstrtoul(buf, 10, &tmp);
 	if (ret)
 		return ret;
 
@@ -204,7 +221,10 @@ static int autorun_user_mode_store(struct device *dev,
 
 	return ret;
 }
-static DEVICE_ATTR(autorun_user_mode, S_IRUGO | S_IWUSR, autorun_user_mode_show, autorun_user_mode_store);
+static DEVICE_ATTR(autorun_user_mode,
+		S_IRUGO | S_IWUSR,
+		autorun_user_mode_show,
+		autorun_user_mode_store);
 
 int lgeusb_get_autorun_user_mode(void)
 {
@@ -425,7 +445,10 @@ static int __init lgeusb_init(void)
 
 	_lgeusb_dev = dev;
 
-	/* set default vid, pid and factory id. vid and pid will be overrided. */
+	/*
+	 * set default vid, pid and factory id.
+	 * vid and pid will be overrided.
+	 */
 	dev->vendor_id = LGE_VENDOR_ID;
 	dev->factory_pid = LGE_FACTORY_PID;
 

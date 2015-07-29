@@ -299,7 +299,7 @@
 	android_usb: android_usb@fe8050c8 {
 		compatible = "qcom,android-usb";
 		reg = <0xfe8050c8 0xc8>;
-		qcom,android-usb-swfi-latency = <1>;
+		qcom,pm-qos-latency = <2 1001 12701>;
 		qcom,streaming-func = "rndis";
 		qcom,android-usb-uicc-nluns = <1>;
 	};
@@ -653,10 +653,6 @@
 
 	qcom,msm-adsp-sensors {
 		compatible = "qcom,msm-adsp-sensors";
-		qcom,src-id = <11>;
-		qcom,dst-id = <604>;
-		qcom,ab = <32505856>;
-		qcom,ib = <32505856>;
 	};
 
 	qcom,wdt@f9017000 {
@@ -1062,7 +1058,7 @@
 			<  300000 1525 >,
 			<  384000 1525 >,
 			<  600000 1525 >,
-			<  787200 1525 >,
+			<  787200 3051 >,
 			<  998400 4066 >,
 			< 1094400 4066 >,
 			< 1190400 4066 >,

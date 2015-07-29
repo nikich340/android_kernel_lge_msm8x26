@@ -34,7 +34,7 @@
 #include "hi351_reg.h"
 #endif
 
-#define CONFIG_MSMB_CAMERA_DEBUG
+//#define CONFIG_MSMB_CAMERA_DEBUG
 //#define CONFIG_FAST_TUNE_REGISTER  /* LGE_CHANGE . To fast tune register. sujeong.kwon@lge.com 2014.03.22*/
 
 #undef CDBG
@@ -1987,7 +1987,7 @@ int32_t hi351_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 			size = conf_array.size; 	//size for write(page_mode) and read
 			read_data_size = size - 1;	//size for read
 
-			pr_err("[WX] %s: size : %d rsize : %d\n", __func__, size, read_data_size);
+			CDBG("[WX] %s: size : %d rsize : %d\n", __func__, size, read_data_size);
 
 			if (!size || !read_data_size) {
 				pr_err("%s:%d failed\n", __func__, __LINE__);
@@ -2035,7 +2035,7 @@ int32_t hi351_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 				}
 				else{
 					rc = s_ctrl->sensor_i2c_client->i2c_func_tbl->i2c_read(s_ctrl->sensor_i2c_client, conf_array.reg_setting->reg_addr, read_data, conf_array.data_type);
-					pr_err("[WX] %s read_data : %d\n", __func__, *read_data);
+					CDBG("[WX] %s read_data : %d\n", __func__, *read_data);
 					read_data++;
 				}
 				conf_array.reg_setting++;
@@ -2056,7 +2056,7 @@ int32_t hi351_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 			read_data = NULL;
 			read_data_head = NULL;
 
-			pr_err("[WX] %s done\n", __func__);
+			CDBG("[WX] %s done\n", __func__);
 
 			break;
 		}

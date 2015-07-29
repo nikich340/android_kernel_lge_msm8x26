@@ -722,13 +722,6 @@ config BU52033NVX_CARKIT
          This option enable device driver support for the carkit
          on the PM8XXX chips. The cradle is controlled using the PM8XXX gpio
 
-config LGE_INPUT_COVER_VALIDATION
-       tristate "SW3800 support"
-       default n
-       help
-          This option enable device driver support for the cover validation
-          on the SW3800 chips. The chip is controlled using the gpio
-
 config S5717
        tristate "Cradle S5717 support"
        default n

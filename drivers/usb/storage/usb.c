@@ -473,7 +473,7 @@ static void adjust_quirks(struct us_data *us)
 			US_FL_CAPACITY_OK | US_FL_IGNORE_RESIDUE |
 			US_FL_SINGLE_LUN | US_FL_NO_WP_DETECT |
 			US_FL_NO_READ_DISC_INFO | US_FL_NO_READ_CAPACITY_16 |
-			US_FL_INITIAL_READ10);
+			US_FL_INITIAL_READ10 | US_FL_WRITE_CACHE);
 
 	p = quirks;
 	while (*p) {
@@ -528,6 +528,9 @@ static void adjust_quirks(struct us_data *us)
 			break;
 		case 'o':
 			f |= US_FL_CAPACITY_OK;
+			break;
+		case 'p':
+			f |= US_FL_WRITE_CACHE;
 			break;
 		case 'r':
 			f |= US_FL_IGNORE_RESIDUE;
@@ -1054,6 +1057,11 @@ void usb_stor_disconnect(struct usb_interface *intf)
 }
 EXPORT_SYMBOL_GPL(usb_stor_disconnect);
 
+#ifdef CONFIG_LGE_SUPPORT_TYPE_A_USB
+extern int send_usb_storage_limited(void);
+int uevnet_is_send = 0;
+#endif
+
 /* The main probe routine for standard devices */
 static int storage_probe(struct usb_interface *intf,
 			 const struct usb_device_id *id)
@@ -1062,6 +1070,19 @@ static int storage_probe(struct usb_interface *intf,
 	struct us_data *us;
 	int result;
 	int size;
+
+#ifdef CONFIG_LGE_SUPPORT_TYPE_A_USB
+	if(uevnet_is_send) {
+		uevnet_is_send = 0;
+		return -ENXIO;
+	}
+	else {
+		if (send_usb_storage_limited()) {
+			uevnet_is_send = 0;
+			return -ENXIO;
+		}
+	}
+#endif
 
 	/*
 	 * If libusual is configured, let it decide whether a standard

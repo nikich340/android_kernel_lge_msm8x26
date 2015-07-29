@@ -39,7 +39,7 @@ struct pm8xxx_cradle {
     defined(CONFIG_MACH_MSM8226_E9WIFI) || defined(CONFIG_MACH_MSM8226_E9WIFIN)|| \
     defined(CONFIG_MACH_MSM8926_E7LTE_VZW_US) || defined(CONFIG_MACH_MSM8926_E7LTE_ATT_US) || \
 	defined(CONFIG_MACH_MSM8926_E7LTE_USC_US) || defined(CONFIG_MACH_MSM8926_B2LN_KR) || \
-	defined(CONFIG_MACH_MSM8926_T8LTE_ATT_US)  || defined(CONFIG_MACH_MSM8926_E9LTE_VZW_US)
+	defined(CONFIG_MACH_MSM8926_E9LTE_VZW_US)
 #define POUCH_DETECT_DELAY 100
 #endif
 
@@ -153,7 +153,7 @@ static irqreturn_t pm8xxx_pouch_irq_handler(int irq, void *handle)
     defined(CONFIG_MACH_MSM8226_E9WIFI) || defined(CONFIG_MACH_MSM8226_E9WIFIN) || \
     defined(CONFIG_MACH_MSM8926_E7LTE_VZW_US) || defined(CONFIG_MACH_MSM8926_E7LTE_ATT_US) || \
 	defined(CONFIG_MACH_MSM8926_E7LTE_USC_US) || defined(CONFIG_MACH_MSM8926_B2LN_KR) || \
-	defined(CONFIG_MACH_MSM8926_T8LTE_ATT_US) || defined(CONFIG_MACH_MSM8926_E9LTE_VZW_US)
+	defined(CONFIG_MACH_MSM8926_E9LTE_VZW_US)
 	v = 1 + 1*(!gpio_get_value(cradle->pdata->hallic_pouch_detect_pin));
 	wake_lock_timeout(&cradle->wake_lock, msecs_to_jiffies(POUCH_DETECT_DELAY*v+5));
 	queue_delayed_work(cradle_wq, &cradle_handle->pouch_work, msecs_to_jiffies(POUCH_DETECT_DELAY*v+5));

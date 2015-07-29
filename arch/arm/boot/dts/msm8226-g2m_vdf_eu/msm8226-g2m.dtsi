@@ -20,6 +20,14 @@
 /include/ "msm8226-g2m-input.dtsi"
 /include/ "msm8226-g2m-nfc.dtsi"  /* LGE_CHANGE, [NFC][garam.kim@lge.com], NFC Bring up */
 
+/{
+        memory {
+                secure_mem: secure_region {
+                        status = "disabled";
+                };
+	};
+};
+
 &soc {
 	serial@f991f000 {
 		status = "disabled";
@@ -43,11 +51,16 @@
 			status = "ok";
 		};
 		lp5521@32 {
-			status = "ok";
+			status = "disable";
 		};
 	};
 	/*  LGE_CHANGE_E, [NFC][garam.kim@lge.com], NFC Bring up */
 
+	qcom,ion {
+		qcom,ion-heap@8 { /* CP_MM HEAP */
+			status = "disabled";
+		};
+	};
 };
 
 &sdcc1 {

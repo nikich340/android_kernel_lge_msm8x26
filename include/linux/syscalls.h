@@ -860,6 +860,6 @@ asmlinkage long sys_process_vm_writev(pid_t pid,
 
 //FEATURE_SDCARD_MEDIAEXN_SYSTEMCALL_ENCRYPTION[S]
 asmlinkage long sys_set_media_property(int value);
-asmlinkage long sys_set_media_ext(char *mediaExtList);
-//FEATURE_SDCARD_MEDIAEXN_SYSTEMCALL_ENCRYPTION[E]
+asmlinkage long sys_set_media_ext(const char __user *mediaExtList);
+/*FEATURE_SDCARD_MEDIAEXN_SYSTEMCALL_ENCRYPTION[E] */
 #endif

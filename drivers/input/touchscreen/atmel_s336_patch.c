@@ -65,9 +65,8 @@ static int mxt_patch_stop_timer(struct mxt_data *data)
 
 	if (object != NULL) {
 		ret = mxt_write_mem(data, object->start_address + (5 * data->patch.timer_id), 5, t61_reg);
-		if (!ret) {
+		if (!ret)
 			__mxt_patch_debug(data, "STOP TIMER[%d]\n", data->patch.timer_id);
-		}
 	} else {
 		__mxt_patch_debug(data, "TIMER NOT SUPPORTED\n");
 	}
@@ -80,18 +79,16 @@ static int mxt_patch_write_stage_cfg(struct mxt_data *data, struct stage_cfg *ps
 	if (do_action) {
 
 #if 0 /* TSP_INFORM_CHARGER */
-		if (mxt_patch_check_tacfg(data, pscfg->option, data->charging_mode)) {
+		if (mxt_patch_check_tacfg(data, pscfg->option, data->charging_mode))
 			return 0;
-		}
 #endif
 		__mxt_patch_debug(data, "|- SCFG_WRITE: OBJECT_TYPE:%d OFFSET:%d VAL:%d OPT:%d\n",
 			pscfg->obj_type, pscfg->offset, pscfg->val, pscfg->option);
 
-		if (pscfg->obj_type == 255) {
+		if (pscfg->obj_type == 255)
 			t255_user[pscfg->offset] = pscfg->val;
-		} else {
+		else
 			mxt_write_object(data, pscfg->obj_type, pscfg->offset, pscfg->val);
-		}
 	}
 
 	return 0;
@@ -102,18 +99,16 @@ static int mxt_patch_write_action_cfg(struct mxt_data *data, struct action_cfg *
 	if (do_action) {
 
 #if 0 /* TSP_INFORM_CHARGER */
-		if (mxt_patch_check_tacfg(data, pacfg->option, data->charging_mode)) {
+		if (mxt_patch_check_tacfg(data, pacfg->option, data->charging_mode))
 			return 0;
-		}
 #endif
 		__mxt_patch_debug(data, "|-- ACFG_WRITE: OBJECT_TYPE:%d OFFSET:%d VAL:%d OPT:%d\n",
 			pacfg->obj_type, pacfg->offset, pacfg->val, pacfg->option);
 
-		if (pacfg->obj_type == 255) {
+		if (pacfg->obj_type == 255)
 			t255_user[pacfg->offset] = pacfg->val;
-		} else {
+		else
 			mxt_write_object(data, pacfg->obj_type, pacfg->offset, pacfg->val);
-		}
 	}
 
 	return 0;
@@ -125,11 +120,10 @@ static int mxt_patch_write_trigger_cfg(struct mxt_data *data, struct trigger_cfg
 		__mxt_patch_debug(data, "|-- TCFG_WRITE: OBJECT_TYPE:%d OFFSET:%d VAL:%d\n",
 			ptcfg->obj_type, ptcfg->offset, ptcfg->val);
 
-		if (ptcfg->obj_type == 255) {
+		if (ptcfg->obj_type == 255)
 			t255_user[ptcfg->offset] = ptcfg->val;
-		} else {
+		else
 			mxt_write_object(data, ptcfg->obj_type, ptcfg->offset, ptcfg->val);
-		}
 	}
 
 	return 0;
@@ -230,9 +224,8 @@ static bool mxt_patch_check_locked(struct mxt_data *data, struct touch_pos *tpos
 		tpos->moved_cnt = 0;
 	} else {
 		/* OLD DIFF vs INIT DIFF */
-		if ((distance < tpos->jitter) && ((abs(diffx) > tpos->maxdiff) || (abs(diffy) > tpos->maxdiff))) {
+		if ((distance < tpos->jitter) && ((abs(diffx) > tpos->maxdiff) || (abs(diffy) > tpos->maxdiff)))
 			tpos->moved_cnt++;
-		}
 	}
 
 	if (tpos->moved_cnt > tpos->reset_cnt) {
@@ -242,11 +235,10 @@ static bool mxt_patch_check_locked(struct mxt_data *data, struct touch_pos *tpos
 		tpos->moved_cnt = 0;
 	}
 
-	if ((distance < tpos->distance) && (abs(diffx) < tpos->maxdiff) && (abs(diffy) < tpos->maxdiff)) {
+	if ((distance < tpos->distance) && (abs(diffx) < tpos->maxdiff) && (abs(diffy) < tpos->maxdiff))
 		return true;
-	} else {
+	else
 		return false;
-	}
 
 	return false;
 }
@@ -256,15 +248,13 @@ static void mxt_patch_check_pattern(struct mxt_data *data, struct touch_pos *tpo
 	bool cal_condition = false;
 	int error = 0;
 
-	if (!finger_cnt) {
+	if (!finger_cnt)
 		return;
-	}
 
-	if (mxt_patch_check_locked(data, tpos, tid, x, y)) {
+	if (mxt_patch_check_locked(data, tpos, tid, x, y))
 		tpos->tcount[tid] = tpos->tcount[tid]+1;
-	} else {
+	else
 		tpos->tcount[tid] = 0;
-	}
 
 	tpos->oldx[tid] = x;
 	tpos->oldy[tid] = y;
@@ -445,9 +435,8 @@ const char *mxt_patch_src_item_name(u8 src_id)
 		MXT_XML_SRC_USER5,
 	};
 
-	if (MXT_PATCH_ITEM_NONE <= src_id && src_id < MXT_PATCH_ITEM_END) {
+	if (MXT_PATCH_ITEM_NONE <= src_id && src_id < MXT_PATCH_ITEM_END)
 		return src_item_name[src_id];
-	}
 
 	return "ERR";
 }
@@ -466,9 +455,8 @@ const char *mxt_patch_cond_name(u8 con_id)
 		MXT_XML_CON_MASK,	/*MXT_PATCH_CON_MASK	8 */
 	};
 
-	if (MXT_PATCH_CON_NONE <= con_id && con_id < MXT_PATCH_CON_END) {
+	if (MXT_PATCH_CON_NONE <= con_id && con_id < MXT_PATCH_CON_END)
 		return cond_name[con_id];
-	}
 
 	return "ERR";
 }
@@ -476,11 +464,10 @@ const char *mxt_patch_cond_name(u8 con_id)
 static int mxt_patch_item_lval(struct mxt_data *data, u16 *psrc_item, u8 src_id)
 {
 	if (psrc_item != NULL) {
-		if (MXT_PATCH_ITEM_NONE <= src_id && src_id < MXT_PATCH_ITEM_END) {
+		if (MXT_PATCH_ITEM_NONE <= src_id && src_id < MXT_PATCH_ITEM_END)
 			return psrc_item[src_id];
-		} else {
+		else
 			__mxt_patch_debug(data, "@@ INVALID ITEM ID=%d !!\n", src_id);
-		}
 	}
 
 	return 0;
@@ -560,9 +547,8 @@ static int mxt_patch_stage_timer(struct mxt_data *data, u16 period, bool do_acti
 
 	if (do_action) {
 		ret = mxt_patch_start_timer(data, time);
-		if (!ret) {
+		if (!ret)
 			data->patch.period = period;
-		}
 	}
 	return 0;
 }
@@ -596,7 +582,7 @@ static int mxt_patch_parse_test_line(struct mxt_data *data, u8 *ppatch, u16 *psr
 	ptline = (struct test_line *)ppatch;
 
 	if (!do_action) {
-		__mxt_patch_debug(data, "|- TEST_LINE:%X OPT:%d CHK_CNT:%d ITEM_CNT:%d CFG_CNT:%d ACTION:%d VAL:%d \n",
+		__mxt_patch_debug(data, "|- TEST_LINE:%X OPT:%d CHK_CNT:%d ITEM_CNT:%d CFG_CNT:%d ACTION:%d VAL:%d\n",
 			ptline->test_id, ptline->option, ptline->check_cnt, ptline->item_cnt, ptline->cfg_cnt, ptline->act_id, ptline->act_val);
 	}
 
@@ -682,9 +668,9 @@ static int mxt_patch_parse_stage(struct mxt_data *data, u8 *ppatch, u16 *ptline_
 	}
 
 	for (i = 0; i < psdef->test_cnt; i++) { /* Test Line Parsing */
-		if (ptline_addr != NULL) {
+		if (ptline_addr != NULL)
 			ptline_addr[i] = (u16)ulpos;
-		}
+
 		ulpos += mxt_patch_parse_test_line(data, ppatch+ulpos, NULL, NULL, do_action);
 	}
 
@@ -700,9 +686,9 @@ static u16 mxt_patch_match_lval(struct mxt_data *data, u8 *pmsg, u8 offset, u16 
 	u8 msg[MXT_PATCH_MAX_MSG_SIZE+1] = {0};
 
 	if (pmsg) {
-		if (offset >= 200 && offset <= 255) {
+		if (offset >= 200 && offset <= 255)
 			return t255_user[offset-200];
-		}
+
 		memcpy(msg, pmsg, MXT_PATCH_MAX_MSG_SIZE);
 		if (0 <= offset && offset < MXT_PATCH_MAX_MSG_SIZE) {
 			lval = msg[offset] | (msg[offset+1] << 8);
@@ -850,44 +836,43 @@ static int mxt_patch_parse_header(struct mxt_data *data, u8 *ppatch, u16 *pstage
 
 	ppheader = (struct patch_header *)ppatch;
 
-	TOUCH_PATCH_INFO_MSG("%s \n", __func__);
+	TOUCH_PATCH_INFO_MSG("%s\n", __func__);
 
 	TOUCH_PATCH_INFO_MSG("PATCH MAGIC:%X SIZE:%d DATE:%d VER:%d OPT:%d DBG:%d TMR:%d STG:%d TRG:%d EVT:%d\n",
 		ppheader->magic, ppheader->size, ppheader->date, ppheader->version, ppheader->option, ppheader->debug,
 		ppheader->timer_id, ppheader->stage_cnt, ppheader->trigger_cnt, ppheader->event_cnt);
 
-	if (ppheader->version != MXT_PATCH_VERSION) {
+	if (ppheader->version != MXT_PATCH_VERSION)
 		TOUCH_PATCH_INFO_MSG("MXT_PATCH_VERSION ERR\n");
-	}
 
 	ulpos = sizeof(struct patch_header);
 
 	for (i = 0; i < ppheader->stage_cnt; i++) { /* Stage Def Parsing */
-		if (pstage_addr != NULL) {
+		if (pstage_addr != NULL)
 			pstage_addr[i] = (u16)ulpos;
-		}
+
 		ulpos += mxt_patch_parse_stage(data, ppatch+ulpos, NULL, NULL, false);
 	}
 
 	for (i = 0; i < ppheader->trigger_cnt; i++) { /* Trigger Parsing */
-		if (ptrigger_addr != NULL) {
+		if (ptrigger_addr != NULL)
 			ptrigger_addr[i] = (u16)ulpos;
-		}
+
 		ulpos += mxt_patch_parse_trigger(data, ppatch+ulpos, NULL, false, 0);
 	}
 
 	for (i = 0; i < ppheader->event_cnt; i++) { /* Event */
-		if (pevent_addr != NULL) {
+		if (pevent_addr != NULL)
 			pevent_addr[i] = (u16)ulpos;
-		}
+
 		ulpos += mxt_patch_parse_event(data, ppatch+ulpos, false);
 	}
 
 	if (ppheader->size != ulpos) { /* Patch Size Check */
-		TOUCH_PATCH_INFO_MSG("Size Error %d != %d \n", ppheader->size, ulpos);
+		TOUCH_PATCH_INFO_MSG("Size Error %d != %d\n", ppheader->size, ulpos);
 		return 0;
 	} else{
-		TOUCH_PATCH_INFO_MSG("Size OK= %d \n", ulpos);
+		TOUCH_PATCH_INFO_MSG("Size OK= %d\n", ulpos);
 	}
 
 	return ulpos;
@@ -914,13 +899,11 @@ int mxt_patch_run_stage(struct mxt_data *data)
 
 	mxt_patch_parse_stage(data, (u8 *)psdef, tline_addr, &tline_cnt, true);
 
-	if (unlikely(!data->patch.tline_addr)) {
+	if (unlikely(!data->patch.tline_addr))
 		data->patch.tline_addr = kzalloc(MXT_PATCH_MAX_TLINE, GFP_KERNEL);
-	}
 
-	if (unlikely(!data->patch.check_cnt)) {
+	if (unlikely(!data->patch.check_cnt))
 		data->patch.check_cnt = kzalloc(MXT_PATCH_MAX_TLINE, GFP_KERNEL);
-	}
 
 	if (unlikely(!data->patch.tline_addr || !data->patch.check_cnt)) {
 		TOUCH_PATCH_INFO_MSG("tline_addr alloc error\n");
@@ -955,9 +938,8 @@ static int mxt_patch_test_source(struct mxt_data *data, u16 *psrc_item)
 		return 1;
 	}
 
-	if (!data->patch.run_stage) {
+	if (!data->patch.run_stage)
 		mxt_patch_run_stage(data);
-	}
 
 	if (data->patch.run_stage) {
 		for (i = 0; i < data->patch.tline_cnt; i++) {
@@ -1066,9 +1048,9 @@ static int mxt_patch_start_stage(struct mxt_data *data)
 		data->patch.cur_stage = 0;
 		data->patch.run_stage = false;
 
-		if (data->patch.start_stage) {
+		if (data->patch.start_stage)
 			data->patch.cur_stage = data->patch.start_stage;
-		}
+
 		__mxt_patch_debug(data, "PATCH: START STAGE %d\n", data->patch.cur_stage);
 
 		mxt_patch_init_tpos(data, &tpos_data);
@@ -1098,9 +1080,8 @@ static int mxt_patch_test_trigger(struct mxt_data *data, struct mxt_message *mes
 	tmsg[0] =  message->reportid;
 	memcpy(&tmsg[1], message->message, 8);
 
-	for (i = 0; i < trigger_cnt; i++) {
+	for (i = 0; i < trigger_cnt; i++)
 		mxt_patch_parse_trigger(data, ppatch+ptrigger_addr[i], tmsg, true, option);
-	}
 
 	return 0;
 }
@@ -1125,9 +1106,8 @@ int mxt_patch_event(struct mxt_data *data, u8 event_id)
 		return 1;
 	}
 
-	if (event_id < data->patch.event_cnt) {
+	if (event_id < data->patch.event_cnt)
 		mxt_patch_parse_event(data, ppatch+pevent_addr[event_id], true);
-	}
 
 	return 0;
 }
@@ -1181,9 +1161,8 @@ static void mxt_patch_T9_object(struct mxt_data *data, struct mxt_message *messa
 
 		if (data->patch.cur_stage_opt&0x02) {
 			if ((msg[0] & MXT_DETECT_MSG_MASK) != MXT_DETECT_MSG_MASK) {
-				if (msg[0] & MXT_SUPPRESS_MSG_MASK) {
+				if (msg[0] & MXT_SUPPRESS_MSG_MASK)
 					mxt_patch_check_supp(data, &tsupp_data);
-				}
 			}
 		}
 	}
@@ -1197,9 +1176,8 @@ static void mxt_patch_T15_object(struct mxt_data *data, struct mxt_message *mess
 	int i = 0;
 
 	for (i = 0; i < 8; i++) {
-		if (test_bit(i, &keystates)) {
+		if (test_bit(i, &keystates))
 			key_cnt++;
-		}
 	}
 	mxt_patch_init_tsrc(&tsrc);
 	tsrc.key_cnt = key_cnt;
@@ -1311,16 +1289,14 @@ static void mxt_patch_T57_object(struct mxt_data *data, struct mxt_message *mess
 	if ((data->patch.cur_stage_opt & 0x01) && check_pattern_tracking_condition(data, &tsrc, &tpos_data)) {
 		if (tsrc.finger_cnt) {
 			for (i = 0; i < MXT_MAX_FINGER; i++) {
-				if ((data->fingers[i].state != MXT_STATE_INACTIVE) && (data->fingers[i].state != MXT_STATE_RELEASE)) {
+				if ((data->fingers[i].state != MXT_STATE_INACTIVE) && (data->fingers[i].state != MXT_STATE_RELEASE))
 					mxt_patch_check_pattern(data, &tpos_data, i, data->fingers[i].x, data->fingers[i].y, tsrc.finger_cnt);
-				}
 			}
 		}
 	}
 
-	if (tsrc.finger_cnt == 0) {
+	if (tsrc.finger_cnt == 0)
 		mxt_patch_init_tpos(data, &tpos_data);
-	}
 
 }
 
@@ -1347,9 +1323,8 @@ static void mxt_patch_T61_object(struct mxt_data *data, struct mxt_message *mess
 		data->patch.run_stage = false;
 	}
 
-	if (!data->patch.run_stage) {
+	if (!data->patch.run_stage)
 		mxt_patch_run_stage(data);
-	}
 }
 
 void mxt_patch_message(struct mxt_data *data, struct mxt_message *message)
@@ -1379,9 +1354,8 @@ void mxt_patch_message(struct mxt_data *data, struct mxt_message *message)
 		break;
 	}
 
-	if (data->patch.trigger_cnt && type) {
+	if (data->patch.trigger_cnt && type)
 		mxt_patch_test_trigger(data, message, data->charging_mode);
-	}
 }
 
 int mxt_patch_init(struct mxt_data *data, u8 *ppatch)
@@ -1393,7 +1367,7 @@ int mxt_patch_init(struct mxt_data *data, u8 *ppatch)
 	u16 event_addr[64] = {0};
 	u32 patch_size = 0;
 
-	TOUCH_PATCH_INFO_MSG("%s \n", __func__);
+	TOUCH_PATCH_INFO_MSG("%s\n", __func__);
 
 	if (!ppatch) {
 		TOUCH_PATCH_INFO_MSG("%s patch file error\n", __func__);
@@ -1413,16 +1387,14 @@ int mxt_patch_init(struct mxt_data *data, u8 *ppatch)
 	patch_info->trigger_cnt = ppheader->trigger_cnt;
 	patch_info->event_cnt = ppheader->event_cnt;
 
-	if (data->patch.src_item) {
+	if (data->patch.src_item)
 		kfree(data->patch.src_item);
-	}
 
 	patch_info->src_item = kzalloc(MXT_PATCH_ITEM_END*sizeof(u16), GFP_KERNEL);
 
 	if (patch_info->stage_cnt) {
-		if (patch_info->stage_addr) {
+		if (patch_info->stage_addr)
 			kfree(patch_info->stage_addr);
-		}
 
 		patch_info->stage_addr = kzalloc(patch_info->stage_cnt*sizeof(u16), GFP_KERNEL);
 		if (!patch_info->stage_addr) {
@@ -1433,9 +1405,8 @@ int mxt_patch_init(struct mxt_data *data, u8 *ppatch)
 	}
 
 	if (patch_info->trigger_cnt) {
-		if (patch_info->trigger_addr) {
+		if (patch_info->trigger_addr)
 			kfree(patch_info->trigger_addr);
-		}
 
 		patch_info->trigger_addr = kzalloc(patch_info->trigger_cnt*sizeof(u16), GFP_KERNEL);
 		if (!patch_info->trigger_addr) {
@@ -1446,9 +1417,8 @@ int mxt_patch_init(struct mxt_data *data, u8 *ppatch)
 	}
 
 	if (patch_info->event_cnt) {
-		if (patch_info->event_addr) {
+		if (patch_info->event_addr)
 			kfree(patch_info->event_addr);
-		}
 
 		patch_info->event_addr = kzalloc(patch_info->event_cnt*sizeof(u16), GFP_KERNEL);
 		if (!patch_info->event_addr) {

@@ -4,7 +4,7 @@
 #include "diag_acg.h"
 
 /* refer from android/bootable/bootloader/lk/platform/lge_shared/include/lge_ftm.h */
-#define LGFTM_ACG_CARRIER_CODE       103
+#define LGFTM_ACG_CARRIER_CODE       34
 #define LGFTM_ACG_CARRIER_CODE_SIZE    1
 #define FTM_PAGE_SIZE               2048
 

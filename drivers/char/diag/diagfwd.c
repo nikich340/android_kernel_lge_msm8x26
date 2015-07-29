@@ -56,6 +56,11 @@
 #include "diag_acg.h"
 #endif
 
+#ifdef CONFIG_LGE_DIAG_BYPASS
+#include "lg_diag_bypass.h"
+static int diag_bypass_enable = 1;
+#endif
+
 #define STM_CMD_VERSION_OFFSET	4
 #define STM_CMD_MASK_OFFSET	5
 #define STM_CMD_DATA_OFFSET	6
@@ -1091,6 +1096,11 @@ int diag_device_write(void *buf, int data_type, struct diag_request *write_ptr)
 				driver->write_ptr_svc->buf = buf;
 				err = diag_write_to_usb(driver->legacy_ch,
 						driver->write_ptr_svc);
+#ifdef CONFIG_LGE_DIAG_BYPASS
+				if(diag_bypass_response(driver->write_ptr_svc, data_type) > 0) {
+					return 0;
+				}
+#endif
 				/* Free the buffer if write failed */
 				if (err) {
 					diagmem_free(driver,
@@ -1115,6 +1125,11 @@ int diag_device_write(void *buf, int data_type, struct diag_request *write_ptr)
 			if (!wait_mts_read_complete())
 #endif
 			err = diag_write_to_usb(driver->legacy_ch, write_ptr);
+#ifdef CONFIG_LGE_DIAG_BYPASS
+			if(diag_bypass_response(write_ptr, data_type) > 0) {
+				return 0;
+			}
+#endif
 		}
 #ifdef CONFIG_DIAG_SDIO_PIPE
 		else if (data_type == SDIO_DATA) {
@@ -1966,7 +1981,7 @@ int diag_process_apps_pkt(unsigned char *buf, int len)
 	// 0x27 (DIAG_NV_WRITE_F) 0x846d (NV_LG_FW_LRA_CARRIER_CODE_I:33901)
 	else if  ((*buf == 0x27) && (*(buf+1) == 0x6d) && (*(buf+2) == 0x84)) 
 	{
-		carrier_code = 10*(*(buf+3))+(*(buf+4));
+		carrier_code = 10*(*(buf+4))+(*(buf+3));
 		result = set_carrier_code(carrier_code);
 		printk(KERN_INFO "diag: carrier_code=%d result=%d\n", carrier_code, result);
 	}
@@ -2170,12 +2185,18 @@ void diag_reset_smd_data(int queue)
 
 static void diag_usb_connect_work_fn(struct work_struct *w)
 {
+#ifdef CONFIG_LGE_DIAG_BYPASS
+	diag_bypass_enable = 0;
+#endif
 	diagfwd_connect();
 }
 
 static void diag_usb_disconnect_work_fn(struct work_struct *w)
 {
 	diagfwd_disconnect();
+#ifdef CONFIG_LGE_DIAG_BYPASS
+	diag_bypass_enable = 1;
+#endif
 }
 
 int diagfwd_connect(void)
@@ -2506,6 +2527,121 @@ void diag_smd_notify(void *ctxt, unsigned event)
 		}
 	}
 }
+
+#ifdef CONFIG_LGE_DIAG_BYPASS
+static int diagfwd_check_buf_match_no_spinlock(int num_channels,
+			struct diag_smd_info *data, unsigned char *buf)
+{
+	int i;
+	int found_it = 0;
+
+	for (i = 0; i < num_channels; i++) {
+		if (buf == (void *)data[i].buf_in_1) {
+			data[i].in_busy_1 = 0;
+			found_it = 1;
+			break;
+		} else if (buf == (void *)data[i].buf_in_2) {
+			data[i].in_busy_2 = 0;
+			found_it = 1;
+			break;
+		}
+	}
+
+	if (found_it) {
+		if (data[i].type == SMD_DATA_TYPE)
+			queue_work(data[i].wq,
+					&(data[i].diag_read_smd_work));
+		else
+			queue_work(driver->diag_wq,
+					&(data[i].diag_read_smd_work));
+	}
+
+	return found_it;
+}
+
+static int diagfwd_write_complete_no_spinlock(struct diag_request *diag_write_ptr)
+{
+	unsigned char *buf = diag_write_ptr->buf;
+	int found_it = 0;
+
+	/* Determine if the write complete is for data from modem/apps/q6 */
+	found_it = diagfwd_check_buf_match_no_spinlock(NUM_SMD_DATA_CHANNELS,
+						driver->smd_data, buf);
+
+	if (!found_it && driver->supports_separate_cmdrsp)
+		found_it = diagfwd_check_buf_match_no_spinlock(NUM_SMD_CMD_CHANNELS,
+						driver->smd_cmd, buf);
+
+#ifdef CONFIG_DIAG_SDIO_PIPE
+	if (!found_it) {
+		if (buf == (void *)driver->buf_in_sdio) {
+			if (machine_is_msm8x60_fusion() ||
+				 machine_is_msm8x60_fusn_ffa())
+				diagfwd_write_complete_sdio();
+			else
+				pr_err("diag: Incorrect buffer pointer while WRITE");
+			found_it = 1;
+		}
+	}
+#endif
+	if (!found_it) {
+		if (driver->logging_mode != USB_MODE)
+			pr_debug("diag: freeing buffer when not in usb mode\n");
+
+		diagmem_free(driver, (unsigned char *)buf,
+						POOL_TYPE_HDLC);
+		diagmem_free(driver, (unsigned char *)diag_write_ptr,
+						POOL_TYPE_WRITE_STRUCT);
+	}
+	return 0;
+}
+
+int diag_bypass_response(struct diag_request *write_ptr, int data_type)
+{
+	if(diag_bypass_enable) {
+		lge_bypass_process(write_ptr->buf, write_ptr->length);
+		diagfwd_write_complete_no_spinlock(write_ptr);
+		return 1;
+	}
+	else {
+		return 0;
+	}
+}
+
+int diag_bypass_request(const unsigned char *buf, int count)
+{
+	int smd_reset = 0;
+	int data_type = 0;
+
+	if(diag_bypass_enable) {
+		for(data_type=0; ((smd_reset == 0) && (data_type<NUM_SMD_CMD_CHANNELS)); data_type++) {
+			if(driver->smd_cmd[data_type].in_busy_1 || driver->smd_cmd[data_type].in_busy_2) {
+				smd_reset = 1;
+				break;
+			}
+		}
+
+		for(data_type=0; ((smd_reset == 0) && (data_type<NUM_SMD_DATA_CHANNELS)); data_type++) {
+			if(driver->smd_data[data_type].in_busy_1 || driver->smd_data[data_type].in_busy_2) {
+				smd_reset = 1;
+				break;
+			}
+		}
+
+		if(smd_reset) {
+			diag_reset_smd_data(RESET_AND_QUEUE);
+		}
+
+		driver->usb_buf_out = (unsigned char *)buf;
+		driver->read_len_legacy = count;
+		queue_work(driver->diag_wq, &(driver->diag_proc_hdlc_work));
+
+		return count;
+	}
+
+	return 0;
+}
+#endif
 
 static int diag_smd_probe(struct platform_device *pdev)
 {

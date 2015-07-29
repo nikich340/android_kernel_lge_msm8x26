@@ -18,7 +18,7 @@ extern int32_t external_qpnp_enable_charging(bool enable);
 #endif
 #if defined (CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E8WIFI) || \
     defined (CONFIG_MACH_MSM8926_E8LTE) || defined (CONFIG_MACH_MSM8226_E9WIFI) || \
-    defined (CONFIG_MACH_MSM8226_E9WIFIN) || defined (CONFIG_MACH_MSM8926_T8LTE)
+    defined (CONFIG_MACH_MSM8226_E9WIFIN) || defined (CONFIG_MACH_MSM8926_T8LTE) || defined (CONFIG_MACH_MSM8926_E8LTE_KR) || defined(CONFIG_MACH_MSM8226_T8WIFI)
 extern int qpnp_get_batt_present(void);
 #endif
 #endif

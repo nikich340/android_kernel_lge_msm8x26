@@ -32,7 +32,7 @@ static struct msm_sensor_power_setting hi544_power_setting_rev_a[] = {
 	},
 #if defined(CONFIG_MACH_MSM8926_E2_MPCS_US) || defined(CONFIG_MACH_MSM8926_E2_VZW) || defined(CONFIG_MACH_MSM8926_VFP_KR) \
 	|| defined(CONFIG_MACH_MSM8926_E2_BELL_CA) || defined(CONFIG_MACH_MSM8926_E2_RGS_CA) || defined(CONFIG_MACH_MSM8926_E2_VTR_CA) \
-	|| defined(CONFIG_MACH_MSM8926_T8LTE_ATT_US) || defined(CONFIG_MACH_MSM8926_T8LTE_TMO_US) || defined(CONFIG_MACH_MSM8926_T8LTE_ACG_US) || defined(CONFIG_MACH_MSM8926_T8LTE_USC_US)
+	|| defined(CONFIG_MACH_MSM8926_T8LTE) || defined(CONFIG_MACH_MSM8226_T8WIFI)
 	{
 		.seq_type = SENSOR_VREG,
 		.seq_val = CAM_VDIG,
@@ -74,7 +74,6 @@ static struct msm_sensor_power_setting hi544_power_setting_rev_a[] = {
 
 };
 #if defined(CONFIG_MACH_MSM8926_E2_SPR_US)
-
 static struct msm_sensor_power_setting hi544_power_setting_rev_b[] = {
 	{
 		.seq_type = SENSOR_GPIO,

@@ -40,17 +40,23 @@
 
 #define INT_EN_REG_MASK             BIT(4)
 #define CHG_TYPE_MASK              (BIT(3)|BIT(2)|BIT(1)|BIT(0))
+#define VB_VALID                    BIT(4)
+#define CHG_DET_RUN                 BIT(6)
 #define DCD_TIMEOUT_MASK            BIT(7)
+
+#define CHG_TYP_MAN_EN              0x02
 
 #define NULL_CHECK(p, err)  \
 			if (!(p)) { \
 				pr_err("FATAL (%s)\n", __func__); \
 				return err; \
 			}
-
+#define NOT_ATTACHED 0
 #define USB_SDP_CHARGER 1
 #define USB_DCP_CHARGER 2
 #define USB_CDP_CHARGER 3
+
+#define MAX_RETRY_COUNT 3
 
 enum reg_address_idx {
 	REG_00          = 0,
@@ -109,6 +115,98 @@ static int max14656_read_block_reg(struct i2c_client *client, u8 reg,
 	return 0;
 }
 
+int max14656_charger_detect_status(struct max14656_chip *chip)
+{
+	int ret = 0;
+	int i;
+	bool manual_mode_on = false;
+	u8 val;
+
+	NULL_CHECK(chip, -EINVAL);
+
+	/* minimum time for charger type detection */
+	msleep(120);
+
+	ret = max14656_read_reg(chip->client, MAX14656_STATUS_1, &val);
+        if (ret) {
+                pr_err("fail to read MAX14656_STATUS_1. ret=%d\n", ret);
+                return 0;
+        }
+
+	if ((val & VB_VALID) && (val & CHG_DET_RUN)) {
+		val &= CHG_TYPE_MASK;
+
+		if (val == NOT_ATTACHED) {
+			for(i = 0; i < MAX_RETRY_COUNT; i++){
+				pr_info("Detection retry count = %d\n", i);
+
+				msleep(30);
+
+				ret = max14656_read_reg(chip->client, MAX14656_STATUS_1, &val);
+				if (ret) {
+				    pr_err("fail to read MAX14656_STATUS_1. ret=%d\n", ret);
+				    return 0;
+				}
+				val &= CHG_TYPE_MASK;
+
+				if (val == NOT_ATTACHED) {
+					pr_err("Detection failed try again\n");
+					if (i == (MAX_RETRY_COUNT - 1))
+						manual_mode_on = true;
+				} else {
+					pr_info("Detection Sucess\n");
+					break;
+				}
+			}
+		}
+		if (manual_mode_on) {
+			/* read current status */
+			ret = max14656_read_reg(chip->client,
+					MAX14656_CONTROL_3, &val);
+			if (ret) {
+				pr_err("fail to read CONTROL_3. ret=%d\n", ret);
+				return 0;
+			}
+			val |= CHG_TYP_MAN_EN;
+
+			/* write manual detect bit */
+			max14656_write_reg(chip->client,
+					MAX14656_CONTROL_3, val);
+			pr_info("Manual Detection Enabled!\n");
+
+			/* minimum time for charger type detection */
+			msleep(120);
+
+			for(i = 0; i < MAX_RETRY_COUNT; i++){
+                                pr_info("manual detection retry count = %d\n", i);
+
+                                ret = max14656_read_reg(chip->client, MAX14656_STATUS_1, &val);
+                                if (ret) {
+                                    pr_err("fail to read MAX14656_STATUS_1. ret=%d\n", ret);
+                                    return 0;
+                                }
+                                val &= CHG_TYPE_MASK;
+
+                                if (val == NOT_ATTACHED) {
+                                        pr_err("Detection failed try again\n");
+					msleep(30);
+                                } else {
+                                        pr_info("Detection Sucess\n");
+                                        break;
+                                }
+                        }
+		}
+	}
+
+	ret = max14656_read_reg(chip->client, MAX14656_STATUS_1, &val);
+	if (ret) {
+	    pr_err("fail to read MAX14656_STATUS_1. ret=%d\n", ret);
+	    return 0;
+	}
+	dev_info(&chip->client->dev, "%s: read status 0x%x\n", __func__, val);
+	return ((val & VB_VALID) && !(val & CHG_DET_RUN));
+}
+
 #if defined(CONFIG_LGE_PM_CHARGING_VZW_POWER_REQ)
 int max14656_dcd_timeout = 0;
 #endif
@@ -128,19 +226,21 @@ static int max14656_get_prop_chg_type(struct max14656_chip *chip)
 		return val;
 	}
 	val &= CHG_TYPE_MASK;
-	pr_err("%s : val = %d\n", __func__, val);
 
-	if (val == SDP_CHARGER) {
+	if (val == NOT_ATTACHED){
+		charger_type = NO_CHARGER;
+	} else if (val == SDP_CHARGER) {
 		charger_type = USB_SDP_CHARGER;
 	} else if (val == CDP_CHARGER) {
 		charger_type = USB_CDP_CHARGER;
 	} else if (val == DCP_CHARGER) {
 		charger_type = USB_DCP_CHARGER;
 	} else {
-		dev_err(&chip->client->dev, "unknown type charger: %d\n", val);
+		charger_type = USB_DCP_CHARGER;
+		pr_err("%s : Charger type is DCP but Reg03 = %d \n", __func__, val);
 	}
 
-	pr_err("%s : USB_CHG_TYPE = %d\n", __func__, charger_type);
+	dev_info(&chip->client->dev, "USB_CHG_TYPE = %d\n", charger_type);
 
 	return charger_type;
 	}
@@ -263,7 +363,7 @@ static int max14656_get_property(struct power_supply *psy,
 
 	switch (psp) {
 		case POWER_SUPPLY_PROP_USB_CHG_DETECT_DONE:
-			val->intval = max14656_get_prop_chg_type(chip) ? 1 : 0;
+			val->intval = max14656_charger_detect_status(chip);
 			break;
 		case POWER_SUPPLY_PROP_USB_CHG_TYPE:
 			val->intval = max14656_get_prop_chg_type(chip);

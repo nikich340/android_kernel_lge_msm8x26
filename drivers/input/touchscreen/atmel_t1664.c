@@ -58,7 +58,7 @@ static unsigned char touched_finger_count = 0;
 static unsigned char patchevent_mask = 0;
 static unsigned char power_block_mask = 0;
 
-#if defined(CONFIG_MACH_MSM8926_E8LTE) || defined(CONFIG_MACH_MSM8226_E8WIFI)
+#if defined(CONFIG_MACH_MSM8926_E8LTE) || defined(CONFIG_MACH_MSM8226_E8WIFI) || defined (CONFIG_MACH_MSM8926_E8LTE_KR)
 bool thermal_status = 0;
 extern int touch_thermal_mode;
 #endif
@@ -2885,7 +2885,7 @@ void trigger_usb_state_from_otg(int usb_type)
 	}
 }
 
-#if defined(CONFIG_MACH_MSM8926_E8LTE) || defined(CONFIG_MACH_MSM8226_E8WIFI)
+#if defined(CONFIG_MACH_MSM8926_E8LTE) || defined(CONFIG_MACH_MSM8226_E8WIFI) || defined (CONFIG_MACH_MSM8926_E8LTE_KR)
 void check_touch_bat_therm(int therm_mode){
 	if (global_mxt_data!= NULL) {
 		TOUCH_INFO_MSG("[%s] thermal status = (%d)\n", __func__, therm_mode);
@@ -5174,6 +5174,9 @@ static ssize_t mxt_run_self_diagnostic_show(struct mxt_data *data, char *buf)
 		return len;
 	}
 
+	TOUCH_INFO_MSG("MXT_COMMAND_CALIBRATE \n");
+	mxt_t6_command(data, MXT_COMMAND_CALIBRATE, 1, false);
+
 	ref_buf = kzalloc(write_page, GFP_KERNEL);
 	if (!ref_buf) {
 		TOUCH_INFO_MSG("%s Failed to allocate memory\n", __func__);
@@ -5397,7 +5400,7 @@ static void mxt_lpwg_enable(struct mxt_data *data, u32 value)
 
 	if(value == LPWG_DOUBLE_TAP){
 		data->is_knockONonly = true;
-#if defined(CONFIG_MACH_MSM8926_E8LTE) || defined(CONFIG_MACH_MSM8226_E8WIFI)
+#if defined(CONFIG_MACH_MSM8926_E8LTE) || defined(CONFIG_MACH_MSM8226_E8WIFI) || defined (CONFIG_MACH_MSM8926_E8LTE_KR)
 		error = mxt_write_object(data, MXT_PROCI_TOUCH_SEQUENCE_LOGGER_T93, 22, 75);
 #else
 		error = mxt_write_object(data, MXT_PROCI_TOUCH_SEQUENCE_LOGGER_T93, 22, 60);
@@ -5405,7 +5408,7 @@ static void mxt_lpwg_enable(struct mxt_data *data, u32 value)
 		TOUCH_INFO_MSG("Set Knock ON range (10mm)\n");
 	}else if(value == LPWG_MULTI_TAP){
 		data->is_knockONonly = false;
-#if defined(CONFIG_MACH_MSM8926_E8LTE) || defined(CONFIG_MACH_MSM8226_E8WIFI)
+#if defined(CONFIG_MACH_MSM8926_E8LTE) || defined(CONFIG_MACH_MSM8226_E8WIFI) || defined (CONFIG_MACH_MSM8926_E8LTE_KR)
 		error = mxt_write_object(data, MXT_PROCI_TOUCH_SEQUENCE_LOGGER_T93, 22, 52);
 #else
 		error = mxt_write_object(data, MXT_PROCI_TOUCH_SEQUENCE_LOGGER_T93, 22, 42);
@@ -5790,7 +5793,7 @@ static LGE_TOUCH_ATTR(update_fw, S_IWUSR, NULL, mxt_update_fw_store);
 static LGE_TOUCH_ATTR(power_control, S_IRUGO | S_IWUSR, mxt_power_control_show, mxt_power_control_store);
 static LGE_TOUCH_ATTR(ghost_detection_card_enable, S_IWUSR, NULL, mxt_ghost_detection_card_enable_store);
 static LGE_TOUCH_ATTR(global_access_pixel, S_IWUSR | S_IRUSR, mxt_global_access_pixel_show, mxt_global_access_pixel_store);
-static LGE_TOUCH_ATTR(rebase, S_IWUSR | S_IRUSR, mxt_force_rebase_show, NULL);
+static LGE_TOUCH_ATTR(rebase, S_IWUSR | S_IRUGO, mxt_force_rebase_show, NULL);
 static LGE_TOUCH_ATTR(mfts, S_IWUSR | S_IRUSR, mxt_mfts_enable_show, mxt_mfts_enable_store);
 static LGE_TOUCH_ATTR(incoming_call, S_IRUGO | S_IWUSR, NULL, store_incoming_call);
 static LGE_TOUCH_ATTR(keyguard, S_IRUGO | S_IWUSR, NULL, store_keyguard_info);
@@ -7420,7 +7423,7 @@ static int __devinit mxt_probe(struct i2c_client *client, const struct i2c_devic
 	is_probing = true;
 	TOUCH_INFO_MSG("%s \n", __func__);
 
-#if defined(CONFIG_MACH_MSM8926_E8LTE) || defined(CONFIG_MACH_MSM8226_E8WIFI)
+#if defined(CONFIG_MACH_MSM8926_E8LTE) || defined(CONFIG_MACH_MSM8226_E8WIFI) || defined (CONFIG_MACH_MSM8926_E8LTE_KR)
 	touch_thermal_mode = 0;
 #endif
 

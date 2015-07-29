@@ -956,7 +956,7 @@ static int get_ether_addr(const char *str, u8 *dev_addr)
 				str++;
 			num = hex_to_bin(*str++) << 4;
 			num |= hex_to_bin(*str++);
-			dev_addr [i] = num;
+			dev_addr[i] = num;
 		}
 		if (is_valid_ether_addr(dev_addr))
 			return 0;
@@ -972,7 +972,7 @@ static const struct net_device_ops eth_netdev_ops = {
 	.ndo_stop		= eth_stop,
 	.ndo_start_xmit		= eth_start_xmit,
 	.ndo_change_mtu		= ueth_change_mtu,
-	.ndo_set_mac_address 	= eth_mac_addr,
+	.ndo_set_mac_address	= eth_mac_addr,
 	.ndo_validate_addr	= eth_validate_addr,
 };
 

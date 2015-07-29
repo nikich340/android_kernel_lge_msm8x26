@@ -90,7 +90,7 @@ static ssize_t kcal_ctrl_show(struct device *dev,
 static DEVICE_ATTR(kcal, 0644, kcal_show, kcal_store);
 static DEVICE_ATTR(kcal_ctrl, 0644, kcal_ctrl_show, kcal_ctrl_store);
 
-#if defined(CONFIG_MACH_MSM8926_T8LTE)
+#if defined(CONFIG_MACH_MSM8926_T8LTE) || defined(CONFIG_MACH_MSM8226_T8WIFI)
 static int lcd_vcom;
 static int __init display_vcom_value(char *vcom)
 {
@@ -128,7 +128,7 @@ static int kcal_ctrl_probe(struct platform_device *pdev)
 	if(rc !=0)
 		return -1;
 
-#if defined(CONFIG_MACH_MSM8926_T8LTE)
+#if defined(CONFIG_MACH_MSM8926_T8LTE) || defined(CONFIG_MACH_MSM8226_T8WIFI)
 	rc = device_create_file(&pdev->dev, &dev_attr_lcd_vcom);
 	if (rc != 0)
 		printk("## %s: failed to create lcd_vcom node\n", __func__);

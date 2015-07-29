@@ -15,7 +15,7 @@ if RC_CORE
 
 config LIRC
 	tristate
-	default y
+	default n
 
 	---help---
 	   Enable this option to build the Linux Infrared Remote
@@ -52,7 +52,7 @@ config IR_NEC_DECODER
 	tristate "Enable IR raw decoder for the NEC protocol"
 	depends on RC_CORE
 	select BITREVERSE
-	default y
+	default n
 
 	---help---
 	   Enable this option if you have IR with NEC protocol, and
@@ -62,7 +62,7 @@ config IR_RC5_DECODER
 	tristate "Enable IR raw decoder for the RC-5 protocol"
 	depends on RC_CORE
 	select BITREVERSE
-	default y
+	default n
 
 	---help---
 	   Enable this option if you have IR with RC-5 protocol, and
@@ -72,7 +72,7 @@ config IR_RC6_DECODER
 	tristate "Enable IR raw decoder for the RC6 protocol"
 	depends on RC_CORE
 	select BITREVERSE
-	default y
+	default n
 
 	---help---
 	   Enable this option if you have an infrared remote control which
@@ -82,7 +82,7 @@ config IR_JVC_DECODER
 	tristate "Enable IR raw decoder for the JVC protocol"
 	depends on RC_CORE
 	select BITREVERSE
-	default y
+	default n
 
 	---help---
 	   Enable this option if you have an infrared remote control which
@@ -91,7 +91,7 @@ config IR_JVC_DECODER
 config IR_SONY_DECODER
 	tristate "Enable IR raw decoder for the Sony protocol"
 	depends on RC_CORE
-	default y
+	default n
 
 	---help---
 	   Enable this option if you have an infrared remote control which
@@ -101,7 +101,7 @@ config IR_RC5_SZ_DECODER
 	tristate "Enable IR raw decoder for the RC-5 (streamzap) protocol"
 	depends on RC_CORE
 	select BITREVERSE
-	default y
+	default n
 
 	---help---
 	   Enable this option if you have IR with RC-5 (streamzap) protocol,
@@ -112,7 +112,7 @@ config IR_RC5_SZ_DECODER
 config IR_SANYO_DECODER
 	tristate "Enable IR raw decoder for the Sanyo protocol"
 	depends on RC_CORE
-	default y
+	default n
 
 	---help---
 	   Enable this option if you have an infrared remote control which
@@ -123,7 +123,7 @@ config IR_MCE_KBD_DECODER
 	tristate "Enable IR raw decoder for the MCE keyboard/mouse protocol"
 	depends on RC_CORE
 	select BITREVERSE
-	default y
+	default n
 
 	---help---
 	   Enable this option if you have a Microsoft Remote Keyboard for
@@ -134,7 +134,7 @@ config IR_LIRC_CODEC
 	tristate "Enable IR to LIRC bridge"
 	depends on RC_CORE
 	depends on LIRC
-	default y
+	default n
 
 	---help---
 	   Enable this option to pass raw IR to and from userspace via

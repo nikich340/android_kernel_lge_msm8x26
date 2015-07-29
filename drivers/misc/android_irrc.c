@@ -443,7 +443,7 @@ static int android_irrc_probe(struct platform_device *pdev)
 {
 	int rc;
 	struct timed_irrc_data *irrc;
-#if defined(CONFIG_MACH_MSM8926_E9LTE_VZW_US) | defined(CONFIG_MACH_MSM8926_T8LTE)
+#if defined(CONFIG_MACH_MSM8926_E9LTE_VZW_US) | defined(CONFIG_MACH_MSM8926_T8LTE) || defined(CONFIG_MACH_MSM8226_T8WIFI)
 #define BOOST_GPIO 447;
 	int boost_gpio = BOOST_GPIO;
 #endif
@@ -456,7 +456,7 @@ static int android_irrc_probe(struct platform_device *pdev)
 		goto err_1;
 	}
 
-#if defined(CONFIG_MACH_MSM8926_E9LTE_VZW_US) | defined(CONFIG_MACH_MSM8926_T8LTE)
+#if defined(CONFIG_MACH_MSM8926_E9LTE_VZW_US) | defined(CONFIG_MACH_MSM8926_T8LTE) || defined(CONFIG_MACH_MSM8226_T8WIFI)
 	INFO_MSG("***work-around set boost gpio low\n");
 	gpio_request(boost_gpio , "BOOST_GPIO_TEMP");
 	gpio_direction_output(boost_gpio, 0);

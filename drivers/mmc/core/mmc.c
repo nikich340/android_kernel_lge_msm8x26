@@ -134,7 +134,7 @@ static int mmc_decode_cid(struct mmc_card *card)
 		 * don't care MDT y Field[11:8] value over 1101b.
 		 * 2014-03-07, B2-BSP-FS@lge.com
 		 */
-		if(card->ext_csd.rev > 4)
+		if (card->ext_csd.rev > 4)
 			card->cid.year		= UNSTUFF_BITS(resp, 8, 4) + 2013;
 		else
 #endif

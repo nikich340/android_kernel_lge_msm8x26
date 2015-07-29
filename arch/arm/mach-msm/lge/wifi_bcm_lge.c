@@ -648,7 +648,7 @@ const struct cntry_locales_custom bcm_wifi_translate_custom_table[] = {
            {"NP",    "NP",     0},
            {"NR",    "GB",      0},
            {"NU",   "BR",     0},
-           {"NZ",    "BR",     0},
+           {"NZ",    "CN",     0},
            {"OM",   "GB",     0},
            {"PA",    "CN",     0},
            {"PE",    "BR",     0},

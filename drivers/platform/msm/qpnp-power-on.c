@@ -576,10 +576,15 @@ static void bark_work_func(struct work_struct *work)
 		dev_err(&pon->spmi->dev, "Invalid config pointer\n");
 		goto err_return;
 	}
-
+#if defined(CONFIG_LGE_PM_HARDRESET_DISABLE)
+	/* disble reset */
+	 rc = qpnp_pon_masked_write(pon, cfg->s2_cntl2_addr,
+								QPNP_PON_S2_CNTL_EN, 0);
+#else
 	/* enable reset */
 	rc = qpnp_pon_masked_write(pon, cfg->s2_cntl2_addr,
 				QPNP_PON_S2_CNTL_EN, QPNP_PON_S2_CNTL_EN);
+#endif
 	if (rc) {
 		dev_err(&pon->spmi->dev, "Unable to configure S2 enable\n");
 		goto err_return;
@@ -743,10 +748,15 @@ qpnp_config_reset(struct qpnp_pon *pon, struct qpnp_pon_config *cfg)
 		dev_err(&pon->spmi->dev, "Unable to configure S2 reset type\n");
 		return rc;
 	}
-
+#if defined(CONFIG_LGE_PM_HARDRESET_DISABLE)
+	/* disable S2 reset */
+	rc = qpnp_pon_masked_write(pon, cfg->s2_cntl2_addr,
+				QPNP_PON_S2_CNTL_EN, 0);
+#else
 	/* enable S2 reset */
 	rc = qpnp_pon_masked_write(pon, cfg->s2_cntl2_addr,
 				QPNP_PON_S2_CNTL_EN, QPNP_PON_S2_CNTL_EN);
+#endif
 	if (rc) {
 		dev_err(&pon->spmi->dev, "Unable to configure S2 enable\n");
 		return rc;

@@ -160,9 +160,9 @@ EXPORT_SYMBOL_GPL(power_supply_set_scope);
  * @supply_type:	sets type property of power supply
  */
 #ifdef CONFIG_LGE_PM_CHARGING_EXTERNAL_OVP
-#if !defined (CONFIG_MACH_MSM8226_E7WIFI) || !defined (CONFIG_MACH_MSM8226_E8WIFI) || \
-    !defined (CONFIG_MACH_MSM8926_E8LTE) || !defined (CONFIG_MACH_MSM8226_E9WIFI) || \
-    !defined (CONFIG_MACH_MSM8226_E9WIFIN) || !defined (CONFIG_MACH_MSM8926_T8LTE)
+#if !defined (CONFIG_MACH_MSM8226_E7WIFI) && !defined (CONFIG_MACH_MSM8226_E8WIFI) && \
+    !defined (CONFIG_MACH_MSM8926_E8LTE) && !defined (CONFIG_MACH_MSM8226_E9WIFI) && \
+    !defined (CONFIG_MACH_MSM8226_E9WIFIN) && !defined (CONFIG_MACH_MSM8926_T8LTE) && !defined (CONFIG_MACH_MSM8926_E8LTE_KR) && !defined(CONFIG_MACH_MSM8226_T8WIFI)
 static bool is_chg_detect_first = true;
 
 bool lge_check_fast_chg_irq(void);
@@ -200,9 +200,9 @@ int power_supply_set_supply_type(struct power_supply *psy,
 #endif
 
 #ifdef CONFIG_LGE_PM_CHARGING_EXTERNAL_OVP
-#if !defined (CONFIG_MACH_MSM8226_E7WIFI) || !defined (CONFIG_MACH_MSM8226_E8WIFI) || \
-    !defined (CONFIG_MACH_MSM8926_E8LTE) || !defined (CONFIG_MACH_MSM8226_E9WIFI) || \
-    !defined (CONFIG_MACH_MSM8226_E9WIFIN) || !defined (CONFIG_MACH_MSM8926_T8LTE)
+#if !defined (CONFIG_MACH_MSM8226_E7WIFI) && !defined (CONFIG_MACH_MSM8226_E8WIFI) && \
+    !defined (CONFIG_MACH_MSM8926_E8LTE) && !defined (CONFIG_MACH_MSM8226_E9WIFI) && \
+    !defined (CONFIG_MACH_MSM8226_E9WIFIN) && !defined (CONFIG_MACH_MSM8926_T8LTE) && !defined (CONFIG_MACH_MSM8926_E8LTE_KR) && !defined(CONFIG_MACH_MSM8226_T8WIFI)
 	/*
 	* we will enable to external OVP FET in qpnp-charger
 	* This is because of timing, which enables to Ext OVP FET before fastchg_irq occurs.

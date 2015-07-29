@@ -1113,6 +1113,9 @@ int sps_bam_pipe_set_params(struct sps_bam *dev, u32 pipe_index, u32 options)
 		pipe->sys.user_ptrs = (void **)(pipe->sys.desc_cache +
 						 pipe->desc_size);
 		pipe->sys.cache_offset = pipe->sys.acked_offset;
+#ifdef CONFIG_MACH_MSM8926_AKA_CN
+                trace_printk("[%s] cache_offset : %x\n", __func__, pipe->sys.cache_offset);
+#endif
 	}
 
 	/*
@@ -1582,6 +1585,9 @@ static void pipe_handler_eot(struct sps_bam *dev, struct sps_pipe *pipe)
 	} else {
 		update_offset = &pipe->sys.cache_offset;
 		offset = *update_offset;
+#ifdef CONFIG_MACH_MSM8926_AKA_CN
+                trace_printk("[%s] update_offset : %p, offset : %x\n", __func__, update_offset, offset);
+#endif
 	}
 
 	/* Are there any completed descriptors to process? */
@@ -1646,6 +1652,10 @@ static void pipe_handler_eot(struct sps_bam *dev, struct sps_pipe *pipe)
 			offset = 0;
 
 		*update_offset = offset;
+#ifdef CONFIG_MACH_MSM8926_AKA_CN
+                trace_printk("[%s] update_offset : %p, *update_offset : %x\n", __func__, update_offset, *update_offset);
+#endif
+
 #ifdef SPS_BAM_STATISTICS
 		pipe->sys.desc_rd_count++;
 #endif /* SPS_BAM_STATISTICS */

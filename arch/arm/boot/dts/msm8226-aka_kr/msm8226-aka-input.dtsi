@@ -28,9 +28,9 @@
 
 		synaptics_s3320@20 {
 			status = "ok";
-				fw_image_s3320 =            "synaptics/aka_kr/PLG431-V1.27_PR1741017_DS5.2.12.1013_4005019B.img";
-				fw_image_s3320_a0 =         "synaptics/aka_kr/PLG431-V1.27_PR1741017_DS5.2.12.1013_4005019B.img";
-				fw_image_s3320_a1_factory = "synaptics/aka_kr/PLG431-V1.27_PR1741017_DS5.2.12.1013_4005019B.img";
+				fw_image_s3320 =            "synaptics/aka_kr/PLG431-V1.29_PR1819632_DS5.2.12.1013_4005019D.img";
+				fw_image_s3320_a0 =         "synaptics/aka_kr/PLG431-V1.29_PR1819632_DS5.2.12.1013_4005019D.img";
+				fw_image_s3320_a1_factory = "synaptics/aka_kr/PLG431-V1.29_PR1819632_DS5.2.12.1013_4005019D.img";
 				panel_spec = "synaptics/aka_kr/aka_kr_limit.txt";
 		};
 

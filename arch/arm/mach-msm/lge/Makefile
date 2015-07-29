@@ -17,6 +17,7 @@ obj-$(CONFIG_MACH_MSM8226_E9WIFI) += board-8226-e9wifi.o board-8226-e9wifi-gpiom
 obj-$(CONFIG_MACH_MSM8226_E9WIFIN) += board-8226-e9wifin.o board-8226-e9wifin-gpiomux.o
 obj-$(CONFIG_MACH_MSM8226_E8WIFI) += board-8226-e8wifi.o board-8226-e8wifi-gpiomux.o
 obj-$(CONFIG_MACH_MSM8926_E8LTE) += board-8926-e8lte.o board-8926-e8lte-gpiomux.o
+obj-$(CONFIG_MACH_MSM8926_E8LTE_KR) += board-8926-e8lte-kr.o board-8926-e8lte-gpiomux-kr.o
 obj-$(CONFIG_MACH_MSM8226_E7WIFI) += board-8226-e7wifi.o board-8226-e7wifi-gpiomux.o
 obj-$(CONFIG_MACH_MSM8926_AKA_CN) += board-8926-aka-cn.o board-8926-aka-cn-gpiomux.o board-8926-aka-cn-rfkill.o
 obj-$(CONFIG_MACH_MSM8926_E7LTE_ATT_US) += board-8926-e7lte-att-us.o board-8926-e7lte-att-us-gpiomux.o
@@ -26,6 +27,8 @@ obj-$(CONFIG_MACH_MSM8926_T8LTE_ATT_US) += board-8926-t8lte-att-us.o board-8926-
 obj-$(CONFIG_MACH_MSM8926_T8LTE_TMO_US) += board-8926-t8lte-tmo-us.o board-8926-t8lte-tmo-us-gpiomux.o
 obj-$(CONFIG_MACH_MSM8926_T8LTE_USC_US) += board-8926-t8lte-usc-us.o board-8926-t8lte-usc-us-gpiomux.o
 obj-$(CONFIG_MACH_MSM8926_T8LTE_ACG_US) += board-8926-t8lte-acg-us.o board-8926-t8lte-acg-us-gpiomux.o
+obj-$(CONFIG_MACH_MSM8926_T8LTE_RGS_CA) += board-8926-t8lte-rgs-ca.o board-8926-t8lte-rgs-ca-gpiomux.o
+obj-$(CONFIG_MACH_MSM8226_T8WIFI_GLOBAL_COM) += board-8226-t8wifi-global-com.o board-8226-t8wifi-global-com-gpiomux.o
 obj-$(CONFIG_MACH_MSM8926_E9LTE_VZW_US) += board-8926-e9lte-vzw.o board-8926-e9lte-vzw-gpiomux.o
 obj-$(CONFIG_MACH_MSM8926_X5_VZW) += board-8926-x5-vzw.o board-8926-x5-vzw-gpiomux.o
 obj-$(CONFIG_MACH_MSM8926_E2_SPR_US) += board-8926-e2-spr.o board-8926-e2-spr-gpiomux.o
@@ -157,7 +160,7 @@ else
 obj-$(CONFIG_LGE_PM_BATTERY_CAPACITY_1700mAh) += bms-batterydata-LGC_BL44JH_1700.o bms-batterydata-LGC_BL44JH_1700_Dallas.o bms-batterydata-Tocad_BL44JH_1700_Intersil.o
 endif
 obj-$(CONFIG_LGE_PM_BATTERY_CAPACITY_1900mAh) += bms-batterydata-LGE_L70_CHEM_1900mAh_Final.o bms-batterydata-LGE_L70_TOCAD_1900mAh_Final.o
-obj-$(CONFIG_LGE_PM_BATTERY_CAPACITY_2100mAh) += bms-batterydata-LGE_LGC_2040mAh_Final.o bms-batterydata-LGE_Tocad_2040mAh_Final.o bms-batterydata-LGE_Hitaci_2040mAh_Final.o bms-batterydata-LGE_BL41A1H_1527783_2100mAh_Final.o
+obj-$(CONFIG_LGE_PM_BATTERY_CAPACITY_2100mAh) += bms-batterydata-LGE_LGC_2040mAh_Final.o bms-batterydata-LGE_Tocad_2040mAh_Final.o bms-batterydata-LGE_Hitaci_2040mAh_Final.o bms-batterydata-LGE_BL41A1H_2100mAh_LG_Chem_Final.o bms-batterydata-LGE_BL41A1H_2100mAh_TOCAD_Final.o
 obj-$(CONFIG_LGE_PM_BATTERY_CAPACITY_2440mAh) += bms-batterydata-LGE_BL_59UH_2440mAh_LG_Chem_Final.o bms-batterydata-LGE_BL_59UH_2440mAh_TOCAD_Final.o
 obj-$(CONFIG_LGE_PM_BATTERY_CAPACITY_2540mAh) += bms-batterydata-LGE_BL_54SH_2540mAh_LG_Chem_Final.o bms-batterydata-LGE_BL_54SH_2540mAh_Sanyo_Final.o
 obj-$(CONFIG_LGE_PM_BATTERY_CAPACITY_3000mAh) += bms-batterydata-LGE_BL_64SH_3000mAh_LG_Chem_Final.o bms-batterydata-LGE_BL_64SH_3000mAh_Technohill_Final.o

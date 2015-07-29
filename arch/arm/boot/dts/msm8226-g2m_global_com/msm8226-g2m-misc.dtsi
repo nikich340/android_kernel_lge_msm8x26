@@ -22,7 +22,7 @@
 
     i2c@f9925000 {
     	lp5521@32 {
-    		status = "ok";
+		status = "disable";
     		ti,led_en = <&msmgpio 112 0x0>;
     	};
     };

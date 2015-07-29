@@ -108,10 +108,17 @@ $(foreach var, $(atmel_fw_file),  $(shell objcopy -I binary -O ihex $(var) $(var
 atmel_ihex_list := $(subst .ihex, , $(notdir $(wildcard $(srctree)/firmware/atmel/t8lte/*.ihex)))
 atmel_ihex_files := $(foreach var, $(atmel_ihex_list), atmel/t8lte/$(var))
 else 
+ifdef CONFIG_MACH_MSM8226_T8WIFI
+atmel_fw_file := $(wildcard $(srctree)/firmware/atmel/t8wifi/*.fw)
+$(foreach var, $(atmel_fw_file),  $(shell objcopy -I binary -O ihex $(var) $(var).ihex))
+atmel_ihex_list := $(subst .ihex, , $(notdir $(wildcard $(srctree)/firmware/atmel/t8wifi/*.ihex)))
+atmel_ihex_files := $(foreach var, $(atmel_ihex_list), atmel/t8wifi/$(var))
+else
 atmel_fw_file := $(wildcard $(srctree)/firmware/atmel/*.fw)
 $(foreach var, $(atmel_fw_file),  $(shell objcopy -I binary -O ihex $(var) $(var).ihex))
 atmel_ihex_list := $(subst .ihex, , $(notdir $(wildcard $(srctree)/firmware/atmel/*.ihex)))
 atmel_ihex_files := $(foreach var, $(atmel_ihex_list), atmel/$(var))
+endif
 endif
 endif
 endif
@@ -199,7 +206,10 @@ fw-shipped-$(CONFIG_LGE_TOUCH_SYNAPTICS) += $(synaptics_fw_files)
 
 # ATMF04
 ifdef CONFIG_MACH_MSM8926_T8LTE
-fw-shipped-$(CONFIG_SENSOR_ATMF04) += atmf04/atmf04_T8_0_42.fw
+fw-shipped-$(CONFIG_SENSOR_ATMF04) += atmf04/atmf04_T8_0_55.fw
+endif
+ifdef CONFIG_MACH_MSM8226_T8WIFI
+fw-shipped-$(CONFIG_SENSOR_ATMF04) += atmf04/atmf04_T8_0_55.fw
 endif
 
 fw-shipped-$(CONFIG_3C359) += 3com/3C359.bin

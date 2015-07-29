@@ -3018,6 +3018,9 @@ static irqreturn_t mxt_interrupt(int irq, void *dev_id)
 
 	if (data->T44_address) {
 #ifdef I2C_SUSPEND_WORKAROUND
+		if (data->suspended)
+			wake_lock_timeout(&touch_wake_lock, msecs_to_jiffies(1000));
+
 		queue_delayed_work(touch_wq, &data->check_suspended_work, 0);
 #else
 		queue_work(touch_wq, &data->work);
@@ -5854,7 +5857,9 @@ static void lpwg_double_tap(struct mxt_data *data, u32 value)
 	post = kmalloc(sizeof(u8), GFP_KERNEL);
 	pre = kmalloc(sizeof(u8), GFP_KERNEL);
 	t93_11 = kmalloc(sizeof(u8), GFP_KERNEL);
+#if defined(CONFIG_MACH_MSM8926_X10_VZW) || defined(CONFIG_MACH_MSM8926_B2L_ATT)
 	t93_17 = kmalloc(sizeof(u8), GFP_KERNEL);
+#endif
 	t93_20 = kmalloc(sizeof(u8), GFP_KERNEL);
 	t93_22 = kmalloc(sizeof(u8), GFP_KERNEL);
 

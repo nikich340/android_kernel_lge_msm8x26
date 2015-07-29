@@ -488,6 +488,12 @@
 		qcom,rsense = <10000000>;
 };
 
+&pm8226_chg_boost {
+	regulator-min-microvolt = <5100000>;
+	regulator-max-microvolt = <5100000>;
+	regulator-name = "8226_smbbp_boost";
+};
+
 &rpm_bus {
 	rpm-regulator-smpa3 {
 		status = "okay";

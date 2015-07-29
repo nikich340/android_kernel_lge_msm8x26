@@ -2556,19 +2556,19 @@ static void sdhci_tuning_timer(unsigned long data)
 #ifdef CONFIG_LGE_ENABLE_MMC_STRENGTH_CONTROL
 static int lge_asctodec(char *buff, int num)
 {
-    int i, j;
-    int val, tmp;
-    val=0;
-    for(i=0; i<num; i++)
-    {
-        tmp = 1;
-        for(j=0; j< (num-(i+1)); j++){
-            tmp = tmp*10;
-        }   
-        val += tmp*(buff[i]-48); 
-    }
-    pr_info("[JWKIM_TEST] dec :%d\n", val);
-    return val;
+	int i, j;
+	int val = 0, tmp;
+
+	for (i = 0; i < num; i++) {
+		tmp = 1;
+		for (j = 0; j < (num - (i + 1)); j++) {
+			tmp = tmp * 10;
+		}
+		val += tmp * (buff[i] - 48);
+	}
+
+	pr_info("[JWKIM_TEST] dec :%d\n", val);
+	return val;
 }
 
 static void record_crc_error(char *filename)
@@ -2585,45 +2585,46 @@ static void record_crc_error(char *filename)
     set_fs(KERNEL_DS);
 
     filp = filp_open(filename, O_RDWR, S_IRUSR|S_IWUSR);
-    if(IS_ERR(filp)){
-        pr_err("[JWKIM_TEST] open error : %ld\n", IS_ERR(filp));
-        return;
-    }
-    count = 0;
+    if (IS_ERR(filp)) {
+		pr_err("[JWKIM_TEST] open error : %ld\n", IS_ERR(filp));
+		return;
+	}
+	count = 0;
 
-    do{
-        ret = vfs_read(filp, &bufs[count], 1, &filp->f_pos);
-        count++;
-    }while(ret!=0);
-    count--;
-    bufs[count]=0;
-    num_crc = lge_asctodec(bufs, count);
-    num_crc = num_crc+1;
-    count = 1;
-    tmp = num_crc;
-    do{
-        tmp = tmp/10;
-        if(!(tmp<1))
-            count++;
-        else
-            break;
-    }while(1);  
+	do {
+		ret = vfs_read(filp, &bufs[count], 1, &filp->f_pos);
+		count++;
+	} while (ret != 0);
+
+	count--;
+	bufs[count] = 0;
+	num_crc = lge_asctodec(bufs, count);
+	num_crc = num_crc + 1;
+	count = 1;
+	tmp = num_crc;
+	do {
+		tmp = tmp / 10;
+		if (!(tmp < 1))
+			count++;
+		else
+			break;
+	} while (1);
 
 
-    for(i=0; i<count; i++){
-        tmp = num_crc%10;
-        asc_num[count-(i+1)] = tmp + '0';
+    for (i = 0; i < count; i++) {
+		tmp = num_crc % 10;
+		asc_num[count - (i + 1)] = tmp + '0';
         num_crc = num_crc/10;
     }
-    asc_num[count]=0;
-    pr_info("[JWKIM_TEST] ascii val : %s\n", asc_num);
-    
-    filp->f_pos=0;
+	asc_num[count] = 0;
+	pr_info("[JWKIM_TEST] ascii val : %s\n", asc_num);
 
-    vfs_write(filp, asc_num, count, &filp->f_pos);
-    filp_close(filp, NULL);
-    set_fs(old_fs);
-    return;
+	filp->f_pos = 0;
+
+	vfs_write(filp, asc_num, count, &filp->f_pos);
+	filp_close(filp, NULL);
+	set_fs(old_fs);
+	return;
 }
 
 static void record_crc_data_error(struct work_struct *work)
@@ -2805,9 +2806,9 @@ static void sdhci_data_irq(struct sdhci_host *host, u32 intmask)
 			{
 				pr_msg = true;
 #ifdef CONFIG_LGE_ENABLE_MMC_STRENGTH_CONTROL
-				if(intmask & SDHCI_INT_DATA_CRC){
+				if (intmask & SDHCI_INT_DATA_CRC) {
 					pr_err("%s : [CRC] Data CRC occured!!!! \n", mmc_hostname(host->mmc));
-					pr_err("intmask : 0x%08X \n", intmask);					
+					pr_err("intmask : 0x%08X \n", intmask);
 					queue_work(system_nrt_wq, &lge_crc_data_workqueue);
 				}
 #else

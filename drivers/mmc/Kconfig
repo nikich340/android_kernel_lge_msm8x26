@@ -45,6 +45,13 @@ config MACH_MSM8926_MMC_ABORT_RESCAN_IN_SUSPEND
 		If you say Y here, abort rescan if suspend is triggered
 # LGE_CHANGE_E : ws.yang@lge.com
 
+# LGE_CHANGE_E : D3-5T-FS@lge.com
+
+config LGE_SHOW_SDCARD_DETECT_PIN_STATUS
+    bool "Show SD Card Detect pin status"
+    default n
+    help
+        Show SD Card Detect pin status at /sys/devices/soc.0/7864900.sdhci/mmc_host/mmc1/cd_status
 if MMC
 
 source "drivers/mmc/core/Kconfig"

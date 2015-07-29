@@ -1096,7 +1096,7 @@ long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
                  *
                  * byungchul.park@lge.com 20120503
                  */
-                sreadahead_prof( f, 0, 0);
+                sreadahead_prof(f, 0, 0);
                 /* LGE_CHANGE_E */
 
 			}

@@ -2116,7 +2116,9 @@ static int cgroup_attach_proc(struct cgroup *cgrp, struct task_struct *leader)
 	/*
 	 * step 5: success! and cleanup
 	 */
+#if !defined(CONFIG_MACH_MSM8926_AKA_KR) && !defined(CONFIG_MACH_MSM8926_JAGN_KR) && !defined(CONFIG_MACH_MSM8926_B2LN_KR)
 	synchronize_rcu();
+#endif
 	cgroup_wakeup_rmdir_waiter(cgrp);
 	retval = 0;
 out_put_css_set_refs:

@@ -22,7 +22,7 @@
     defined(CONFIG_MACH_MSM8226_E7WIFI) || defined(CONFIG_MACH_MSM8226_E8WIFI) || \
     defined(CONFIG_MACH_MSM8926_E8LTE) || defined(CONFIG_MACH_MSM8926_E7LTE_ATT_US) || \
     defined(CONFIG_MACH_MSM8926_E7LTE_VZW_US) || defined (CONFIG_MACH_MSM8926_E7LTE_USC_US) || \
-    defined(CONFIG_MACH_MSM8926_T8LTE) || defined(CONFIG_MACH_MSM8926_E9LTE_VZW_US)
+    defined(CONFIG_MACH_MSM8926_T8LTE) || defined(CONFIG_MACH_MSM8926_E9LTE_VZW_US) || defined (CONFIG_MACH_MSM8926_E8LTE_KR) || defined(CONFIG_MACH_MSM8226_T8WIFI)
 #define PC_CC_ROWS             30
 #define PC_CC_COLS             13
 
@@ -177,7 +177,8 @@ extern struct bms_battery_data LGE_BL_64SH_3000mAh_Technohill_data;
 #elif defined(CONFIG_LGE_PM_BATTERY_CAPACITY_2100mAh)
 extern struct bms_battery_data LGE_LGC_2040mAH_data;
 extern struct bms_battery_data LGE_Tocad_2040mAh_data;
-extern struct bms_battery_data LGE_BL41A1H_1527783_2100mAh_BMS_data;
+extern struct bms_battery_data LGE_BL41A1H_2100mAh_LG_Chem_data;
+extern struct bms_battery_data LGE_BL41A1H_2100mAh_TOCAD_data;
 #if defined(CONFIG_LGE_PM_BATTERY_HITACI_2100mAh)
 extern struct bms_battery_data LGE_Hitaci_2040mAh_data;
 #endif

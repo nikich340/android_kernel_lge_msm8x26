@@ -227,9 +227,9 @@
 #define CHARGER_UNplugged           1
 #define DEEP_SLEEP_WAKEUP			2
 
-#define CHARGER_KNOCKON_SLEEP     	3
-#define CHARGER_KNOCKON_WAKEUP   	4
-#define NOCHARGER_KNOCKON_SLEEP   	5
+#define CHARGER_KNOCKON_SLEEP		3
+#define CHARGER_KNOCKON_WAKEUP	4
+#define NOCHARGER_KNOCKON_SLEEP	5
 #define NOCHARGER_KNOCKON_WAKEUP	6
 
 #define PATCH_EVENT_PAIR_NUM 4
@@ -285,7 +285,8 @@ enum {
 	SUNTEL_PANEL_G2M_B,
 	MAX_PANEL,
 };
-enum{
+
+enum {
 	TIME_EX_INIT_TIME,
 	TIME_EX_FIRST_INT_TIME,
 	TIME_EX_T72_NOISE_INT_TIME,
@@ -295,12 +296,12 @@ enum{
 	TIME_EX_PROFILE_MAX,
 };
 
-enum{
+enum {
 	NEED_TO_OUT	= 101,
 	NEED_TO_INIT,
 };
 
-enum{
+enum {
 	JITTER_VALUE,
 	GHOST_DETECT_LIMIT_TIME,
 	GHOST_DETECT_X,
@@ -311,38 +312,38 @@ enum{
 	GHOST_DETECTION_VALUE_MAX,
 };
 
-enum{
-    LPWG_READ = 1,
-    LPWG_ENABLE,
-    LPWG_LCD_X,
-    LPWG_LCD_Y,
-    LPWG_ACTIVE_AREA_X1,
-    LPWG_ACTIVE_AREA_X2,
-    LPWG_ACTIVE_AREA_Y1,
-    LPWG_ACTIVE_AREA_Y2,
-    LPWG_TAP_COUNT,
-    LPWG_REPLY,
-    LPWG_LENGTH_BETWEEN_TAP,
-    LPWG_EARLY_MODE,
-    LPWG_ENABLED_BY_PROXI,
+enum {
+	LPWG_READ = 1,
+	LPWG_ENABLE,
+	LPWG_LCD_X,
+	LPWG_LCD_Y,
+	LPWG_ACTIVE_AREA_X1,
+	LPWG_ACTIVE_AREA_X2,
+	LPWG_ACTIVE_AREA_Y1,
+	LPWG_ACTIVE_AREA_Y2,
+	LPWG_TAP_COUNT,
+	LPWG_REPLY,
+	LPWG_LENGTH_BETWEEN_TAP,
+	LPWG_EARLY_MODE,
+	LPWG_ENABLED_BY_PROXI,
 };
 
-enum{
-    LPWG_NONE = 0,
-    LPWG_DOUBLE_TAP,
-    LPWG_MULTI_TAP,
+enum {
+	LPWG_NONE = 0,
+	LPWG_DOUBLE_TAP,
+	LPWG_MULTI_TAP,
 };
 
-enum{
+enum {
 	IDLE_STATE,
 	HW_RESET_STATE,
 };
 
 typedef enum error_type {
-    NO_ERROR = 0,
-    ERROR,
-    IGNORE_EVENT,
-    IGNORE_EVENT_BUT_SAVE_IT,
+	NO_ERROR = 0,
+	ERROR,
+	IGNORE_EVENT,
+	IGNORE_EVENT_BUT_SAVE_IT,
 } err_t;
 
 struct point {
@@ -350,7 +351,7 @@ struct point {
 	int y;
 };
 
-enum{
+enum {
 	INCOMING_CALL_IDLE,
 	INCOMING_CALL_RINGING,
 	INCOMING_CALL_OFFHOOK,
@@ -488,14 +489,14 @@ struct mxt_fw_info {
 };
 
 /*Reference Check*/
-struct mxt_channel_size{
+struct mxt_channel_size {
 	u8 start_x;
 	u8 start_y;
 	u8 size_x;
 	u8 size_y;
 };
 
-struct mxt_ref_limit{
+struct mxt_ref_limit {
 	u8 ref_chk_using;
 	u8 ref_x_all_err_line;
 	u8 ref_y_all_err_line;
@@ -510,7 +511,7 @@ struct mxt_ref_limit{
 	u8 diff_scaling;
 };
 
-struct mxt_patch{
+struct mxt_patch {
 	u8 *patch;
 	u16 *stage_addr;
 	u16 *tline_addr;
@@ -630,7 +631,7 @@ struct mxt_data {
 #if defined(CONFIG_FB)
 	struct notifier_block fb_notif;
 #endif
-	struct kobject 				lge_touch_kobj;
+	struct kobject		lge_touch_kobj;
 	/* Cached parameters from object table */
 	u16 T5_address;
 	u8 T5_msg_size;
@@ -661,7 +662,7 @@ struct mxt_data {
 	u16 T72_address;
 
 	u16 T93_address;
-    u8 T93_reportid;
+	u8 T93_reportid;
 	u8 g_tap_cnt;
 
 	struct mxt_channel_size channel_size;
@@ -736,9 +737,9 @@ struct tci_abs {
 	int y;
 };
 
-#define TOUCH_INFO_MSG(fmt, args...) 	printk(KERN_ERR "[Touch] " fmt, ##args)
-#define TOUCH_ERR_MSG(fmt, args...) printk(KERN_ERR "[Touch E] [%s %d] " fmt, __FUNCTION__, __LINE__, ##args)
-#define TOUCH_PATCH_INFO_MSG(fmt, args...) 	printk(KERN_ERR "[Touch Patch] " fmt, ##args)
+#define TOUCH_INFO_MSG(fmt, args...)	printk(KERN_ERR "[Touch] " fmt, ##args)
+#define TOUCH_ERR_MSG(fmt, args...)		printk(KERN_ERR "[Touch E] [%s %d] " fmt, __FUNCTION__, __LINE__, ##args)
+#define TOUCH_PATCH_INFO_MSG(fmt, args...)	printk(KERN_ERR "[Touch Patch] " fmt, ##args)
 
 int fb_notifier_callback(struct notifier_block *self, unsigned long event, void *data);
 int mxt_initialize_t9_input_device(struct mxt_data *data);
