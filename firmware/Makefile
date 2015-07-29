@@ -404,8 +404,9 @@ $(patsubst %,$(obj)/%.gen.o, $(fw-external-y)): $(obj)/%.gen.o: $(fwdir)/%
 $(obj)/%: $(obj)/%.ihex | $(objtree)/$(obj)/$$(dir %)
 	$(call cmd,ihex)
 
-$(obj)/%.fw: $(objtree)/$(obj)/$$(dir %.fw)
-	$(call cmd,copy)
+# Useless lines when you compile kernel outside of build tree - it copies files from a folder to the same folder
+# $(obj)/%.fw: $(objtree)/$(obj)/$$(dir %.fw)
+#	$(call cmd,copy)
 
 # Don't depend on ihex2fw if we're installing and it already exists.
 # Putting it after | in the dependencies doesn't seem sufficient when
