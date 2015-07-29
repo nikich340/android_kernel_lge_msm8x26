@@ -360,6 +360,7 @@ struct msm_sensor_init_params {
 	enum camb_position_t position;
 	/* sensor mount angle */
 	uint32_t            sensor_mount_angle;
+	int 				maker_gpio;/* LGE_CHANGE, Fix for Dual Camera Module of HI707, 2014-03-04, dongsu.bag@lge.com */
 };
 
 struct sensorb_cfg_data {
@@ -423,6 +424,7 @@ enum msm_sensor_cfg_type_t {
 	CFG_SET_SLAVE_INFO,
 	CFG_SLAVE_READ_I2C,
 	CFG_WRITE_I2C_ARRAY,
+    CFG_READ_I2C_ARRAY_LG,
 	CFG_SLAVE_WRITE_I2C_ARRAY,
 	CFG_WRITE_I2C_SEQ_ARRAY,
 	CFG_POWER_UP,

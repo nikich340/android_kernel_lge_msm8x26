@@ -103,6 +103,12 @@ static struct msm_sensor_power_setting imx111_power_setting_rev_a[] = {
 		.delay = 1,
 	},
 	{
+		.seq_type = SENSOR_CLK,	//MCLK order is changed. 20140103. younjung.park
+		.seq_val = SENSOR_CAM_MCLK,
+		.config_val = 0,
+		.delay = 1,
+	},
+	{
 		.seq_type = SENSOR_GPIO,
 		.seq_val = SENSOR_GPIO_STANDBY,
 		.config_val = GPIO_OUT_HIGH,
@@ -113,12 +119,6 @@ static struct msm_sensor_power_setting imx111_power_setting_rev_a[] = {
 		.seq_val = SENSOR_GPIO_RESET,
 		.config_val = GPIO_OUT_HIGH,
 		.delay = 30,
-	},
-	{
-		.seq_type = SENSOR_CLK,
-		.seq_val = SENSOR_CAM_MCLK,
-		.config_val = 0,
-		.delay = 1,
 	},
 	{
 		.seq_type = SENSOR_I2C_MUX,

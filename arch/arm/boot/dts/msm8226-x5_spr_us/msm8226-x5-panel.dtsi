@@ -77,8 +77,8 @@
 	qcom,mdss-dsi-h-back-porch = <44>;
 	qcom,mdss-dsi-h-front-porch = <42>;
 	qcom,mdss-dsi-v-pulse-width = <2>;
-	qcom,mdss-dsi-v-back-porch = <15>;
-	qcom,mdss-dsi-v-front-porch = <13>;
+	qcom,mdss-dsi-v-back-porch = <9>;
+	qcom,mdss-dsi-v-front-porch = <19>;
 	qcom,mdss-dsi-panel-timings = [7A 25 1D 00 37 33 22 27 31 03 04 00]; /*Mipi clock 238MHz*/
 	qcom,mdss-dsi-t-clk-post = <0x20>;
 	qcom,mdss-dsi-t-clk-pre = <0x2d>;

@@ -1053,11 +1053,9 @@ static int venus_hfi_power_enable(void *dev)
 		return -EINVAL;
 	}
 	mutex_lock(&device->clk_pwr_lock);
-    rc = venus_hfi_clk_gating_off(device);
-    if (rc) {
-        dprintk(VIDC_ERR, "%s : Clock enable failed\n", __func__);
-    }
-    mutex_unlock(&device->clk_pwr_lock);
+	if (!device->power_enabled)
+		rc = venus_hfi_power_on(device);
+	mutex_unlock(&device->clk_pwr_lock);
 
 	return rc;
 }

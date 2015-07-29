@@ -1633,9 +1633,6 @@ static int __devinit qpnp_wled_init(struct qpnp_led_data *led)
 
 	}
 #if defined(CONFIG_LGE_TOVIS_540P_PANEL_CABC)
-#ifndef CONFIG_FB_MSM_MIPI_TIANMA_VIDEO_QHD_PT_PANEL
-if(!gpio_get_value(23)){
-#endif
 	rc = qpnp_led_masked_write(led, WLED1_LED1_CABC_EN(led->base),
 			WLED_CABC_EN_MASK,WLED_CABC_EN_ON);
 	pr_info("%s:cabc write",__func__);
@@ -1644,10 +1641,6 @@ if(!gpio_get_value(23)){
 				"WLED cabc_en reg write failed(%d)\n",rc);
 		return rc;
 	}
-#ifndef CONFIG_FB_MSM_MIPI_TIANMA_VIDEO_QHD_PT_PANEL
-}else
-	pr_info("%s:cabc not write. lcd maker id: %d",__func__, gpio_get_value(23));
-#endif
 #elif defined(CONFIG_LGE_TOVIS_ILI9806E_WVGA_PANEL_CABC)
 	rc = qpnp_led_masked_write(led, WLED1_LED1_CABC_EN(led->base),
 			WLED_CABC_EN_MASK,WLED_CABC_EN_ON);

@@ -761,6 +761,18 @@ static int32_t msm_sensor_get_dt_data(struct device_node *of_node,
 		goto ERROR1;
 	}
 
+/* LGE_CHANGE_S, Fix for Dual Camera Module of HI707, 2014-03-04, dongsu.bag@lge.com */
+	rc = of_property_read_u32(of_node, "qcom,maker-gpio",
+		&sensordata->sensor_init_params->maker_gpio);
+	CDBG("%s qcom,maker-gpio %d, rc %d\n", __func__,
+		sensordata->sensor_init_params->maker_gpio, rc);
+	if (rc < 0) {
+		/* Set default maker-gpio */
+		sensordata->sensor_init_params->maker_gpio = -1;
+		rc = 0;
+	}
+/* LGE_CHANGE_E, Fix for Dual Camera Module of HI707, 2014-03-04, dongsu.bag@lge.com */
+
 	rc = of_property_read_u32(of_node, "qcom,mount-angle",
 		&sensordata->sensor_init_params->sensor_mount_angle);
 	CDBG("%s qcom,mount-angle %d, rc %d\n", __func__,
@@ -1459,6 +1471,42 @@ int32_t msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 		kfree(reg_setting);
 		break;
 	}
+	//for IMX219 Bank Register, 2014-02-06 younjung.park@lge.com
+
+	case CFG_READ_I2C_ARRAY_LG:{
+		#if 1
+		struct msm_camera_i2c_reg_setting reg_setting;
+		uint16_t local_data = 0;
+		uint16_t read_bank_addr = 0;
+			if (copy_from_user(&reg_setting,
+				(void *)cdata->cfg.setting,
+				sizeof(struct msm_camera_i2c_reg_setting))) {
+				pr_err("%s:%d failed\n", __func__, __LINE__);
+				rc = -EFAULT;
+				break;
+			}
+			read_bank_addr = reg_setting.reg_setting->reg_addr;
+
+			pr_err("%s:CFG_Bank_READ_I2C:", __func__);
+			pr_err("reg_addr=0x%x, reg_data=0x%x\n", reg_setting.reg_setting->reg_addr, reg_setting.reg_setting->reg_data);
+
+			rc = s_ctrl->sensor_i2c_client->i2c_func_tbl->i2c_read(
+					s_ctrl->sensor_i2c_client,
+					read_bank_addr,
+					&local_data, reg_setting.data_type);
+			if (rc < 0) {
+				pr_err("%s:%d: i2c_read failed\n", __func__, __LINE__);
+				break;
+			}
+			pr_err("[B2MINI] %s bank %d\n", __func__, local_data);
+			if (copy_to_user((void *)reg_setting.value, &local_data, sizeof(uint16_t))) {
+				pr_err("%s:%d copy failed\n", __func__, __LINE__);
+				rc = -EFAULT;
+				break;
+			}
+		#endif
+			break;
+		}
 	case CFG_SLAVE_READ_I2C: {
 		struct msm_camera_i2c_read_config read_config;
 		uint16_t local_data = 0;

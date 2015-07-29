@@ -163,12 +163,12 @@ static void android_irrc_enable_pwm(struct timed_irrc_data *irrc, int PWM_CLK, i
 		return;
 	}
 
-	if (irrc->vreg != NULL) {
+	if (!(regulator_is_enabled(irrc->vreg) > 0)) {
 		rc = regulator_enable(irrc->vreg);
 		if (rc < 0)
 			ERR_MSG("regulator_enable failed\n");
 	}
-	if (irrc->vreg2 != NULL) {
+	if (irrc->vreg2 != NULL && !(regulator_is_enabled(irrc->vreg2) > 0)) {
 		rc = regulator_enable(irrc->vreg2);
         ERR_MSG("irrc->vreg2 set!!\n");
 		if (rc < 0)
@@ -205,10 +205,6 @@ static void android_irrc_disable_pwm(struct work_struct *work)
 
 	INFO_MSG("bk gpio_high_flag = %d\n", gpio_high_flag);
 
-	if(g_pwm_enabled == false) {
-		INFO_MSG("pwm already disabled !!!\n");
-		return;
-	}
 	if (irrc->vreg != NULL && regulator_is_enabled(irrc->vreg) > 0) {
 		rc = regulator_disable(irrc->vreg);
 		if (rc < 0)

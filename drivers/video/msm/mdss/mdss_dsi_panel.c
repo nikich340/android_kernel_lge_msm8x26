@@ -378,9 +378,6 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 {
 	struct mipi_panel_info *mipi;
 	struct mdss_dsi_ctrl_pdata *ctrl = NULL;
-#if defined(CONFIG_FB_MSM_MIPI_TIANMA_VIDEO_QHD_PT_PANEL)
-	int gpio_get;
-#endif
 
 	hw_rev_type hw_rev;
 	hw_rev = lge_get_board_revno();
@@ -429,17 +426,10 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 		if (!is_dsv_cont_splash_screening_f && gpio_is_valid(ctrl->disp_en_gpio))
 			gpio_set_value((ctrl->disp_en_gpio), 1);
 #if defined(CONFIG_FB_MSM_MIPI_TIANMA_VIDEO_QHD_PT_PANEL)
-		gpio_get = gpio_get_value(23);
-
-		if(gpio_get){
+		if(is_dsv_cont_splash_screening_f)
 			msleep(5);
-		} else {
-			if(is_dsv_cont_splash_screening_f){
-				msleep(130);
-			} else {
-				msleep(80);
-			}
-		}
+		else
+			msleep(5);
 #else
 		if(is_dsv_cont_splash_screening_f)
 			msleep(130);

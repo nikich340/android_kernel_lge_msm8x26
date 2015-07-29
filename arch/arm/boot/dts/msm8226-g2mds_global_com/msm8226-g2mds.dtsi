@@ -29,10 +29,6 @@
 		revision = "rev_a";
 	};
 
-	lge_sw_irrc {
-        vreg2_irrc-supply = <&pm8226_lvs1>;
-	};
-
 	i2c@f9925000 {
 		lp5521@32 {
 			status = "disable";

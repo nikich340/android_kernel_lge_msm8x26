@@ -70,7 +70,7 @@
 			status = "ok";
 			atmel,t15_key_state = <0>;
 			atmel,t15_key_map = <0>;
-			atmel,fw_name = "atmel/S0A47P1_2_07.fw";
+			atmel,fw_name = "atmel/S0A47P1_2_05.fw";
 			atmel,panel_check = <0>;
 			atmel,use_mfts = <1>;
 			atmel,ghost_detection_enable = <1>;

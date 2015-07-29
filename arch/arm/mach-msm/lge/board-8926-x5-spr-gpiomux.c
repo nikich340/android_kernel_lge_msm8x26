@@ -502,7 +502,7 @@ static struct msm_gpiomux_config msm_sensor_configs[] __initdata = {
 		},
 	},
 	{
-		.gpio = 37, /* CAM1_RST_N */
+		.gpio = 114, /* CAM1_RST_N */
 		.settings = {
 			[GPIOMUX_ACTIVE]    = &cam_settings[3],
 			[GPIOMUX_SUSPENDED] = &cam_settings[4],
