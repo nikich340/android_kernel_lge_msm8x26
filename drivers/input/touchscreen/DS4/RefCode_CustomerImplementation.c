@@ -125,7 +125,7 @@ int waitATTN(int code, int time)
 void write_log(char *data)
 {
 	int fd;
-	char *fname = "/data/touch_self_test.txt";
+	char *fname = "/mnt/sdcard/touch_self_test.txt";
 
 	mm_segment_t old_fs = get_fs();  
 	set_fs(KERNEL_DS);  

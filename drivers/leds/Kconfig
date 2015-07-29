@@ -585,8 +585,6 @@ config LEDS_TRIGGER_SLEEP
 comment "iptables trigger is under Netfilter config (LED target)"
 	depends on LEDS_TRIGGERS
 
-endif # NEW_LEDS
-
 config LGE_TOVIS_540P_PANEL_CABC
 	bool "MIPI TOVIS VIDEO 540P PANEL && MIPI TOVIS VIDEO 540 PANEL WITH DSV CABC ON"
 	default n
@@ -594,3 +592,29 @@ config LGE_TOVIS_540P_PANEL_CABC
 config LGE_TOVIS_ILI9806E_WVGA_PANEL_CABC
 	bool "MIPI TOVIS ILI9806E VIDEO WVGA PANEL CABC ON"
 	default n
+
+config LGE_JAGDSNM_CABC
+	bool "MIPI JAGDSNM CABC ON"
+	default n
+
+config LGE_X10_VZW_LED
+	bool "LGE X10 VZW LED Enable"
+	default n
+
+config LGE_B2L_ATT_LED
+	bool "LGE B2L ATT LED Enable"
+	default n
+
+config LGE_B2LN_LGU_LED
+	bool "LGE B2L ATT LED Enable"
+	default n
+
+config LGE_JAG_LED
+	bool "LGE JAG LED Enable"
+	default n
+
+config LEDS_PM8226_EMOTIONAL
+	bool "LGE PM8226 Emotional LED"
+	default n
+
+endif # NEW_LEDS

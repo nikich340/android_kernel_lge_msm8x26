@@ -90,6 +90,26 @@ static ssize_t kcal_ctrl_show(struct device *dev,
 static DEVICE_ATTR(kcal, 0644, kcal_show, kcal_store);
 static DEVICE_ATTR(kcal_ctrl, 0644, kcal_ctrl_show, kcal_ctrl_store);
 
+#if defined(CONFIG_MACH_MSM8926_T8LTE)
+static int lcd_vcom;
+static int __init display_vcom_value(char *vcom)
+{
+	sscanf(vcom, "%d", &lcd_vcom);
+	printk("%s[%d]\n", __func__, lcd_vcom);
+
+	return 1;
+}
+__setup("lge.lcd_vcom=", display_vcom_value);
+
+static ssize_t lcd_vcom_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", lcd_vcom);
+}
+
+static DEVICE_ATTR(lcd_vcom, 0444, lcd_vcom_show, NULL);
+#endif
+
 static int kcal_ctrl_probe(struct platform_device *pdev)
 {
 	int rc = 0;
@@ -107,6 +127,12 @@ static int kcal_ctrl_probe(struct platform_device *pdev)
 	rc = device_create_file(&pdev->dev, &dev_attr_kcal_ctrl);
 	if(rc !=0)
 		return -1;
+
+#if defined(CONFIG_MACH_MSM8926_T8LTE)
+	rc = device_create_file(&pdev->dev, &dev_attr_lcd_vcom);
+	if (rc != 0)
+		printk("## %s: failed to create lcd_vcom node\n", __func__);
+#endif
 
 	return 0;
 }

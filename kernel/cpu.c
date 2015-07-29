@@ -448,9 +448,35 @@ void __weak arch_enable_nonboot_cpus_end(void)
 {
 }
 
+#ifdef CONFIG_MACH_MSM8X10_L70P /* Boost Cpu when wake up */
+#define BOOST_FREQ_TIME_MS 2000
+static struct timer_list boost_freq_timer;
+int boost_freq = 0;
+static void boost_freq_timer_cb(unsigned long data)
+{
+	printk(KERN_ERR "clearing boost %d->0 ...\n", boost_freq);
+	boost_freq = 0;
+}
+#endif
+
 void __ref enable_nonboot_cpus(void)
 {
 	int cpu, error;
+#ifdef CONFIG_MACH_MSM8X10_L70P /* Boost Cpu when wake up */
+	static int first = 0;
+
+	if (!first) {
+		init_timer(&boost_freq_timer);
+		first = 1;
+	}
+	if (timer_pending(&boost_freq_timer))
+		del_timer(&boost_freq_timer);
+	boost_freq_timer.function = boost_freq_timer_cb;
+	boost_freq_timer.expires =
+		jiffies + msecs_to_jiffies(BOOST_FREQ_TIME_MS);
+	add_timer(&boost_freq_timer);
+	boost_freq = 1;
+#endif
 
 	/* Allow everyone to use the CPU hotplug again */
 	cpu_maps_update_begin();
@@ -648,10 +674,12 @@ void set_cpu_present(unsigned int cpu, bool present)
 
 void set_cpu_online(unsigned int cpu, bool online)
 {
-	if (online)
+	if (online) {
 		cpumask_set_cpu(cpu, to_cpumask(cpu_online_bits));
-	else
+		cpumask_set_cpu(cpu, to_cpumask(cpu_active_bits));
+	} else {
 		cpumask_clear_cpu(cpu, to_cpumask(cpu_online_bits));
+	}
 }
 
 void set_cpu_active(unsigned int cpu, bool active)

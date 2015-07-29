@@ -98,6 +98,9 @@ static void __init msm8610_reserve(void)
 {
 	reserve_info = &msm8610_reserve_info;
 	of_scan_flat_dt(dt_scan_for_memory_reserve, msm8610_reserve_table);
+#ifdef CONFIG_MACH_LGE
+	of_scan_flat_dt(lge_init_dt_scan_chosen, NULL);
+#endif
 	msm_reserve();
 #if defined(CONFIG_ANDROID_RAM_CONSOLE)
 	lge_reserve();
@@ -127,6 +130,9 @@ void __init msm8610_add_drivers(void)
     lge_android_usb_init();
 #endif
 
+#ifdef CONFIG_LGE_QFPROM_INTERFACE
+	lge_add_qfprom_devices();
+#endif
 #ifdef CONFIG_LGE_ENABLE_MMC_STRENGTH_CONTROL
     lge_add_mmc_strength_devices();
 #endif

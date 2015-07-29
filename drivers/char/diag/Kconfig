@@ -60,16 +60,6 @@ config LGE_DM_APP
 	 LGE DM APP Support
 endmenu
 
-menu "LGE DM DEV Support"
-
-config LGE_DM_DEV
-    bool "LGE DM DEV Support"
-    default n
-    depends on MACH_LGE
-    help
-     LGE DM DEV Support
-endmenu
-
 menu "LGE RSSI debug Support"
 
 config LGE_RSSI_DEBUG
@@ -80,23 +70,27 @@ config LGE_RSSI_DEBUG
     LGE RSSI DEBUG Support
 endmenu
 
-menu "LGE Diag Enable for TRF/SPR"
+menu "LGE Diag Enable for TRF"
 
 config LGE_DIAG_ENABLE
-    bool "LGE Diag Enable for TRF/SPR"
+    bool "LGE Diag Enable for TRF"
     default n
 	help
-     LGE Diag Enable for TRF/SPR
+     LGE Diag Enable for TRF
 endmenu
 
 menu "LGE Diag Enable for SPR"
 
-config LGE_DIAG_ENABLE_SPR
-    bool "LGE Diag Enable for SPR"
-    default n
+config LGE_DIAG_USB_ACCESS_LOCK
+	bool "feature for usb diag access lock"
+	default n
 	help
-     LGE Diag Enable for SPR
-
+	 this feature should be applied to meet usb diag lock requirement
+config LGE_DIAG_ENABLE_SYSFS
+	bool "provide diag enable sysfs for user space"
+	default n
+	help
+	 diag enable sysfs value can define diag enable or disable
 endmenu
 
 menu "LGE ACG Carrier Code"

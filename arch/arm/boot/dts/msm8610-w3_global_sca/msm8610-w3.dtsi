@@ -15,6 +15,7 @@
 /include/ "msm8610-w3-hdmi.dtsi"
 /include/ "msm8610-w3-usb.dtsi"
 /include/ "msm8610-w3-input.dtsi"
+/include/ "msm8610-w3-1seg-spi.dtsi" /*Oneseg*/
 /include/ "msm8610-w3-misc.dtsi"
 /include/ "msm8610-w3-pm.dtsi"
 /include/ "msm8610-w3-camera.dtsi"

@@ -18,23 +18,22 @@
 #ifndef LGE_TOUCH_CORE_H
 #define LGE_TOUCH_CORE_H
 
-//#define MT_PROTOCOL_A
-//#define LGE_TOUCH_TIME_DEBUG
+/* #define MT_PROTOCOL_A */
+/* #define LGE_TOUCH_TIME_DEBUG */
 #define POWER_FW_UP_LOCK	0x01
 #define POWER_SYSFS_LOCK	0x02
 
-#define MAX_FINGER	5
+#define MAX_FINGER      5
 #define MAX_BUTTON	4
 #define FW_VER_INFO_NUM	4
 #define MAX_POINT_SIZE_FOR_LPWG 12
 
-struct point
-{
+struct point {
     int x;
     int y;
 };
 
-enum{
+enum {
 	TIME_SINCE_BOOTING = 0,
 	DURATION_BET_PRESS,
 	JITTER_VALUE,
@@ -49,11 +48,10 @@ enum{
 	GHOST_VALUE_MAX
 };
 
-struct touch_device_caps
-{
+struct touch_device_caps {
 	u8		button_support;
 	u16		y_button_boundary;
-	u32		button_margin;		// percentage %
+	u32		button_margin;		/* percentage % */
 	u8		number_of_button;
 	u32		button_name[MAX_BUTTON];
 	u8		is_width_supported;
@@ -70,25 +68,25 @@ struct touch_device_caps
 	u32		lcd_touch_ratio_y;
 	u32		maker_id;
 	u32		maker_id_gpio;
+	u32		maker_id2_gpio;
 	u16		ghost_detection_value[GHOST_VALUE_MAX];
 };
 
-struct touch_operation_role
-{
+struct touch_operation_role {
 	u32		palm_detect_mode;
-	u8		operation_mode;	// interrupt = 1 , polling = 0;
-	u8		key_type;		// none = 0, hard_touch_key = 1, virtual_key = 2
+	u8		operation_mode;	/* interrupt = 1 , polling = 0; */
+	u8		key_type;		/* none = 0, hard_touch_key = 1, virtual_key = 2 */
 	u8		report_mode;
 	u8		delta_pos_threshold;
-	u8		orientation;	// 0' = 0, 90' = 1, 180' = 2, 270' = 3
-	u32		report_period;	// ns
-	u32		booting_delay;	// ms
-	u32		reset_delay;	// ms
+	u8		orientation;	/* 0' = 0, 90' = 1, 180' = 2, 270' = 3 */
+	u32		report_period;	/* ns */
+	u32		booting_delay;	/* ms */
+	u32		reset_delay;	/* ms */
 	u8		suspend_pwr;
 	u8		resume_pwr;
-	int		jitter_filter_enable;	// enable = 1, disable = 0
+	int		jitter_filter_enable;	/* enable = 1, disable = 0 */
 	int		jitter_curr_ratio;
-	int		accuracy_filter_enable;	// enable = 1, disable = 0
+	int		accuracy_filter_enable;	/* enable = 1, disable = 0 */
 	int		ghost_finger_solution_enable;
 	unsigned long	irqflags;
 	int 	ta_debouncing_count;
@@ -97,8 +95,7 @@ struct touch_operation_role
 	int		ghost_detection_button_enable;
 };
 
-struct touch_power_module
-{
+struct touch_power_module {
 	u8		use_regulator;
 	u8		use_vio_regulator;
 	char	vdd[30];
@@ -109,28 +106,29 @@ struct touch_power_module
 	int		(*power)	(int on);
 };
 
-struct touch_platform_data
-{
+struct touch_platform_data {
 	u32	int_pin;
 	u32	reset_pin;
 	int panel_type;
+	u8	panel_id;
 	char	knock_on_type;
 	char	maker[30];
-	u32 fw_version[FW_VER_INFO_NUM];
-	struct touch_device_caps*		caps;
+	u8 fw_version[FW_VER_INFO_NUM];
+	struct touch_device_caps *caps;
 	u8 num_caps;
-	struct touch_operation_role*	role;
+	struct touch_operation_role *role;
 	u8 num_role;
-	struct touch_power_module*		pwr;
+	struct touch_power_module *pwr;
 	u8 num_pwr;
 
 	const char *inbuilt_fw_name;
+	const char *inbuilt_fw_name_id[4];
 	const char *panel_spec;
+	const char *panel_spec_id[4];
 	u32 global_access_pixel;
 };
 
-struct t_data
-{
+struct t_data {
 	u16	id;
 	u16	x_position;
 	u16	y_position;
@@ -141,14 +139,12 @@ struct t_data
 	u8	status;
 };
 
-struct b_data
-{
+struct b_data {
 	u16	key_code;
 	u16	state;
 };
 
-struct touch_data
-{
+struct touch_data {
 	u8		total_num;
 	u8		prev_total_num;
 	u8		touch_count;
@@ -161,32 +157,28 @@ struct touch_data
 	struct b_data	prev_button;
 };
 
-struct fw_upgrade_info
-{
-	const char*		fw_path;
+struct fw_upgrade_info {
+	const char *fw_path;
 	u8			fw_force_upgrade;
 	volatile u8	is_downloading;
 	struct firmware *fw;
 };
 
-struct touch_fw_info
-{
+struct touch_fw_info {
 	struct fw_upgrade_info	fw_upgrade;
 	u8		ic_fw_identifier[31];	/* String */
 	u8		ic_fw_version[11]; /* String */
 	u8		update_fw_version[FW_VER_INFO_NUM];
 };
 
-struct rect
-{
+struct rect {
 	u16	left;
 	u16	right;
 	u16	top;
 	u16	bottom;
 };
 
-struct section_info
-{
+struct section_info {
 	struct rect	panel;
 	struct rect button[MAX_BUTTON];
 	struct rect button_cancel[MAX_BUTTON];
@@ -213,7 +205,7 @@ struct ghost_finger_ctrl {
 	int max_pressure;
 };
 
-struct jitter_history_data{
+struct jitter_history_data {
 	u16	x;
 	u16	y;
 	u16	pressure;
@@ -250,8 +242,7 @@ struct accuracy_filter_info {
 	struct accuracy_history_data	his_data;
 };
 
-struct state_info
-{
+struct state_info {
     atomic_t power_state;
     atomic_t interrupt_state;
     atomic_t upgrade_state;
@@ -262,9 +253,8 @@ struct state_info
     atomic_t uevent_state;
 };
 
-struct lge_touch_data
-{
-	void*			h_touch;
+struct lge_touch_data {
+	void *h_touch;
 	struct state_info       state;
 	atomic_t		next_work;
 	atomic_t		device_init;
@@ -272,8 +262,8 @@ struct lge_touch_data
 	u8				ic_init_err_cnt;
 	volatile int	curr_pwr_state;
 	int				int_pin_state;
-	struct i2c_client 			*client;
-	struct input_dev 			*input_dev;
+	struct i2c_client *client;
+	struct input_dev *input_dev;
 	struct hrtimer 				timer;
 	struct work_struct  		work;
 	struct delayed_work			work_init;
@@ -296,25 +286,26 @@ struct lge_touch_data
 	struct delayed_work			work_gesture_wakeup;
 	struct mutex				irq_work_mutex;
 	bool sd_status;
+	int	lockscreen;
 };
 
 
-enum{
+enum {
     TA_DISCONNECTED = 0,
     TA_CONNECTED,
 };
 
-enum{
+enum {
     PROXIMITY_FAR = 0,
     PROXIMITY_NEAR,
 };
 
-enum{
+enum {
     HALL_NONE = 0,
     HALL_COVERED,
 };
 
-enum{
+enum {
     UEVENT_IDLE = 0,
     UEVENT_BUSY,
 };
@@ -328,57 +319,57 @@ typedef enum error_type {
 } err_t;
 
 struct touch_device_driver {
-	int		(*probe)			(struct lge_touch_data *lge_touch_ts);//(struct i2c_client *client);//us10_porting
+	int		(*probe)			(struct lge_touch_data *lge_touch_ts);/* (struct i2c_client *client); us10_porting */
 	void		(*remove)		(struct i2c_client *client);
 	int		(*init)			(struct i2c_client *client, struct touch_fw_info* info);
 	int		(*data)			(struct i2c_client *client, struct touch_data* data);
 	int		(*power)			(struct i2c_client *client, int power_ctrl);
 	int		(*ic_ctrl)		(struct i2c_client *client, u8 code, u32 value);
-	int		(*fw_upgrade)		(struct i2c_client *client, struct touch_fw_info* info);
-	int		(*sysfs)			(struct i2c_client *client, char *buf, u8 code, struct touch_fw_info* fw_info);
+	int		(*fw_upgrade)		(struct i2c_client *client, struct touch_fw_info *info);
+	int		(*sysfs)			(struct i2c_client *client, char *buf, u8 code, struct touch_fw_info *fw_info);
 	err_t	 	(*suspend) (struct i2c_client *client);
 	err_t	 	(*resume) (struct i2c_client *client);
 	err_t	 	(*lpwg) (struct i2c_client *client, u32 code, u32 value, struct point *data);
 };
 
-enum{
+enum {
 	POLLING_MODE = 0,
 	INTERRUPT_MODE,
 	HYBRIDE_MODE
 };
 
-enum{
+enum {
 	POWER_OFF = 0,
 	POWER_ON,
 	POWER_SLEEP,
 	POWER_WAKE
 };
 
-enum{
+enum {
 	KEY_NONE = 0,
 	TOUCH_HARD_KEY,
 	TOUCH_SOFT_KEY,
 	VIRTUAL_KEY,
 };
 
-enum{
+enum {
 	CONTINUOUS_REPORT_MODE = 0,
 	REDUCED_REPORT_MODE,
 };
 
-enum{
+enum {
 	RESET_NONE = 0,
 	SOFT_RESET,
 	PIN_RESET,
 	VDD_RESET,
 };
 
-enum{
+enum {
 	DOWNLOAD_COMPLETE = 0,
 	UNDER_DOWNLOADING,
 };
 
-enum{
+enum {
 	OP_NULL = 0,
 	OP_RELEASE,
 	OP_SINGLE,
@@ -386,13 +377,13 @@ enum{
 	OP_LOCK,
 };
 
-enum{
-	KEY_NULL=0,
+enum {
+	KEY_NULL = 0,
 	KEY_PANEL,
 	KEY_BOUNDARY
 };
 
-enum{
+enum {
 	DO_NOT_ANYTHING = 0,
 	ABS_PRESS,
 	ABS_RELEASE,
@@ -403,37 +394,37 @@ enum{
 	TOUCH_ABS_LOCK
 };
 
-enum{
+enum {
 	BUTTON_RELEASED	= 0,
 	BUTTON_PRESSED	= 1,
 	BUTTON_CANCLED	= 0xff,
 };
 
-enum{
+enum {
 	FINGER_RELEASED	= 0,
 	FINGER_PRESSED	= 1,
 };
 
-enum{
+enum {
 	KEYGUARD_RESERVED,
 	KEYGUARD_ENABLE,
 };
 
-enum{
-	GHOST_STAGE_CLEAR=0,
-	GHOST_STAGE_1=1,
-	GHOST_STAGE_2=2,
-	GHOST_STAGE_3=4,
-	GHOST_STAGE_4=8,
+enum {
+	GHOST_STAGE_CLEAR = 0,
+	GHOST_STAGE_1 = 1,
+	GHOST_STAGE_2 = 2,
+	GHOST_STAGE_3 = 4,
+	GHOST_STAGE_4 = 8,
 };
 
-enum{
+enum {
 	BASELINE_OPEN = 0,
 	BASELINE_FIX,
 	BASELINE_REBASE,
 };
 
-enum{
+enum {
 	IC_CTRL_CODE_NONE = 0,
 	IC_CTRL_BASELINE,
 	IC_CTRL_READ,
@@ -452,45 +443,45 @@ enum{
   */
 #define DO_IF(do_work, goto_error)                              \
 do {                                                \
-    if(do_work){                                        \
-        printk(KERN_INFO "[Touch E] Action Failed [%s %d] \n", __FUNCTION__, __LINE__); \
-        goto goto_error;                                \
-    }                                           \
-} while(0)
+	if (do_work) {                                        \
+		printk(KERN_INFO "[Touch E] Action Failed [%s %d] \n", __FUNCTION__, __LINE__); \
+		goto goto_error;                                \
+	}                                           \
+} while (0)
 
 #define DO_SAFE(do_work, goto_error)                                \
-    DO_IF(unlikely((do_work) < 0), goto_error)
+	DO_IF(unlikely((do_work) < 0), goto_error)
 
 #define ASSIGN(do_assign, goto_error)                               \
 do {                                                \
-    if((do_assign) == NULL){                                \
-        printk(KERN_INFO "[Touch E] Assign Failed [%s %d] \n", __FUNCTION__, __LINE__); \
-        goto goto_error;                                \
-    }                                           \
-} while(0)
+	if ((do_assign) == NULL) {                                \
+		printk(KERN_INFO "[Touch E] Assign Failed [%s %d] \n", __FUNCTION__, __LINE__); \
+		goto goto_error;                                \
+	}                                           \
+} while (0)
 
 #define ERROR_IF(cond, string, goto_error)  \
 do {                        \
-    if(cond){               \
-        TOUCH_ERR_MSG(string);      \
-        goto goto_error;        \
-    }                   \
-} while(0)
+	if (cond) {               \
+		TOUCH_ERR_MSG(string);      \
+		goto goto_error;        \
+	}                   \
+} while (0)
 
-enum{
+enum {
     NOTIFY_TA_CONNECTION = 1,
     NOTIFY_TEMPERATURE_CHANGE,
     NOTIFY_PROXIMITY,
     NOTIFY_HALL_IC,
 };
 
-enum{
+enum {
     LPWG_NONE = 0,
     LPWG_DOUBLE_TAP,
-    LPWG_PASSWORD,
+    LPWG_MULTI_TAP,
 };
 
-enum{
+enum {
     LPWG_READ = 1,
     LPWG_ENABLE,
     LPWG_LCD_X,
@@ -501,26 +492,28 @@ enum{
     LPWG_ACTIVE_AREA_Y2,
     LPWG_TAP_COUNT,
     LPWG_REPLY,
+    LPWG_STATUS_BY_PROXI,
+    LPWG_MODE_CHANGE,
 };
 
-enum{
+enum {
 	DEBUG_NONE				= 0,
-	DEBUG_BASE_INFO			= (1U << 0),	// 1
-	DEBUG_TRACE				= (1U << 1),	// 2
-	DEBUG_GET_DATA			= (1U << 2),	// 4
-	DEBUG_ABS				= (1U << 3),	// 8
-	DEBUG_BUTTON			= (1U << 4),	// 16
-	DEBUG_FW_UPGRADE		= (1U << 5), 	// 32
-	DEBUG_GHOST				= (1U << 6),	// 64
-	DEBUG_IRQ_HANDLE		= (1U << 7),	// 128
-	DEBUG_POWER				= (1U << 8),	// 256
-	DEBUG_JITTER			= (1U << 9),	// 512
-	DEBUG_ACCURACY			= (1U << 10),	// 1024
-	DEBUG_NOISE			= (1U << 11),	// 2048
+	DEBUG_BASE_INFO			= (1U << 0),	/* 1 */
+	DEBUG_TRACE				= (1U << 1),	/* 2 */
+	DEBUG_GET_DATA			= (1U << 2),	/* 4 */
+	DEBUG_ABS				= (1U << 3),	/* 8 */
+	DEBUG_BUTTON			= (1U << 4),	/* 16 */
+	DEBUG_FW_UPGRADE		= (1U << 5), 	/* 32 */
+	DEBUG_GHOST				= (1U << 6),	/* 64 */
+	DEBUG_IRQ_HANDLE		= (1U << 7),	/* 128 */
+	DEBUG_POWER				= (1U << 8),	/* 256 */
+	DEBUG_JITTER			= (1U << 9),	/* 512 */
+	DEBUG_ACCURACY			= (1U << 10),	/* 1024 */
+	DEBUG_NOISE			= (1U << 11),	/* 2048 */
 };
 
 
-enum{
+enum {
 	TIME_ISR_START = 0,
 	TIME_INT_INTERVAL,
 	TIME_THREAD_ISR_START,
@@ -534,12 +527,12 @@ enum{
 #ifdef LGE_TOUCH_TIME_DEBUG
 enum{
 	DEBUG_TIME_PROFILE_NONE			= 0,
-	DEBUG_TIME_INT_INTERVAL			= (1U << 0),	// 1
-	DEBUG_TIME_INT_IRQ_DELAY		= (1U << 1),	// 2
-	DEBUG_TIME_INT_THREAD_IRQ_DELAY	= (1U << 2),	// 4
-	DEBUG_TIME_DATA_HANDLE			= (1U << 3),	// 8
-	DEBUG_TIME_FW_UPGRADE			= (1U << 4),	// 16
-	DEBUG_TIME_PROFILE_ALL			= (1U << 5),	// 32
+	DEBUG_TIME_INT_INTERVAL			= (1U << 0),	/* 1 */
+	DEBUG_TIME_INT_IRQ_DELAY		= (1U << 1),	/* 2 */
+	DEBUG_TIME_INT_THREAD_IRQ_DELAY	= (1U << 2),	/* 4 */
+	DEBUG_TIME_DATA_HANDLE			= (1U << 3),	/* 8 */
+	DEBUG_TIME_FW_UPGRADE			= (1U << 4),	/* 16 */
+	DEBUG_TIME_PROFILE_ALL			= (1U << 5),	/* 32 */
 };
 #endif
 
@@ -558,7 +551,7 @@ enum{
 };
 
 enum{
-	SYSFS_SYNAPTICS_VERSION_SHOW =0,
+	SYSFS_SYNAPTICS_VERSION_SHOW = 0,
 	SYSFS_SYNAPTICS_ATCMD_VERSION_SHOW,
 	SYSFS_CHSTATUS_SHOW,
 	SYSFS_RAWDATA_SHOW,
@@ -590,7 +583,7 @@ enum{
 #define TOUCH_INFO_MSG(fmt, args...) \
 		printk(KERN_INFO "[Touch] " fmt, ##args);
 #else
-#define TOUCH_INFO_MSG(fmt, args...)     {};
+#define TOUCH_INFO_MSG(fmt, args...)     do {} while (0)
 #endif
 
 #if defined(TOUCH_ERROR_PRINT)
@@ -598,7 +591,7 @@ enum{
 		printk(KERN_ERR "[Touch E] [%s %d] " \
 				fmt, __FUNCTION__, __LINE__, ##args);
 #else
-#define TOUCH_ERR_MSG(fmt, args...)     {};
+#define TOUCH_ERR_MSG(fmt, args...)     do {} while (0)
 #endif
 
 #if defined(TOUCH_DEBUG_PRINT)
@@ -606,20 +599,20 @@ enum{
 		printk(KERN_INFO "[Touch D] [%s %d] " \
 				fmt, __FUNCTION__, __LINE__, ##args);
 #else
-#define TOUCH_DEBUG_MSG(fmt, args...)     {};
+#define TOUCH_DEBUG_MSG(fmt, args...)     do {} while (0)
 #endif
 
-int  touch_driver_register(struct touch_device_driver* driver);
+int  touch_driver_register(struct touch_device_driver *driver);
 void touch_driver_unregister(void);
 
-void set_touch_handle(struct i2c_client *client, void* h_touch);
-void* get_touch_handle(struct i2c_client *client);
+void set_touch_handle(struct i2c_client *client, void *h_touch);
+void *get_touch_handle(struct i2c_client *client);
 
 void power_lock_(int value);
 void power_unlock_(int value);
 
-void send_uevent(char* string[2]);
-void send_uevent_lpwg(struct i2c_client* client, int type);
+void send_uevent(char *string[2]);
+void send_uevent_lpwg(struct i2c_client *client, int type);
 
 int touch_i2c_read(struct i2c_client *client, u8 reg, int len, u8 *buf);
 int touch_i2c_write(struct i2c_client *client, u8 reg, int len, u8 *buf);

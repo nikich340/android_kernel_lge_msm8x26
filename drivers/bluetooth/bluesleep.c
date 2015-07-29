@@ -69,6 +69,10 @@
 #define BT_DBG(fmt, arg...)  printk(KERN_ERR "*[bluesleep(%d)-%s()] " fmt "\n" , __LINE__, __FUNCTION__, ## arg)
 
 #define BT_PORT_ID	99
+//BT_S : [PSIX-6850] LPM_SLEEP_MODE_DO_NOT_UART_CLOSE
+#define UART_OFF 1
+#define UART_NOT_OFF 0
+//BT_E : [PSIX-6850] LPM_SLEEP_MODE_DO_NOT_UART_CLOSE
 #endif /* CONFIG_LGE_BLUESLEEP */
 /* LGE_CHANGE_E, [BT][younghyun.kwon@lge.com], 2013-04-10 */
 
@@ -192,6 +196,8 @@ static struct timer_list tx_timer;
 /** Lock for state transitions */
 static spinlock_t rw_lock;
 
+static unsigned int lpm_mode = 1;
+
 /* LG_BTUI : chanha.park@lge.com : Enable Bluesleep-[S] */
 #ifndef CONFIG_LGE_BLUESLEEP
 /** Notifier block for HCI events */
@@ -202,6 +208,21 @@ struct notifier_block hci_event_nblock = {
 /* LG_BTUI : chanha.park@lge.com : Enable Bluesleep-[E] */
 
 struct proc_dir_entry *bluetooth_dir, *sleep_dir;
+
+
+
+/**
+ * @return 1 if the Host can go to sleep, 0 otherwise.
+ */
+static inline int bluesleep_can_sleep(void)
+{
+    BT_INFO("");
+    /* check if MSM_WAKE_BT_GPIO and BT_WAKE_MSM_GPIO are both deasserted */
+    return gpio_get_value(bsi->ext_wake) &&
+        gpio_get_value(bsi->host_wake) &&
+        (bsi->uport != NULL);
+}
+
 
 /*
  * Local functions
@@ -214,44 +235,37 @@ static void hsuart_power(int on)
 		msm_hs_request_clock_on(bsi->uport);
 		msm_hs_set_mctrl(bsi->uport, TIOCM_RTS);
 	} else {
-		msm_hs_set_mctrl(bsi->uport, 0);
-		msm_hs_request_clock_off(bsi->uport);
-	}
+            if (lpm_mode && bluesleep_can_sleep()) {
+                msm_hs_set_mctrl(bsi->uport, 0);
+                msm_hs_request_clock_off(bsi->uport);
+            } else {
+                BT_INFO("hsuart power : OFF is rejected because low power mode is off or wakeup is low");
+                clear_bit(BT_ASLEEP, &flags);
+            }
+    }
 }
 
-
-/**
- * @return 1 if the Host can go to sleep, 0 otherwise.
- */
-static inline int bluesleep_can_sleep(void)
-{
-	BT_INFO("");
-	/* check if MSM_WAKE_BT_GPIO and BT_WAKE_MSM_GPIO are both deasserted */
-	return gpio_get_value(bsi->ext_wake) &&
-		gpio_get_value(bsi->host_wake) &&
-		(bsi->uport != NULL);
-}
 
 void bluesleep_sleep_wakeup(void)
 {
-	BT_INFO("");
-	if (test_bit(BT_ASLEEP, &flags)) {
-		BT_DBG("waking up...");
-/* LG_BTUI : chanha.park@lge.com : Enable Bluesleep-[S] */
+    BT_INFO("");
+    if (test_bit(BT_ASLEEP, &flags)) {
+        BT_DBG("waking up...");
+//LG_BTUI : chanha.park@lge.com : Enable Bluesleep-[S]
 #ifdef CONFIG_LGE_BLUESLEEP
-		wake_lock(&bsi->wake_lock);
-#else /* CONFIG_LGE_BLUESLEEP */
-		/* Start the timer */
-		mod_timer(&tx_timer, jiffies + (TX_TIMER_INTERVAL * HZ));
-		gpio_set_value(bsi->ext_wake, 0);
-#endif /* CONFIG_LGE_BLUESLEEP */
-/* LG_BTUI : chanha.park@lge.com : Enable Bluesleep-[E] */
+        wake_lock(&bsi->wake_lock);
+#else/*CONFIG_LGE_BLUESLEEP*/
+        /* Start the timer */
+        mod_timer(&tx_timer, jiffies + (TX_TIMER_INTERVAL * HZ));
+        gpio_set_value(bsi->ext_wake, 0);
+#endif/*CONFIG_LGE_BLUESLEEP*/
+//LG_BTUI : chanha.park@lge.com : Enable Bluesleep-[E]
 
 		clear_bit(BT_ASLEEP, &flags);
 
 #ifdef BT_DMA_QOS_REQUEST
 		if(bsi->dma_qos_request == REQUESTED) {
-			pm_qos_update_request(&bsi->dma_qos, 19); 
+			pm_qos_update_request(&bsi->dma_qos, 19);
 		}
 #endif /* BT_DMA_QOS_REQUEST */
 
@@ -297,7 +311,7 @@ static void bluesleep_sleep_work(struct work_struct *work)
 /* LG_BTUI : chanha.park@lge.com : Enable Bluesleep-[S] */
 #ifndef CONFIG_LGE_BLUESLEEP
 		if (msm_hs_tx_empty(bsi->uport)) {
-#endif /*CONFIG_LGE_BLUESLEEP*/			
+#endif /*CONFIG_LGE_BLUESLEEP*/
 /* LG_BTUI : chanha.park@lge.com : Enable Bluesleep-[E] */
 			BT_DBG("going to sleep...");
 			set_bit(BT_ASLEEP, &flags);
@@ -346,27 +360,30 @@ static void bluesleep_hostwake_task(unsigned long data)
 
 /* LG_BTUI : chanha.park@lge.com : Enable Bluesleep-[S] */
 #ifdef CONFIG_LGE_BLUESLEEP
-	if (gpio_get_value(bsi->host_wake) == 0) {
-		BT_DBG("hostwake GPIO Low");
-		/* Do not need to check GPIO */
-		bluesleep_rx_busy();
-		/* Fixed power consumtion problem when connected with Samsung stereo headset. */
-		mod_timer(&tx_timer, jiffies + (TX_TIMER_INTERVAL * HZ));
-	} else {
-		BT_DBG("hostwake GPIO High");
-	}
-#else /* CONFIG_LGE_BLUESLEEP */
-	if (gpio_get_value(bsi->host_wake))
-		bluesleep_rx_busy();
-	else
-		bluesleep_rx_idle();
-#endif /* CONFIG_LGE_BLUESLEEP */
-/* LG_BTUI : chanha.park@lge.com : Enable Bluesleep-[E] */
+    if(gpio_get_value(bsi->host_wake) == 0)
+    {
+        BT_DBG("hostwake GPIO Low");
+        // Do not need to check GPIO
+        bluesleep_rx_busy();
+        //Fixed power consumtion problem when connected with Samsung stereo headset.
+        mod_timer(&tx_timer, jiffies + (TX_TIMER_INTERVAL * HZ));
+    }
+    else
+    {
+        BT_DBG("hostwake GPIO High");
+    }
+#else/*CONFIG_LGE_BLUESLEEP*/
+    if (gpio_get_value(bsi->host_wake))
+        bluesleep_rx_busy();
+    else
+        bluesleep_rx_idle();
+#endif/*CONFIG_LGE_BLUESLEEP*/
+//LG_BTUI : chanha.park@lge.com : Enable Bluesleep-[E]
 
-	spin_unlock(&rw_lock);
+    spin_unlock(&rw_lock);
 }
 
-/* LG_BTUI : chanha.park@lge.com : Enable Bluesleep-[S] */
+//LG_BTUI : chanha.park@lge.com : Enable Bluesleep-[S]
 #ifndef CONFIG_LGE_BLUESLEEP
 /**
  * Handles proper timer action when outgoing data is delivered to the
@@ -374,21 +391,21 @@ static void bluesleep_hostwake_task(unsigned long data)
  */
 static void bluesleep_outgoing_data(void)
 {
-	unsigned long irq_flags;
+    unsigned long irq_flags;
 
-	spin_lock_irqsave(&rw_lock, irq_flags);
+    spin_lock_irqsave(&rw_lock, irq_flags);
 
-	/* log data passing by */
-	set_bit(BT_TXDATA, &flags);
+    /* log data passing by */
+    set_bit(BT_TXDATA, &flags);
 
-	/* if the tx side is sleeping... */
-	if (gpio_get_value(bsi->ext_wake)) {
+    /* if the tx side is sleeping... */
+    if (gpio_get_value(bsi->ext_wake)) {
 
-		BT_DBG("tx was sleeping");
-		bluesleep_sleep_wakeup();
-	}
+        BT_DBG("tx was sleeping");
+        bluesleep_sleep_wakeup();
+    }
 
-	spin_unlock_irqrestore(&rw_lock, irq_flags);
+    spin_unlock_irqrestore(&rw_lock, irq_flags);
 }
 
 /**
@@ -399,37 +416,37 @@ static void bluesleep_outgoing_data(void)
  * @return <code>NOTIFY_DONE</code>.
  */
 static int bluesleep_hci_event(struct notifier_block *this,
-				unsigned long event, void *data)
+                unsigned long event, void *data)
 {
-	struct hci_dev *hdev = (struct hci_dev *) data;
-	struct hci_uart *hu;
-	struct uart_state *state;
+    struct hci_dev *hdev = (struct hci_dev *) data;
+    struct hci_uart *hu;
+    struct uart_state *state;
 
-	if (!hdev)
-		return NOTIFY_DONE;
+    if (!hdev)
+        return NOTIFY_DONE;
 
-	switch (event) {
-	case HCI_DEV_REG:
-		if (!bluesleep_hdev) {
-			bluesleep_hdev = hdev;
-			hu  = (struct hci_uart *) hdev->driver_data;
-			state = (struct uart_state *) hu->tty->driver_data;
-			bsi->uport = state->uart_port;
-		}
-		break;
-	case HCI_DEV_UNREG:
-		bluesleep_hdev = NULL;
-		bsi->uport = NULL;
-		break;
-	case HCI_DEV_WRITE:
-		bluesleep_outgoing_data();
-		break;
-	}
+    switch (event) {
+    case HCI_DEV_REG:
+        if (!bluesleep_hdev) {
+            bluesleep_hdev = hdev;
+            hu  = (struct hci_uart *) hdev->driver_data;
+            state = (struct uart_state *) hu->tty->driver_data;
+            bsi->uport = state->uart_port;
+        }
+        break;
+    case HCI_DEV_UNREG:
+        bluesleep_hdev = NULL;
+        bsi->uport = NULL;
+        break;
+    case HCI_DEV_WRITE:
+        bluesleep_outgoing_data();
+        break;
+    }
 
-	return NOTIFY_DONE;
+    return NOTIFY_DONE;
 }
-#endif /* CONFIG_LGE_BLUESLEEP */
-/* LG_BTUI : chanha.park@lge.com : Enable Bluesleep-[E] */
+#endif/*CONFIG_LGE_BLUESLEEP*/
+//LG_BTUI : chanha.park@lge.com : Enable Bluesleep-[E]
 
 /**
  * Handles transmission timer expiration.
@@ -437,39 +454,39 @@ static int bluesleep_hci_event(struct notifier_block *this,
  */
 static void bluesleep_tx_timer_expire(unsigned long data)
 {
-	unsigned long irq_flags;
+    unsigned long irq_flags;
 
-	spin_lock_irqsave(&rw_lock, irq_flags);
+    spin_lock_irqsave(&rw_lock, irq_flags);
 
-	BT_DBG("Tx timer expired");
+    BT_DBG("Tx timer expired");
 
-/* LG_BTUI : chanha.park@lge.com : Enable Bluesleep-[S] */
+//LG_BTUI : chanha.park@lge.com : Enable Bluesleep-[S]
 #ifdef CONFIG_LGE_BLUESLEEP
-	/* already asleep, this is an error case */
-	if (test_bit(BT_ASLEEP, &flags)) {
-		BT_DBG("already asleep");
-		spin_unlock_irqrestore(&rw_lock, irq_flags);
-		return;
-	}
+    /* already asleep, this is an error case */
+    if (test_bit(BT_ASLEEP, &flags)) {
+        BT_DBG("already asleep");
+        spin_unlock_irqrestore(&rw_lock, irq_flags);
+        return;
+    }
 
-	bluesleep_tx_idle();
+    bluesleep_tx_idle();
 #else/*CONFIG_LGE_BLUESLEEP*/
-	/* were we silent during the last timeout? */
-	if (!test_bit(BT_TXDATA, &flags)) {
-		BT_DBG("Tx has been idle");
-		gpio_set_value(bsi->ext_wake, 1);
-		bluesleep_tx_idle();
-	} else {
-		BT_DBG("Tx data during last period");
-		mod_timer(&tx_timer, jiffies + (TX_TIMER_INTERVAL*HZ));
-	}
+    /* were we silent during the last timeout? */
+    if (!test_bit(BT_TXDATA, &flags)) {
+        BT_DBG("Tx has been idle");
+        gpio_set_value(bsi->ext_wake, 1);
+        bluesleep_tx_idle();
+    } else {
+        BT_DBG("Tx data during last period");
+        mod_timer(&tx_timer, jiffies + (TX_TIMER_INTERVAL*HZ));
+    }
 
-	/* clear the incoming data flag */
-	clear_bit(BT_TXDATA, &flags);
-#endif /* CONFIG_LGE_BLUESLEEP */
-/* LG_BTUI : chanha.park@lge.com : Enable Bluesleep-[E] */
+    /* clear the incoming data flag */
+    clear_bit(BT_TXDATA, &flags);
+#endif/*CONFIG_LGE_BLUESLEEP*/
+//LG_BTUI : chanha.park@lge.com : Enable Bluesleep-[E]
 
-	spin_unlock_irqrestore(&rw_lock, irq_flags);
+    spin_unlock_irqrestore(&rw_lock, irq_flags);
 }
 
 /**
@@ -607,76 +624,95 @@ fail:
 /**
  * Stops the Sleep-Mode Protocol on the Host.
  */
-static void bluesleep_stop(void)
+//BT_S : [PSIX-6850] LPM_SLEEP_MODE_DO_NOT_UART_CLOSE
+static void bluesleep_stop(int uart_off)
+//static void bluesleep_stop(void)
+//BT_E : [PSIX-6850] LPM_SLEEP_MODE_DO_NOT_UART_CLOSE
 {
-	unsigned long irq_flags;
+    unsigned long irq_flags;
 
 	BT_INFO("");
 
-	spin_lock_irqsave(&rw_lock, irq_flags);
+    spin_lock_irqsave(&rw_lock, irq_flags);
 
-	if (!test_bit(BT_PROTO, &flags)) {
-		spin_unlock_irqrestore(&rw_lock, irq_flags);
-		return;
-	}
+    if (!test_bit(BT_PROTO, &flags)) {
+        spin_unlock_irqrestore(&rw_lock, irq_flags);
+        return;
+    }
 
-/* LG_BTUI : chanha.park@lge.com : Enable Bluesleep-[S] */
+    BT_DBG("bluesleep_stop");
+
+//LG_BTUI : chanha.park@lge.com : Enable Bluesleep-[S]
 #ifdef CONFIG_LGE_BLUESLEEP
-	del_timer(&tx_timer);
-#else /* CONFIG_LGE_BLUESLEEP */
-	/* assert BT_WAKE */
-	gpio_set_value(bsi->ext_wake, 0);
-	del_timer(&tx_timer);
-#endif /* CONFIG_LGE_BLUESLEEP */
-/* LG_BTUI : chanha.park@lge.com : Enable Bluesleep-[E] */
+    del_timer(&tx_timer);
+#else/*CONFIG_LGE_BLUESLEEP*/
+    /* assert BT_WAKE */
+    gpio_set_value(bsi->ext_wake, 0);
+    del_timer(&tx_timer);
+#endif/*CONFIG_LGE_BLUESLEEP*/
+//LG_BTUI : chanha.park@lge.com : Enable Bluesleep-[E]
 
-	clear_bit(BT_PROTO, &flags);
+    clear_bit(BT_PROTO, &flags);
 
-	if (test_bit(BT_ASLEEP, &flags)) {
-		clear_bit(BT_ASLEEP, &flags);
-/* BEGIN: 0019639 chanha.park@lge.com 2012-06-16 */
-/* ADD: 0019639: [F200][BT] Support Bluetooth low power mode */
+    if (test_bit(BT_ASLEEP, &flags)) {
+        clear_bit(BT_ASLEEP, &flags);
+//BEGIN: 0019639 chanha.park@lge.com 2012-06-16
+//ADD: 0019639: [F200][BT] Support Bluetooth low power mode
 #ifndef CONFIG_LGE_BLUESLEEP
-		hsuart_power(1);
-#endif /* CONFIG_LGE_BLUESLEEP */
-/* END: 0019639 chanha.park@lge.com 2012-06-16 */
-	}
+        hsuart_power(1);
+#endif/*CONFIG_LGE_BLUESLEEP*/
+//END: 0019639 chanha.park@lge.com 2012-06-16
+    }
 /* LGE_CHANGE_S, [BT][younghyun.kwon@lge.com], 2013-04-12, Configuration bluesleep for A1 LPM */
 /* To avoid L2 error crash that occurs when 'msm_hs_tx_empty'is executed in clock_off state. */
-#if 0
-/* BEGIN: 0019639 chanha.park@lge.com 2012-06-16 */
-/* ADD: 0019639: [F200][BT] Support Bluetooth low power mode */
-#ifdef CONFIG_LGE_BLUESLEEP	
-	else
-	{
-		//set_bit(BT_ASLEEP, &flags);
-		hsuart_power(0);
-	}
-#endif /*CONFIG_LGE_BLUESLEEP*/
-/* END: 0019639 chanha.park@lge.com 2012-06-16 */
+#if 1 // Changed 0 to 1 since B2, B2L and B2m
+//BEGIN: 0019639 chanha.park@lge.com 2012-06-16
+//ADD: 0019639: [F200][BT] Support Bluetooth low power mode
+#ifdef CONFIG_LGE_BLUESLEEP
+    else
+    {
+        //set_bit(BT_ASLEEP, &flags);
+//BT_S : [PSIX-6850] LPM_SLEEP_MODE_DO_NOT_UART_CLOSE
+        printk(KERN_DEBUG "bluesleep_stop uart_off : %d", uart_off);
+        if(bsi->uport != NULL && msm_hs_get_bt_uport_clock_state(bsi->uport) == CLOCK_REQUEST_UNAVAILABLE && uart_off)
+        {
+            BT_DBG("UART On Status... UART Clock Off...");
+//BT_S :  20140429, [START]
+//            hsuart_power(0);
+//BT_E :  20140429, [END]
+        }
+        else
+        {
+            BT_DBG("if UART Already Off... don't off UART Clock");
+        }
+        //hsuart_power(0);
+//BT_E : [PSIX-6850] LPM_SLEEP_MODE_DO_NOT_UART_CLOSE
+    }
+#endif/*CONFIG_LGE_BLUESLEEP*/
+//END: 0019639 chanha.park@lge.com 2012-06-16
 #endif
 /* LGE_CHANGE_S, [BT][younghyun.kwon@lge.com], 2013-04-12 */
 
-	atomic_inc(&open_count);
+    atomic_inc(&open_count);
 
-	spin_unlock_irqrestore(&rw_lock, irq_flags);
-	if (disable_irq_wake(bsi->host_wake_irq))
-		BT_ERR("Couldn't disable hostwake IRQ wakeup mode\n");
-	free_irq(bsi->host_wake_irq, NULL);
+    spin_unlock_irqrestore(&rw_lock, irq_flags);
+    if (disable_irq_wake(bsi->host_wake_irq))
+        BT_ERR("Couldn't disable hostwake IRQ wakeup mode\n");
+    free_irq(bsi->host_wake_irq, NULL);
 
 #ifdef BT_DMA_QOS_REQUEST
-	if(bsi->dma_qos_request == REQUESTED) {
-		pm_qos_remove_request(&bsi->dma_qos);
-		bsi->dma_qos_request = NOT_REQUESTED;
-	}
+    if(bsi->dma_qos_request == REQUESTED) {
+        pm_qos_remove_request(&bsi->dma_qos);
+        bsi->dma_qos_request = NOT_REQUESTED;
+    }
 #endif /* BT_DMA_QOS_REQUEST */
-	
-/* BEGIN: 0019639 chanha.park@lge.com 2012-06-16 */
-/* ADD: 0019639: [F200][BT] Support Bluetooth low power mode */
+
+//BEGIN: 0019639 chanha.park@lge.com 2012-06-16
+//ADD: 0019639: [F200][BT] Support Bluetooth low power mode
 #ifdef CONFIG_LGE_BLUESLEEP
-	wake_lock_timeout(&bsi->wake_lock, HZ / 2);
-#endif /* CONFIG_LGE_BLUESLEEP */
-/* END: 0019639 chanha.park@lge.com 2012-06-16 */
+    wake_lock_timeout(&bsi->wake_lock, HZ / 2);
+#endif/*CONFIG_LGE_BLUESLEEP*/
+//END: 0019639 chanha.park@lge.com 2012-06-16
 }
 /**
  * Read the <code>BT_WAKE</code> GPIO pin value via the proc interface.
@@ -832,236 +868,298 @@ static int bluesleep_read_proc_proto(char *page, char **start, off_t offset,
  * <code>errno</code> is set appropriately.
  */
 static int bluesleep_write_proc_proto(struct file *file, const char *buffer,
-					unsigned long count, void *data)
+                    unsigned long count, void *data)
 {
-	char proto;
+    char proto;
+
+    BT_INFO("");
+
+    if (count < 1)
+        return -EINVAL;
+
+    if (copy_from_user(&proto, buffer, 1))
+        return -EFAULT;
+
+//BT_S : [PSIX-6850] LPM_SLEEP_MODE_DO_NOT_UART_CLOSE
+    if (proto == '0' || proto == '2')
+    {
+        bluesleep_stop(proto == '0' ? UART_OFF : UART_NOT_OFF);
+    }
+//    if (proto == '0')
+//        bluesleep_stop();
+//BT_E : [PSIX-6850] LPM_SLEEP_MODE_DO_NOT_UART_CLOSE
+    else
+        bluesleep_start();
+
+    /* claim that we wrote everything */
+    return count;
+}
+
+/**
+ * Read the low-power protocol being enabled.
+ * When this function returns, <code>page</code> will contain a 1 LPM
+ * is enabled , 0 otherwise.
+ * @param page Buffer for writing data.
+ * @param start Not used.
+ * @param offset Not used.
+ * @param count Not used.
+ * @param eof Whether or not there is more data to be read.
+ * @param data Not used.
+ * @return The number of bytes written.
+ */
+static int bluesleep_read_proc_lpm(char *page, char **start, off_t offset,
+					int count, int *eof, void *data)
+{
 
 	BT_INFO("");
+	*eof = 1;
+	return sprintf(page, "%u\n", lpm_mode);
+//    return lpm_mode;
+}
 
-	if (count < 1)
-		return -EINVAL;
+/**
+ * Modify the low-power mode enable or disable.
+ * @param file Not used.
+ * @param buffer The buffer to read from.
+ * @param count The number of bytes to be written.
+ * @param data Not used.
+ * @return On success, the number of bytes written. On error, -1, and
+ * <code>errno</code> is set appropriately.
+ */
+static int bluesleep_write_proc_lpm(struct file *file, const char *buffer,
+                    unsigned long count, void *data)
+{
+    char lpm;
 
-	if (copy_from_user(&proto, buffer, 1))
-		return -EFAULT;
+    BT_INFO("");
 
-	if (proto == '0')
-		bluesleep_stop();
-	else
-		bluesleep_start();
+    if (count < 1)
+        return -EINVAL;
 
-	/* claim that we wrote everything */
-	return count;
+    if (copy_from_user(&lpm, buffer, 1))
+        return -EFAULT;
+
+    if (lpm == '0')
+    {
+        lpm_mode = 0;
+    }
+    else
+    {
+        lpm_mode = 1;
+        clear_bit(BT_ASLEEP, &flags);
+     }
+
+    /* claim that we wrote everything */
+    return count;
 }
 
 /* LGE_CHANGE_S, [BT][younghyun.kwon@lge.com], 2013-04-10, Configuration bluesleep for A1 LPM */
 #ifdef CONFIG_LGE_BLUESLEEP
 void bluesleep_forced_stop(void) {
-	BT_DBG("");
-	bluesleep_stop();
+    BT_DBG("");
+    //bluesleep_stop();
+    bluesleep_stop(UART_OFF);
 }
 EXPORT_SYMBOL(bluesleep_forced_stop);
 
 static int bluesleep_populate_dt_pinfo(struct platform_device *pdev)
 {
-	BT_DBG("");
+    BT_DBG("");
 
-	if (!bsi)
-		return -ENOMEM;
+    if (!bsi)
+        return -ENOMEM;
 
-	bsi->host_wake = of_get_named_gpio(pdev->dev.of_node,
-					 "host-wake-gpio", 0);
-	if (bsi->host_wake < 0) {
-		BT_ERR("couldn't find host_wake gpio\n");
-		return -ENODEV;
-	}
+    bsi->host_wake = of_get_named_gpio(pdev->dev.of_node,
+                    "host-wake-gpio", 0);
+    if (bsi->host_wake < 0) {
+        BT_ERR("couldn't find host_wake gpio\n");
+        return -ENODEV;
+    }
 
-	bsi->ext_wake = of_get_named_gpio(pdev->dev.of_node,
-					 "ext-wake-gpio", 0);
-	if (bsi->ext_wake < 0) {
-		BT_ERR("couldn't find ext_wake gpio\n");
-		return -ENODEV;
-	}
+    bsi->ext_wake = of_get_named_gpio(pdev->dev.of_node,
+                    "ext-wake-gpio", 0);
+    if (bsi->ext_wake < 0) {
+        BT_ERR("couldn't find ext_wake gpio\n");
+        return -ENODEV;
+    }
 
-	return 0;
+    return 0;
 }
 
 static int bluesleep_populate_pinfo(struct platform_device *pdev)
 {
-	struct resource *res;
+    struct resource *res;
 
-	BT_DBG("");
+    BT_DBG("");
 
-	res = platform_get_resource_byname(pdev, IORESOURCE_IO,
-				"gpio_host_wake");
-	if (!res) {
-		BT_ERR("couldn't find host_wake gpio\n");
-		return -ENODEV;
-	}
-	bsi->host_wake = res->start;
+    res = platform_get_resource_byname(pdev, IORESOURCE_IO,
+                "gpio_host_wake");
+    if (!res) {
+        BT_ERR("couldn't find host_wake gpio\n");
+        return -ENODEV;
+    }
+    bsi->host_wake = res->start;
 
-	res = platform_get_resource_byname(pdev, IORESOURCE_IO,
-				"gpio_ext_wake");
-	if (!res) {
-		BT_ERR("couldn't find ext_wake gpio\n");
-		return -ENODEV;
-	}
-	bsi->ext_wake = res->start;
+    res = platform_get_resource_byname(pdev, IORESOURCE_IO,
+                "gpio_ext_wake");
+    if (!res) {
+        BT_ERR("couldn't find ext_wake gpio\n");
+        return -ENODEV;
+    }
+    bsi->ext_wake = res->start;
 
-	return 0;
+    return 0;
 }
 
 static int __init bluesleep_probe(struct platform_device *pdev)
 {
-	int ret;
-	int host_wake, ext_wake;
+    int ret;
+    int host_wake, ext_wake;
 
-	BT_INFO("");
+    BT_INFO("");
 
-	bsi = kzalloc(sizeof(struct bluesleep_info), GFP_KERNEL);
-	if (!bsi)
-		return -ENOMEM;
+    bsi = kzalloc(sizeof(struct bluesleep_info), GFP_KERNEL);
+    if (!bsi)
+        return -ENOMEM;
 
-	if (pdev->dev.of_node) {
-		ret = bluesleep_populate_dt_pinfo(pdev);
-		if (ret < 0) {
-			BT_ERR("Failed to populate device tree info");
-			goto free_bsi;
-		}
-	} else {
-		ret = bluesleep_populate_pinfo(pdev);
-		if (ret < 0) {
-			BT_ERR("Failed to populate device info");
-			goto free_bsi;
-		}
-	}
+    if (pdev->dev.of_node) {
+        ret = bluesleep_populate_dt_pinfo(pdev);
+        if (ret < 0) {
+            BT_ERR("Failed to populate device tree info");
+            goto free_bsi;
+        }
+    } else {
+        ret = bluesleep_populate_pinfo(pdev);
+        if (ret < 0) {
+            BT_ERR("Failed to populate device info");
+            goto free_bsi;
+        }
+    }
 
-	ret = gpio_request(bsi->host_wake, "bt_host_wake");
-	if (ret) {
-		BT_ERR("failed to request gpio pin %d, error %d\n",
-			bsi->host_wake, ret);
-		goto free_bsi;
-	}
-	ret = gpio_direction_input(bsi->host_wake);
-	if (ret) {
-		BT_ERR("failed to config GPIO %d as input pin, err %d\n",
-			bsi->host_wake, ret);
-		goto free_bt_host_wake;
-	}
+    ret = gpio_request(bsi->host_wake, "bt_host_wake");
+    if (ret) {
+        BT_ERR("failed to request gpio pin %d, error %d\n",
+            bsi->host_wake, ret);
+        goto free_bsi;
+    }
+    ret = gpio_direction_input(bsi->host_wake);
+    if (ret) {
+        BT_ERR("failed to config GPIO %d as input pin, err %d\n",
+            bsi->host_wake, ret);
+        goto free_bt_host_wake;
+    }
 
-	ret = gpio_request(bsi->ext_wake, "bt_ext_wake");
-	if (ret) {
-		BT_ERR("failed to request gpio pin %d, error %d\n",
-			bsi->ext_wake, ret);
-		goto free_bt_host_wake;
-	}
-	/* assert bt wake */
-	ret = gpio_direction_output(bsi->ext_wake, 0);
-	if (ret) {
-		BT_ERR("failed to config GPIO %d as output pin, err %d\n",
-			bsi->ext_wake, ret);
-		goto free_bt_ext_wake;
-	}
+    ret = gpio_request(bsi->ext_wake, "bt_ext_wake");
+    if (ret) {
+        BT_ERR("failed to request gpio pin %d, error %d\n",
+            bsi->ext_wake, ret);
+        goto free_bt_host_wake;
+    }
+    /* assert bt wake */
+    ret = gpio_direction_output(bsi->ext_wake, 0);
+    if (ret) {
+        BT_ERR("failed to config GPIO %d as output pin, err %d\n",
+            bsi->ext_wake, ret);
+        goto free_bt_ext_wake;
+    }
 
-	host_wake = gpio_get_value(bsi->host_wake);
-	ext_wake = gpio_get_value(bsi->ext_wake);
-	BT_DBG("host_wake_gpio: %d(%u), ext_wake_gpio: %d(%u)",
-				bsi->host_wake, host_wake, bsi->ext_wake, ext_wake);
+    host_wake = gpio_get_value(bsi->host_wake);
+    ext_wake = gpio_get_value(bsi->ext_wake);
+    BT_DBG("host_wake_gpio: %d(%u), ext_wake_gpio: %d(%u)",
+                bsi->host_wake, host_wake, bsi->ext_wake, ext_wake);
 
-	bsi->host_wake_irq = platform_get_irq_byname(pdev, "host_wake");
-	if (bsi->host_wake_irq < 0) {
-		BT_ERR("couldn't find host_wake irq\n");
-		ret = -ENODEV;
-		goto free_bt_ext_wake;
-	}
-	BT_DBG("host_wake_irq: %d", bsi->host_wake_irq);
+    bsi->host_wake_irq = platform_get_irq_byname(pdev, "host_wake");
+    if (bsi->host_wake_irq < 0) {
+        BT_ERR("couldn't find host_wake irq\n");
+        ret = -ENODEV;
+        goto free_bt_ext_wake;
+    }
+    BT_DBG("host_wake_irq: %d", bsi->host_wake_irq);
 
 /* BEGIN: 0019639 chanha.park@lge.com 2012-06-16 */
 /* ADD: 0019639: [F200][BT] Support Bluetooth low power mode */
 #ifdef CONFIG_LGE_BLUESLEEP
-	bsi->uport= msm_hs_get_bt_uport(BT_PORT_ID);
-	wake_lock_init(&bsi->wake_lock, WAKE_LOCK_SUSPEND, "bluesleep");
+    bsi->uport= msm_hs_get_bt_uport(BT_PORT_ID);
+    wake_lock_init(&bsi->wake_lock, WAKE_LOCK_SUSPEND, "bluesleep");
 #endif /* CONFIG_LGE_BLUESLEEP */
 /* END: 0019639 chanha.park@lge.com 2012-06-16 */
 
 #ifdef BT_DMA_QOS_REQUEST
-	bsi->dma_qos_request = NOT_REQUESTED;
+    bsi->dma_qos_request = NOT_REQUESTED;
 #endif /* BT_DMA_QOS_REQUEST */
 
-	return 0;
+    return 0;
 
 free_bt_ext_wake:
-	BT_ERR("free_bt_ext_wake:\n");
-	gpio_free(bsi->ext_wake);
+    BT_ERR("free_bt_ext_wake:\n");
+    gpio_free(bsi->ext_wake);
 free_bt_host_wake:
-	BT_ERR("free_bt_host_wake:\n");
-	gpio_free(bsi->host_wake);
+    BT_ERR("free_bt_host_wake:\n");
+    gpio_free(bsi->host_wake);
 free_bsi:
-	BT_ERR("free_bsi:\n");
-	kfree(bsi);
-	return ret;
+    BT_ERR("free_bsi:\n");
+    kfree(bsi);
+    return ret;
 }
-
 #else /* CONFIG_LGE_BLUESLEEP */
-
 static int __init bluesleep_probe(struct platform_device *pdev)
 {
-	int ret;
-	struct resource *res;
+    int ret;
+    struct resource *res;
 
-	bsi = kzalloc(sizeof(struct bluesleep_info), GFP_KERNEL);
-	if (!bsi)
-		return -ENOMEM;
+    bsi = kzalloc(sizeof(struct bluesleep_info), GFP_KERNEL);
+    if (!bsi)
+        return -ENOMEM;
 
-	res = platform_get_resource_byname(pdev, IORESOURCE_IO,
-				"gpio_host_wake");
-	if (!res) {
-		BT_ERR("couldn't find host_wake gpio\n");
-		ret = -ENODEV;
-		goto free_bsi;
-	}
-	bsi->host_wake = res->start;
+    res = platform_get_resource_byname(pdev, IORESOURCE_IO,
+                "gpio_host_wake");
+    if (!res) {
+        BT_ERR("couldn't find host_wake gpio\n");
+        ret = -ENODEV;
+        goto free_bsi;
+    }
+    bsi->host_wake = res->start;
 
-	ret = gpio_request(bsi->host_wake, "bt_host_wake");
-	if (ret)
-		goto free_bsi;
-	ret = gpio_direction_input(bsi->host_wake);
-	if (ret)
-		goto free_bt_host_wake;
+    ret = gpio_request(bsi->host_wake, "bt_host_wake");
+    if (ret)
+        goto free_bsi;
+    ret = gpio_direction_input(bsi->host_wake);
+    if (ret)
+        goto free_bt_host_wake;
 
-	res = platform_get_resource_byname(pdev, IORESOURCE_IO,
-				"gpio_ext_wake");
-	if (!res) {
-		BT_ERR("couldn't find ext_wake gpio\n");
-		ret = -ENODEV;
-		goto free_bt_host_wake;
-	}
-	bsi->ext_wake = res->start;
+    res = platform_get_resource_byname(pdev, IORESOURCE_IO,
+                "gpio_ext_wake");
+    if (!res) {
+        BT_ERR("couldn't find ext_wake gpio\n");
+        ret = -ENODEV;
+        goto free_bt_host_wake;
+    }
+    bsi->ext_wake = res->start;
 
-	ret = gpio_request(bsi->ext_wake, "bt_ext_wake");
-	if (ret)
-		goto free_bt_host_wake;
-	/* assert bt wake */
-	ret = gpio_direction_output(bsi->ext_wake, 0);
-	if (ret)
-		goto free_bt_ext_wake;
+    ret = gpio_request(bsi->ext_wake, "bt_ext_wake");
+    if (ret)
+        goto free_bt_host_wake;
+    /* assert bt wake */
+    ret = gpio_direction_output(bsi->ext_wake, 0);
+    if (ret)
+        goto free_bt_ext_wake;
 
-	bsi->host_wake_irq = platform_get_irq_byname(pdev, "host_wake");
-	if (bsi->host_wake_irq < 0) {
-		BT_ERR("couldn't find host_wake irq\n");
-		ret = -ENODEV;
-		goto free_bt_ext_wake;
-	}
+    bsi->host_wake_irq = platform_get_irq_byname(pdev, "host_wake");
+    if (bsi->host_wake_irq < 0) {
+        BT_ERR("couldn't find host_wake irq\n");
+        ret = -ENODEV;
+        goto free_bt_ext_wake;
+    }
 
-
-	return 0;
+    return 0;
 
 free_bt_ext_wake:
-	gpio_free(bsi->ext_wake);
+    gpio_free(bsi->ext_wake);
 free_bt_host_wake:
-	gpio_free(bsi->host_wake);
+    gpio_free(bsi->host_wake);
 free_bsi:
-	kfree(bsi);
-	return ret;
+    kfree(bsi);
+    return ret;
 }
 #endif /* CONFIG_LGE_BLUESLEEP */
 /* LGE_CHANGE_E, [BT][younghyun.kwon@lge.com], 2013-04-10 */
@@ -1172,6 +1270,16 @@ static int __init bluesleep_init(void)
 		goto fail;
 	}
 
+	/* read/write proc entries */
+	ent = create_proc_entry("lpm", 0, sleep_dir);
+	if (ent == NULL) {
+		BT_ERR("Unable to create /proc/%s/lpm entry", PROC_DIR);
+		retval = -ENOMEM;
+		goto fail;
+	}
+	ent->read_proc = bluesleep_read_proc_lpm;
+	ent->write_proc = bluesleep_write_proc_lpm;
+
 	flags = 0; /* clear all status bits */
 
 	/* Initialize spinlock. */
@@ -1209,22 +1317,22 @@ fail:
  */
 static void __exit bluesleep_exit(void)
 {
-	BT_INFO("");
+    BT_INFO("");
 
-/* BEGIN: 0019639 chanha.park@lge.com 2012-06-16 */
-/* ADD: 0019639: [F200][BT] Support Bluetooth low power mode */
+//BEGIN: 0019639 chanha.park@lge.com 2012-06-16
+//ADD: 0019639: [F200][BT] Support Bluetooth low power mode
 #ifndef CONFIG_LGE_BLUESLEEP
-	hci_unregister_notifier(&hci_event_nblock);
-#endif /* CONFIG_LGE_BLUESLEEP */
-/* END: 0019639 chanha.park@lge.com 2012-06-16 */
-	platform_driver_unregister(&bluesleep_driver);
+    hci_unregister_notifier(&hci_event_nblock);
+#endif/*CONFIG_LGE_BLUESLEEP*/
+//END: 0019639 chanha.park@lge.com 2012-06-16
+    platform_driver_unregister(&bluesleep_driver);
 
-	remove_proc_entry("asleep", sleep_dir);
-	remove_proc_entry("proto", sleep_dir);
-	remove_proc_entry("hostwake", sleep_dir);
-	remove_proc_entry("btwake", sleep_dir);
-	remove_proc_entry("sleep", bluetooth_dir);
-	remove_proc_entry("bluetooth", 0);
+    remove_proc_entry("asleep", sleep_dir);
+    remove_proc_entry("proto", sleep_dir);
+    remove_proc_entry("hostwake", sleep_dir);
+    remove_proc_entry("btwake", sleep_dir);
+    remove_proc_entry("sleep", bluetooth_dir);
+    remove_proc_entry("bluetooth", 0);
 }
 
 module_init(bluesleep_init);

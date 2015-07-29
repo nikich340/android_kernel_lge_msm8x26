@@ -19,6 +19,21 @@
 #include <linux/types.h>
 #endif
 
+#if defined(CONFIG_LGE_EVENT_LOCK)
+/**
+ * struct input_value - input value representation
+ * @type: type of value (EV_KEY, EV_ABS, etc)
+ * @code: the value code
+ * @value: the value
+ */
+struct input_value {
+	__u16 type;
+	__u16 code;
+	__s32 value;
+};
+#endif
+
+
 /*
  * The event structure itself
  */
@@ -710,6 +725,8 @@ struct input_keymap_entry {
 #define KEY_CAMERA_LEFT		0x219
 #define KEY_CAMERA_RIGHT	0x21a
 
+#define KEY_VOICECOMMAND	0x246	/* Listening Voice Command */
+
 #define BTN_TRIGGER_HAPPY		0x2c0
 #define BTN_TRIGGER_HAPPY1		0x2c0
 #define BTN_TRIGGER_HAPPY2		0x2c1
@@ -853,6 +870,7 @@ struct input_keymap_entry {
 #define SW_HPHL_OVERCURRENT    0x0e  /* set = over current on left hph */
 #define SW_HPHR_OVERCURRENT    0x0f  /* set = over current on right hph */
 #define SW_UNSUPPORT_INSERT	0x10  /* set = unsupported device inserted */
+#define SW_MICROPHONE2_INSERT   0x11  /* set = inserted */
 #define SW_MAX			0x20
 #define SW_CNT			(SW_MAX+1)
 
@@ -1326,6 +1344,11 @@ struct input_dev {
 
 	struct list_head	h_list;
 	struct list_head	node;
+
+#if defined(CONFIG_LGE_EVENT_LOCK)
+	struct input_value *vals;
+#endif
+
 };
 #define to_input_dev(d) container_of(d, struct input_dev, dev)
 
@@ -1422,6 +1445,9 @@ struct input_handler {
 	void *private;
 
 	void (*event)(struct input_handle *handle, unsigned int type, unsigned int code, int value);
+#if defined(CONFIG_LGE_EVENT_LOCK)
+	void (*events)(struct input_handle *handle, const struct input_value *vals, unsigned int count);
+#endif
 	bool (*filter)(struct input_handle *handle, unsigned int type, unsigned int code, int value);
 	bool (*match)(struct input_handler *handler, struct input_dev *dev);
 	int (*connect)(struct input_handler *handler, struct input_dev *dev, const struct input_device_id *id);

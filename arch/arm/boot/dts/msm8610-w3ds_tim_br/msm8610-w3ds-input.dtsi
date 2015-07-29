@@ -62,7 +62,7 @@
 			status = "ok";
 			revision = "rev_e...";
 			synaptics,fw_version_info = <0x24 0x03 0x51>;
-			synaptics,fw_image = "synaptics/w3ds_tim_br/PLG312_V1.04_PR1585854_DS4.3.5.1.16_24035184.img";
+			synaptics,fw_image = "synaptics/w3ds_tim_br/PLG312_V1.12_PR1599307_DS4.3.5.16_2403518C.img";
 			synaptics,panel_spec = "synaptics/w3ds_tim_br/w3ds_tim_br_limit.txt";
 			lge,knock_on_type = <1>;
 			synaptics,platform_data	{

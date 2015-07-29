@@ -9,6 +9,10 @@
 
 #include <mach/board_lge.h>
 
+#if defined(CONFIG_MACH_MSM8X10_W6DS_TIM_BR) || defined(CONFIG_MACH_MSM8X10_W6DS_GLOBAL_SCA)
+extern u8 module_init_flag;
+#endif
+
 extern int broadcast_dmb_drv_start(void);
 #define DRIVER_NAME "isdbt"
 
@@ -716,14 +720,21 @@ static int mtv222_isr_thread(void *data)
 
 	while (!kthread_should_stop()) {
 		wait_event_interruptible(mtv222_cb->isr_wq,
-			kthread_should_stop() || atomic_read(&mtv222_cb->isr_cnt));
+			kthread_should_stop() || (atomic_read(&mtv222_cb->isr_cnt) > 0));
+
+		atomic_dec(&mtv222_cb->isr_cnt);
+
+		if(atomic_read(&mtv222_cb->isr_cnt) < 0)
+		{
+			MTVMSG("atomic_read(&mtv222_cb->isr_cnt) = (%d)\n", atomic_read(&mtv222_cb->isr_cnt));
+			atomic_set(&mtv222_cb->isr_cnt, 0);
+		}
 
 		if (kthread_should_stop())
 			break;
 
 		mtv222_spi_isr_handler(mtv222_cb);
 
-		atomic_dec(&mtv222_cb->isr_cnt);
 	}
 
 	MTVMSG("Exit.\n");
@@ -828,7 +839,7 @@ static int broadcast_spi_probe(struct spi_device *spi)
 
 	spi->mode 			= SPI_MODE_0;
 	spi->bits_per_word	= 8;
-//	spi->max_speed_hz 	= (10800*1000);
+	spi->max_speed_hz 	= (10800*1000);
 
 	MTVMSG("Entered...\n");
 
@@ -922,8 +933,8 @@ static int __devinit broadcast_dmb_drv_init(void)
 
 //20140103_yoonkil.kim Code for revision separation [START]
 #if defined(CONFIG_MACH_MSM8X10_W6DS_TIM_BR) || defined(CONFIG_MACH_MSM8X10_W6DS_GLOBAL_SCA)
-	if(lge_get_board_revno() < HW_REV_B){
-		MTVERR("1SEG mtv222 Not support in MSM8610_W6DS_TIM_BR Rev.A board\n");
+	if((lge_get_board_revno() == HW_REV_A) || (module_init_flag)){
+		MTVERR("1SEG mtv222 Not support in MSM8610_W6DS_GLOBAL_BR Rev.A/Rev.B board\n");
 		return ret;
 	}
 #endif

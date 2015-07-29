@@ -934,10 +934,24 @@ static int apds9130_enable_ps_sensor(struct i2c_client *client, int val)
 #if defined(APDS9130_PROXIMITY_CAL)
 		data->cross_talk = apds9130_read_crosstalk_data_fs();
 
+#if 1
+		// LGE_CHANGE. 2014.2.27. dongwon.you@lge.com. Fixed for CPK fail in MS323(W5 MPCS)
+		// Fixed for CPK fail when cross_talk is 0. Don't change to default value when cross talk is 0.
+		if(data->cross_talk <= 0){
+			printk(KERN_INFO"[%s] !!! Cross talk value is 0. cross_talk:%d . Set value to 0", __FUNCTION__,data->cross_talk);
+			data->cross_talk = 0;
+		}
+		else if(data->cross_talk > data->platform_data->crosstalk_max){
+			printk(KERN_INFO"[%s] !!! ERROR!!! Cross talk value is lager than max value. cross_talk :%d . Set default to %d", __FUNCTION__,
+				data->cross_talk,PS_DEFAULT_CROSS_TALK);
+			data->cross_talk = PS_DEFAULT_CROSS_TALK;
+		}
+#else
 		if(data->cross_talk <= 0 || data->cross_talk > data->platform_data->crosstalk_max)
 			data->cross_talk = PS_DEFAULT_CROSS_TALK;
 		printk(KERN_INFO"[%s] Cross_talk : %d", __FUNCTION__, data->cross_talk);
 
+#endif
 		apds9130_Set_PS_Threshold_Adding_Cross_talk(client, data->cross_talk);
 
 		printk(KERN_INFO"[%s] apds9130_Set_PS_Threshold_Adding_Cross_talk", __FUNCTION__);

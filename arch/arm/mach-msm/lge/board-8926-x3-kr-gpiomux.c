@@ -627,7 +627,7 @@ static struct msm_gpiomux_config usb_otg_sw_configs[] __initdata = {
 #endif
 
 /*  LGE_CHANGE_S, [NFC][garam.kim@lge.com], NFC Bring up*/
-#ifdef CONFIG_LGE_NFC_PN547
+#ifdef CONFIG_LGE_NFC_PN547_C2
 static struct gpiomux_setting nfc_pn547_sda_cfg = {
 	.func = GPIOMUX_FUNC_3,
 	.drv = GPIOMUX_DRV_8MA,
@@ -759,7 +759,11 @@ void __init msm8226_init_gpiomux(void)
 	} else if(hw_rev >= HW_REV_B) {
 #if defined (CONFIG_LGE_TOUCHSCREEN_SYNAPTIC) || defined(CONFIG_TOUCHSCREEN_SYNAPTICS_I2C_RMI4)
 		msm_gpiomux_install(msm_touch_configs_rev_b, ARRAY_SIZE(msm_touch_configs_rev_b));
-		printk(KERN_ERR "[Touch] over HW_REV_B configs \n");
+		if(hw_rev == HW_REV_B) {
+			printk(KERN_ERR "[Touch] HW_REV_B configs \n");
+		} else if (hw_rev >= HW_REV_B2) {
+			printk(KERN_ERR "[Touch] over HW_REV_B2 configs \n");
+		} else {}
 #endif /* CONFIG_LGE_TOUCHSCREEN_SYNAPTIC || CONFIG_TOUCHSCREEN_SYNAPTICS_I2C_RMI4 */
 	} else {}
 #endif /* CONFIG_MACH_LGE */
@@ -779,7 +783,7 @@ void __init msm8226_init_gpiomux(void)
 #endif
 
 /*  LGE_CHANGE_S, [NFC][garam.kim@lge.com], NFC Bring up */
-#ifdef CONFIG_LGE_NFC_PN547
+#ifdef CONFIG_LGE_NFC_PN547_C2
 	msm_gpiomux_install(msm_nfc_configs, ARRAY_SIZE(msm_nfc_configs));
 #endif
 /*  LGE_CHANGE_E, [NFC][garam.kim@lge.com], NFC Bring up */

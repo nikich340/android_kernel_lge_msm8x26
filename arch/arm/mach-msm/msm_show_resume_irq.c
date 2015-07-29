@@ -15,7 +15,7 @@
 #include <linux/kernel.h>
 #include <linux/init.h>
 
-#if defined(CONFIG_MACH_MSM8926_X3_KR) || defined(CONFIG_MACH_MSM8926_G2M_KR)
+#if defined(CONFIG_MACH_MSM8926_X3N_KR) || defined(CONFIG_MACH_MSM8926_G2M_KR) || defined(CONFIG_MACH_MSM8926_F70N_KR) || defined(CONFIG_MACH_MSM8926_JAGN_KR) || defined(CONFIG_MACH_MSM8926_B2LN_KR) || defined(CONFIG_MACH_MSM8926_VFP_KR)
 /*enable the debug mask to print wakeup IRQ log*/
 int msm_show_resume_irq_mask = 1;
 #else

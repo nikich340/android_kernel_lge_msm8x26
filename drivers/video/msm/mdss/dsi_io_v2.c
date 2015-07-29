@@ -262,8 +262,8 @@ static void msm_dsi_phy_ctrl_init(unsigned char *ctrl_base,
 static void msm_dsi_phy_regulator_init(unsigned char *ctrl_base,
 					struct mdss_dsi_phy_ctrl *pd)
 {
-#if defined(CONFIG_LGE_LCD_DCDC) 
-	MIPI_OUTP(ctrl_base + DSI_DSIPHY_LDO_CNTRL, 0x24);			// DCDC Mode Enable
+#if defined(CONFIG_LGE_LCD_DCDC)
+	MIPI_OUTP(ctrl_base + DSI_DSIPHY_LDO_CNTRL, 0x24);			/* DCDC Mode Enable */
 #else
 	MIPI_OUTP(ctrl_base + DSI_DSIPHY_LDO_CNTRL, 0x25);
 #endif

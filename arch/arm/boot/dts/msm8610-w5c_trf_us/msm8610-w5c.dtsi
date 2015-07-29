@@ -36,29 +36,6 @@
 		revision = "rev_a"; //char *rev_str[] = {"rev_a", "rev_b", "rev_c", "rev_d", "rev_e", "rev_f", "rev_g", "rev_10", "rev_11", "revserved"};
 	};
 
-	maxim_max1462x_revB {
-		compatible = "maxim,max1462x";
-		status = "ok";          //"ok" or "disable"
-		revision = "rev_b"; //char *rev_str[] = {"rev_a", "rev_b", "rev_c", "rev_d", "rev_e", "rev_f", "rev_g", "rev_10", "rev_11", "revserved"};
-	};
-
-	maxim_max1462x_revC {
-		compatible = "maxim,max1462x";
-		status = "ok";          //"ok" or "disable"
-		revision = "rev_c"; //char *rev_str[] = {"rev_a", "rev_b", "rev_c", "rev_d", "rev_e", "rev_f", "rev_g", "rev_10", "rev_11", "revserved"};
-	};
-
-	maxim_max1462x_revD {
-		compatible = "maxim,max1462x";
-		status = "ok";          //"ok" or "disable"
-		revision = "rev_d"; //char *rev_str[] = {"rev_a", "rev_b", "rev_c", "rev_d", "rev_e", "rev_f", "rev_g", "rev_10", "rev_11", "revserved"};
-	};
-
-	maxim_max1462x_revE {
-		compatible = "maxim,max1462x";
-		status = "ok";          //"ok" or "disable"
-		revision = "rev_e..."; //char *rev_str[] = {"rev_a", "rev_b", "rev_c", "rev_d", "rev_e", "rev_f", "rev_g", "rev_10", "rev_11", "revserved"};
-	};
 
 	i2c@f9924000 { /* BLSP-1 QUP-2 */
 		cell-index = <2>;

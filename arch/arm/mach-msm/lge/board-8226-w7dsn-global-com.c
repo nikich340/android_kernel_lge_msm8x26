@@ -190,9 +190,6 @@ void __init msm8226_add_drivers(void)
 #ifdef CONFIG_USB_G_LGE_ANDROID
     lge_android_usb_init();
 #endif
-#ifdef CONFIG_LGE_DIAG_USB_ACCESS_LOCK
-    lge_diag_cmd_init();
-#endif
 	 #if defined(CONFIG_LCD_KCAL)
 	 lge_add_lcd_kcal_devices();
 #endif

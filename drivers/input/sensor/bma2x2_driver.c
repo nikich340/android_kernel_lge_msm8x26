@@ -15,6 +15,7 @@
    brief This file contains all function implementations for the BMA2X2 in linux
 
 */
+#define MODULE_TAG	"bma2x2"
 
 #include <linux/module.h>
 #include <linux/init.h>
@@ -29,6 +30,8 @@
 #ifdef CONFIG_HAS_EARLYSUSPEND
 #include <linux/earlysuspend.h>
 #endif
+#include <linux/wakelock.h>
+
 
 #ifdef CONFIG_OF
 #include <linux/regulator/consumer.h>
@@ -45,6 +48,7 @@
 
 #include "bst_sensor_common.h"
 #include "bs_log.h"
+
 
 #define SENSOR_NAME			"bma2x2"
 #define ABSMIN				-512
@@ -1232,7 +1236,7 @@
 #define BMA_MAX_RETRY_I2C_XFER (100)
 
 #ifdef BMA2X2_ACCEL_CALIBRATION
-#define BMA2X2_SHAKING_DETECT_THRESHOLD	(300)
+#define BMA2X2_SHAKING_DETECT_THRESHOLD	(5000)
 #endif
 
 #ifdef CONFIG_BMA_USE_PLATFORM_DATA
@@ -1244,7 +1248,7 @@
 unsigned char *sensor_name[] = { "BMA255", "BMA250E", "BMA222E", "BMA280" };
 
 #ifdef CONFIG_SENSOR_LGE_DT
-#define BMA2X2_BW_SET_DT		BMA2X2_BW_500HZ
+#define BMA2X2_BW_SET_DT		BMA2X2_BW_125HZ /* BMA2X2_BW_500HZ */
 
 #define BMA2X2_CMD_ACCEL_DISABLE	(0)
 #define BMA2X2_CMD_ACCEL_ENABLE		(1)
@@ -1262,6 +1266,9 @@ unsigned char *sensor_name[] = { "BMA255", "BMA250E", "BMA222E", "BMA280" };
 
 #define BMA2X2_IS_ENABLE_ACCEL(en)	(en & BMA2X2_ENABLE_ACCEL_VAL)
 #define BMA2X2_IS_ENABLE_DT(en)		(en & BMA2X2_ENABLE_DT_VAL)
+
+#define BMA2X2_TAP_THRESHOLD_FLAT	2
+#define BMA2X2_TAP_THRESHOLD		5
 #endif
 
 
@@ -1358,6 +1365,8 @@ struct bma2x2_data {
 #endif	
 #ifdef CONFIG_SENSOR_LGE_DT
 	struct input_dev *input_tap;
+	struct mutex suspend_mutex;
+	struct wake_lock wakelock;
 #endif
 
 #ifdef CONFIG_PM
@@ -1473,12 +1482,13 @@ static int bma_i2c_burst_read(struct i2c_client *client, u8 reg_addr,
 	}
 
 	if (BMA_MAX_RETRY_I2C_XFER <= retry) {
-		printk(KERN_INFO "I2C xfer error");
+		PERR("I2C xfer error");
 		return -EIO;
 	}
 
 	return 0;
 }
+
 
 
 #ifdef BMA2X2_ENABLE_INT1
@@ -1913,6 +1923,20 @@ static int bma2x2_get_orient_flat_status(struct i2c_client *client, unsigned
 			&data);
 	data = BMA2X2_GET_BITSLICE(data, BMA2X2_FLAT_S);
 	*intstatus = data;
+
+	return comres;
+}
+
+static int bma2x2_set_dt_fileter(struct i2c_client *client, unsigned char value)
+{
+	int comres = 0;
+	unsigned char data;
+
+	comres = bma2x2_smbus_read_byte(client,
+			BMA2X2_UNFILT_INT_SRC_TAP__REG, &data);
+	data = BMA2X2_SET_BITSLICE(data, BMA2X2_UNFILT_INT_SRC_TAP, value);
+	comres = bma2x2_smbus_write_byte(client,
+			BMA2X2_UNFILT_INT_SRC_TAP__REG, &data);
 
 	return comres;
 }
@@ -3190,7 +3214,7 @@ static int bma2x2_set_cal_trigger(struct i2c_client *client, unsigned char
 			if(atomic_read(&bma2x2->fast_calib_rslt) != 0)
 			{
 				atomic_set(&bma2x2->fast_calib_rslt, 0);
-				printk(KERN_INFO "[set] bma2X2->fast_calib_rslt:%d\n",atomic_read(&bma2x2->fast_calib_rslt));
+				PERR("[set] bma2X2->fast_calib_rslt:%d\n",atomic_read(&bma2x2->fast_calib_rslt));
 			}
 #endif
 
@@ -3552,14 +3576,24 @@ static int bma2x2_read_temperature(struct i2c_client *client,
 static void bma2x2_int_init(struct i2c_client *client)
 {
 #ifdef CONFIG_SENSOR_LGE_DT  //TODO  will be redefine interrupt setting value.
-	bma2x2_set_Int_Mode(client, 2); 		/* latch interrupt 500ms */
+	bma2x2_set_Int_Mode(client, 1); 			/* latch interrupt 250ms */
+	bma2x2_set_tap_duration(client, 6);			/* tap interrupt duration 500ms*/
+	bma2x2_set_tap_threshold(client, BMA2X2_TAP_THRESHOLD_FLAT);	/* tap interrupt threshold(0-15)  */
+	bma2x2_set_theta_flat(client, 0x09);
+	bma2x2_set_tap_samp(client, 3);				/* tap 16 samples */
+	bma2x2_set_dt_fileter(client, 1);			/* unfiltered double tap src */
 
-	/* int2 double tap */
-	//bma2x2_set_tap_duration(client, 7);		/* tap interrupt duration 700ms*/
-	//bma2x2_set_tap_threshold(client, 2);		/* tap interrupt threshold  */
-	//bma2x2_set_int2_pad_sel(client, PAD_DOUBLE_TAP); /* double tap */
-	//bma2x2_set_Int_Enable(client, 9, 1);		/* double tap interrupt */
+	//bma2x2_set_int1_pad_sel(client, PAD_SINGLE_TAP);
+	//bma2x2_set_Int_Enable(client, 8, 1);		/* singgle tap interrupt */
+	bma2x2_set_Int_Enable(client, 9, 1);		/* double tap interrupt */
+	bma2x2_set_Int_Enable(client, 0, 1);		/* LOW G */
+	bma2x2_set_Int_Enable(client, 11, 1);		/* flat */
 
+	bma2x2_set_int1_pad_sel(client, PAD_DOUBLE_TAP);
+	bma2x2_set_int1_pad_sel(client, PAD_FLAT);
+	bma2x2_set_int1_pad_sel(client, PAD_LOWG);
+
+#if 0
 	/* int1 slop */
 	bma2x2_set_int1_pad_sel(client, PAD_SLOP);
 	bma2x2_set_slope_threshold(client, 63); 	/* 0 ~ 255 */
@@ -3575,6 +3609,7 @@ static void bma2x2_int_init(struct i2c_client *client)
 	bma2x2_set_high_g_source(client, 1); 		/* unfiltered data */
 	bma2x2_set_high_g_hyst(client, 0);
 	bma2x2_set_Int_Enable(client, 3, 1);		/* high g Z Interrupt enable */
+#endif
 #else
 #ifdef BMA2X2_ENABLE_INT1
 	/* maps interrupt to INT1 pin */
@@ -4304,7 +4339,7 @@ static ssize_t bma2x2_selftest_store(struct device *dev,
 					bma2x2->sensor_type, &value2);
 	diff = value1-value2;
 
-	printk(KERN_INFO "diff x is %d,value1 is %d, value2 is %d\n", diff,
+	PINFO("diff x is %d,value1 is %d, value2 is %d", diff,
 			value1, value2);
 
 	if (bma2x2->sensor_type == BMA280_TYPE) {
@@ -4336,7 +4371,7 @@ static ssize_t bma2x2_selftest_store(struct device *dev,
 	bma2x2_read_accel_y(bma2x2->bma2x2_client,
 					bma2x2->sensor_type, &value2);
 	diff = value1-value2;
-	printk(KERN_INFO "diff y is %d,value1 is %d, value2 is %d\n", diff,
+	PINFO("diff y is %d,value1 is %d, value2 is %d", diff,
 			value1, value2);
 
 	if (bma2x2->sensor_type == BMA280_TYPE) {
@@ -4370,7 +4405,7 @@ static ssize_t bma2x2_selftest_store(struct device *dev,
 					bma2x2->sensor_type, &value2);
 	diff = value1-value2;
 
-	printk(KERN_INFO "diff z is %d,value1 is %d, value2 is %d\n", diff,
+	PINFO("diff z is %d,value1 is %d, value2 is %d", diff,
 			value1, value2);
 
 	if (bma2x2->sensor_type == BMA280_TYPE) {
@@ -4416,7 +4451,7 @@ static ssize_t bma2x2_selftest_store(struct device *dev,
 						bma2x2->sensor_type, &value2);
 		diff = value1-value2;
 
-		printk(KERN_INFO "diff x is %d,value1 is %d, value2 is %d\n",
+		PINFO("diff x is %d,value1 is %d, value2 is %d",
 						diff, value1, value2);
 		if (abs(diff) < 204)
 			result |= 1;
@@ -4434,7 +4469,7 @@ static ssize_t bma2x2_selftest_store(struct device *dev,
 		bma2x2_read_accel_y(bma2x2->bma2x2_client,
 						bma2x2->sensor_type, &value2);
 		diff = value1-value2;
-		printk(KERN_INFO "diff y is %d,value1 is %d, value2 is %d\n",
+		PINFO("diff y is %d,value1 is %d, value2 is %d",
 						diff, value1, value2);
 
 		if (abs(diff) < 204)
@@ -4454,7 +4489,7 @@ static ssize_t bma2x2_selftest_store(struct device *dev,
 						bma2x2->sensor_type, &value2);
 		diff = value1-value2;
 
-		printk(KERN_INFO "diff z is %d,value1 is %d, value2 is %d\n",
+		PINFO("diff z is %d,value1 is %d, value2 is %d",
 						diff, value1, value2);
 		if (abs(diff) < 102)
 			result |= 4;
@@ -4464,7 +4499,10 @@ static ssize_t bma2x2_selftest_store(struct device *dev,
 
 	bma2x2_soft_reset(bma2x2->bma2x2_client);
 	mdelay(5);
-	printk(KERN_INFO "self test finished\n");
+#ifdef BMA2X2_ACCEL_CALIBRATION 	
+	bma2x2_set_bandwidth(bma2x2->bma2x2_client, BMA2X2_BW_SET);
+#endif
+	PINFO("self test finished");
 
 	return count;
 }
@@ -4743,11 +4781,10 @@ static ssize_t bma2x2_bandwidth_store(struct device *dev,
 		if ((unsigned char) data > 14)
 			return -EINVAL;
 #ifdef CONFIG_SENSOR_LGE_DT
+	bma2x2->bandwidth = data; /* backup accel bandwidth */
 	if ( BMA2X2_IS_ENABLE_DT(atomic_read(&bma2x2->enable)) ) {
-		if( data < BMA2X2_BW_SET_DT ) {  /* backup accel bandwidth */
-			bma2x2->bandwidth = data;
+		if( data < BMA2X2_BW_SET_DT )
 			return count;
-		}
 	}
 #endif
 	if (bma2x2_set_bandwidth(bma2x2->bma2x2_client,
@@ -4877,23 +4914,23 @@ static void bma2x2_dt_enable(struct device *dev, bool restore)
 
 	en = atomic_read(&bma2x2->enable);
 	if ( BMA2X2_IS_ENABLE_DT(en)) {
-		PINFO("DT already enable:%d", en);
+		PINFO("DT already enabled");
 		mutex_unlock(&bma2x2->enable_mutex);
 		return;
 	}
 
-	if ( !BMA2X2_IS_ENABLE_ACCEL(en)) {
+	if (!BMA2X2_IS_ENABLE_ACCEL(en)) {
 		if (sensor_platform_hw_power_on(true) < 0)
-			PERR("DT Power On Fail, enable:%d\n", en);
+			PERR("DT Power On Fail, status:%d\n", en);
 	}
 
 	if (BMA2X2_IS_ENABLE_ACCEL(en))
 	{
 		bma2x2_get_bandwidth(bma2x2->bma2x2_client, &bw);
-		if( bw < BMA2X2_BW_SET_DT ) {
+		//if( bw < BMA2X2_BW_SET_DT ) {
 			bma2x2->bandwidth = bw; /* backup accel bw */
 			bw = BMA2X2_BW_SET_DT;
-		}
+		//}
 	}
 	bma2x2_set_bandwidth(bma2x2->bma2x2_client, bw);
 
@@ -4901,9 +4938,10 @@ static void bma2x2_dt_enable(struct device *dev, bool restore)
 		bma2x2_set_mode(bma2x2->bma2x2_client, BMA2X2_MODE_NORMAL);
 
 	bma2x2_int_init(bma2x2->bma2x2_client); /* init interrupt */
-	enable_irq(bma2x2->IRQ);
+	enable_irq_wake(bma2x2->IRQ);
 	atomic_set(&bma2x2->enable, BMA2X2_SET_ENABLE_DT(en));
 	mutex_unlock(&bma2x2->enable_mutex);
+	PINFO("DT Enabled, status:%d", en);
 }
 
 
@@ -4917,29 +4955,31 @@ static void bma2x2_dt_disable(struct device *dev, bool backup)
 
 	en = atomic_read(&bma2x2->enable);
 	if (!BMA2X2_IS_ENABLE_DT(en)) {
-		PINFO("DT already disable:%d", en);
+		PINFO("DT already disabled, status:%d", en);
 		mutex_unlock(&bma2x2->enable_mutex);
 		return;
 	}
+
+	cancel_work_sync(&bma2x2->irq_work);
+	flush_work(&bma2x2->irq_work);
+	disable_irq_wake(bma2x2->IRQ);
 
 	/* restore accel  */
 	if (BMA2X2_IS_ENABLE_ACCEL(en))
 	{
 		bma2x2_set_bandwidth(bma2x2->bma2x2_client, bma2x2->bandwidth);
-		PINFO("restore accel in DT disable state:%d", en);
+		PINFO("DT already power on from accel");
 	} else {
-		PINFO("Power Off:%d\n", en);
+		PINFO("Power Off, status:%d", en);
 		bma2x2_set_mode(bma2x2->bma2x2_client, BMA2X2_MODE_SUSPEND);
-		cancel_work_sync(&bma2x2->irq_work);
-		flush_work(&bma2x2->irq_work);
-		disable_irq(bma2x2->IRQ);
 
 		/* power off */
 		if (sensor_platform_hw_power_on(false) < 0)
-			PERR("Power Off Fail\n");
+			PERR("Power Off Fail");
 	}
 	atomic_set(&bma2x2->enable, BMA2X2_SET_DISABLE_DT(en));
 	mutex_unlock(&bma2x2->enable_mutex);
+	PINFO("DT Disabled, status:%d", en);
 }
 #endif
 
@@ -4955,28 +4995,28 @@ static void bma2x2_acc_enable(struct device *dev, bool restore)
 
 	en = atomic_read(&bma2x2->enable);
 	if (BMA2X2_IS_ENABLE_ACCEL(en)) {
-		PINFO("accelerometer already enable:%d", en);
+		PINFO("Accel already enabled, status:%d", en);
 		mutex_unlock(&bma2x2->enable_mutex);
 		return;
 	}
 
 	if (BMA2X2_IS_ENABLE_DT(en)) {
-		PINFO("skip accelerometer enable state:%d", en);
+		PINFO("Accel already Power on from DT");
 	} else {
-		PINFO("enable accelerometer:%d", en);
 		if (sensor_platform_hw_power_on(true) < 0)
-			PERR("Power On Fail\n");
+			PERR("Power On Fail");
 
 		if (restore)
 			bma2x2_restore_hw_cfg(bma2x2);
 
 		bma2x2_set_mode(bma2x2->bma2x2_client, BMA2X2_MODE_NORMAL);
-		schedule_delayed_work(&bma2x2->work,
-			msecs_to_jiffies(atomic_read(&bma2x2->delay)));
+		PINFO("Accel Power On");
 	}
-
+	schedule_delayed_work(&bma2x2->work,
+		msecs_to_jiffies(atomic_read(&bma2x2->delay)));
 	atomic_set(&bma2x2->enable, BMA2X2_SET_ENABLE_ACCEL(en));
 	mutex_unlock(&bma2x2->enable_mutex);
+	PINFO("Accel Enabled, status:%d", en);
 }
 
 
@@ -4990,25 +5030,28 @@ static void bma2x2_acc_disable(struct device *dev, bool backup)
 
 	en = atomic_read(&bma2x2->enable);
 	if (!BMA2X2_IS_ENABLE_ACCEL(en)) {
-		PINFO("accelerometer already disable:%d", en);
+		PINFO("Accel already disabled");
 		mutex_unlock(&bma2x2->enable_mutex);
 		return;
 	}
+
+	cancel_delayed_work_sync(&bma2x2->work);
 	if (BMA2X2_IS_ENABLE_DT(en)) {
-		PINFO("skip accelerometer disable state:%d", en);
+		PINFO("DT Enabled, Skip accel power off");
+
 	} else {
 		if (backup)
 			bma2x2_bakup_hw_cfg(bma2x2);
 
 		bma2x2_set_mode(bma2x2->bma2x2_client, BMA2X2_MODE_SUSPEND);
-		cancel_delayed_work_sync(&bma2x2->work);
 
 		if (sensor_platform_hw_power_on(false) < 0)
-			PINFO("Power Off Fail\n");
+			PINFO("Power Off Fail");
 	}
 
 	atomic_set(&bma2x2->enable, BMA2X2_SET_DISABLE_ACCEL(en));
 	mutex_unlock(&bma2x2->enable_mutex);
+	PINFO("Accel Disabled, status:%d", en);
 }
 #else
 static void bma2x2_acc_enable(struct device *dev, bool restore)
@@ -5036,7 +5079,7 @@ static void bma2x2_acc_enable(struct device *dev, bool restore)
 
 #if defined(BMA2X2_ENABLE_INT1) || defined(BMA2X2_ENABLE_INT2)
 	bma2x2_int_init(bma2x2->bma2x2_client); /* init interrupt */
-	enable_irq(bma2x2->IRQ);
+	enable_irq_wake(bma2x2->IRQ);
 #endif
 	atomic_set(&bma2x2->enable, 1);
 	mutex_unlock(&bma2x2->enable_mutex);
@@ -5065,7 +5108,7 @@ static void bma2x2_acc_disable(struct device *dev, bool backup)
 #if defined(BMA2X2_ENABLE_INT1) || defined(BMA2X2_ENABLE_INT2)
 	cancel_work_sync(&bma2x2->irq_work);
 	flush_work(&bma2x2->irq_work);
-	disable_irq(bma2x2->IRQ);
+	disable_irq_wake(bma2x2->IRQ);
 #endif 
 
 	if (sensor_platform_hw_power_on(false) < 0)
@@ -5170,6 +5213,7 @@ static ssize_t bma2x2_enable_dt_store(struct device *dev,
 	unsigned long data;
 	int error;
 
+	PINFO("enter");
 	error = strict_strtoul(buf, 10, &data);
 	if (error)
 		return error;
@@ -5242,14 +5286,14 @@ static ssize_t bma2x2_fast_calibration_x_store(struct device *dev,
 		mdelay(20);
 		bma2x2_read_accel_xyz(bma2x2->bma2x2_client, bma2x2->sensor_type, &acc_cal);			
 
-		printk(KERN_INFO "===============moved x=============== timeout = %d\n",timeout_shaking);
-		printk(KERN_INFO "(%d, %d, %d) (%d, %d, %d)\n", acc_cal_pre.x,	acc_cal_pre.y,	acc_cal_pre.z, acc_cal.x,acc_cal.y,acc_cal.z );
+		PINFO("===============moved x=============== timeout = %d",timeout_shaking);
+		PINFO("(%d, %d, %d) (%d, %d, %d)", acc_cal_pre.x,	acc_cal_pre.y,	acc_cal_pre.z, acc_cal.x,acc_cal.y,acc_cal.z );
 
 		if((abs(acc_cal.x - acc_cal_pre.x) > BMA2X2_SHAKING_DETECT_THRESHOLD)
 			|| (abs((acc_cal.y - acc_cal_pre.y)) > BMA2X2_SHAKING_DETECT_THRESHOLD)
 			|| (abs((acc_cal.z - acc_cal_pre.z)) > BMA2X2_SHAKING_DETECT_THRESHOLD)) {
 				atomic_set(&bma2x2->fast_calib_rslt, 0);
-				printk(KERN_INFO "===============shaking x===============\n");
+				PERR("===============shaking x===============");
 				return -EINVAL;
 		}
 		else{
@@ -5259,7 +5303,7 @@ static ssize_t bma2x2_fast_calibration_x_store(struct device *dev,
 		}
 		timeout_shaking++;
 	}while(timeout_shaking < 10);
-	printk(KERN_INFO "===============complete shaking x check===============\n");
+	PINFO("===============complete shaking x check===============");
 #endif
 
 	if (bma2x2_set_offset_target(bma2x2->bma2x2_client, 1, (unsigned
@@ -5277,7 +5321,7 @@ static ssize_t bma2x2_fast_calibration_x_store(struct device *dev,
  */
 		timeout++;
 		if (timeout == 50) {
-			printk(KERN_INFO "get fast calibration ready error\n");
+			PERR("get fast calibration ready error");
 			return -EINVAL;
 		};
 
@@ -5286,7 +5330,7 @@ static ssize_t bma2x2_fast_calibration_x_store(struct device *dev,
 #ifdef BMA2X2_ACCEL_CALIBRATION
 	atomic_set(&bma2x2->fast_calib_x_rslt, 1);
 #endif
-	printk(KERN_INFO "x axis fast calibration finished\n");
+	PERR("x axis fast calibration finished");
 	return count;
 }
 
@@ -5341,14 +5385,14 @@ static ssize_t bma2x2_fast_calibration_y_store(struct device *dev,
 		mdelay(20);
 		bma2x2_read_accel_xyz(bma2x2->bma2x2_client, bma2x2->sensor_type, &acc_cal);			
 
-		printk(KERN_INFO "===============moved y=============== timeout = %d\n",timeout_shaking);
-		printk(KERN_INFO "(%d, %d, %d) (%d, %d, %d)\n", acc_cal_pre.x,	acc_cal_pre.y,	acc_cal_pre.z, acc_cal.x,acc_cal.y,acc_cal.z );
+		PINFO("===============moved y=============== timeout = %d",timeout_shaking);
+		PINFO("(%d, %d, %d) (%d, %d, %d)", acc_cal_pre.x,	acc_cal_pre.y,	acc_cal_pre.z, acc_cal.x,acc_cal.y,acc_cal.z );
 
 		if((abs(acc_cal.x - acc_cal_pre.x) > BMA2X2_SHAKING_DETECT_THRESHOLD)
 			|| (abs((acc_cal.y - acc_cal_pre.y)) > BMA2X2_SHAKING_DETECT_THRESHOLD)
 			|| (abs((acc_cal.z - acc_cal_pre.z)) > BMA2X2_SHAKING_DETECT_THRESHOLD)){
 				atomic_set(&bma2x2->fast_calib_rslt, 0);
-				printk(KERN_INFO "===============shaking y===============\n");
+				PERR("===============shaking y===============");
 				return -EINVAL;
 		}
 		else
@@ -5359,7 +5403,7 @@ static ssize_t bma2x2_fast_calibration_y_store(struct device *dev,
 		}
 		timeout_shaking++;		
 	}while(timeout_shaking < 10);	
-	printk(KERN_INFO "===============complete shaking y check===============\n");
+	PINFO("===============complete shaking y check===============");
 #endif
 
 	if (bma2x2_set_offset_target(bma2x2->bma2x2_client, 2, (unsigned
@@ -5377,7 +5421,7 @@ static ssize_t bma2x2_fast_calibration_y_store(struct device *dev,
  */
 		timeout++;
 		if (timeout == 50) {
-			printk(KERN_INFO "get fast calibration ready error\n");
+			PERR("get fast calibration ready error");
 			return -EINVAL;
 		};
 
@@ -5387,7 +5431,7 @@ static ssize_t bma2x2_fast_calibration_y_store(struct device *dev,
 	atomic_set(&bma2x2->fast_calib_y_rslt, 1);
 #endif
 
-	printk(KERN_INFO "y axis fast calibration finished\n");
+	PINFO("y axis fast calibration finished");
 	return count;
 }
 
@@ -5442,14 +5486,14 @@ static ssize_t bma2x2_fast_calibration_z_store(struct device *dev,
 		mdelay(20);
 		bma2x2_read_accel_xyz(bma2x2->bma2x2_client, bma2x2->sensor_type, &acc_cal);			
 
-		printk(KERN_INFO "===============moved z=============== timeout = %d\n",timeout_shaking);
-		printk(KERN_INFO "(%d, %d, %d) (%d, %d, %d)\n", acc_cal_pre.x,	acc_cal_pre.y,	acc_cal_pre.z, acc_cal.x,acc_cal.y,acc_cal.z );
+		PINFO("===============moved z=============== timeout = %d",timeout_shaking);
+		PINFO("(%d, %d, %d) (%d, %d, %d)", acc_cal_pre.x,	acc_cal_pre.y,	acc_cal_pre.z, acc_cal.x,acc_cal.y,acc_cal.z );
 
 		if((abs(acc_cal.x - acc_cal_pre.x) > BMA2X2_SHAKING_DETECT_THRESHOLD)
 			|| (abs((acc_cal.y - acc_cal_pre.y)) > BMA2X2_SHAKING_DETECT_THRESHOLD)
 			|| (abs((acc_cal.z - acc_cal_pre.z)) > BMA2X2_SHAKING_DETECT_THRESHOLD)){
 			atomic_set(&bma2x2->fast_calib_rslt, 0);		
-			printk(KERN_INFO "===============shaking z===============\n");
+			PERR("===============shaking z===============");
 			return -EINVAL;
 		}
 		else{
@@ -5459,7 +5503,7 @@ static ssize_t bma2x2_fast_calibration_z_store(struct device *dev,
 		}
 		timeout_shaking++;
 	}while(timeout_shaking < 10);
-	printk(KERN_INFO "===============complete shaking z check===============\n");
+	PINFO("===============complete shaking z check===============");
 #endif
 
 	if (bma2x2_set_offset_target(bma2x2->bma2x2_client, 3, (unsigned
@@ -5477,7 +5521,7 @@ static ssize_t bma2x2_fast_calibration_z_store(struct device *dev,
  */
 		timeout++;
 		if (timeout == 50) {
-			printk(KERN_INFO "get fast calibration ready error\n");
+			PERR("get fast calibration ready error");
 			return -EINVAL;
 		};
 
@@ -5486,7 +5530,7 @@ static ssize_t bma2x2_fast_calibration_z_store(struct device *dev,
 	atomic_set(&bma2x2->fast_calib_z_rslt, 1);
 #endif
 
-	printk(KERN_INFO "z axis fast calibration finished\n");
+	PINFO("z axis fast calibration finished");
 	return count;
 }
 
@@ -6087,7 +6131,7 @@ static int bma2x2_set_cal_trigger_fast_cal(struct i2c_client *client)
 	if(atomic_read(&bma2x2->fast_calib_rslt) != 0)
 	{
 		atomic_set(&bma2x2->fast_calib_rslt, 0);
-		printk(KERN_INFO "[set] bma2X2->fast_calib_rslt:%d\n",atomic_read(&bma2x2->fast_calib_rslt));
+		PINFO("[set] bma2X2->fast_calib_rslt:%d",atomic_read(&bma2x2->fast_calib_rslt));
 	}
 
 	comres = bma2x2_smbus_read_byte(client, BMA2X2_CAL_TRIGGER__REG, &data);
@@ -6102,7 +6146,7 @@ static int bma2x2_set_cal_trigger_fast_cal(struct i2c_client *client)
 
 		timeout++;
 		if (timeout == 50) {
-			printk(KERN_INFO "get fast calibration ready error\n");
+			PERR("get fast calibration ready error");
 			return -EINVAL;
 		};
 
@@ -6120,7 +6164,7 @@ static int bma2x2_set_cal_trigger_fast_cal(struct i2c_client *client)
 
 		timeout++;
 		if (timeout == 50) {
-			printk(KERN_INFO "get fast calibration ready error\n");
+			PERR("get fast calibration ready error");
 			return -EINVAL;
 		};
 
@@ -6138,7 +6182,7 @@ static int bma2x2_set_cal_trigger_fast_cal(struct i2c_client *client)
 
 		timeout++;
 		if (timeout == 50) {
-			printk(KERN_INFO "get fast calibration ready error\n");
+			PERR("get fast calibration ready error");
 			return -EINVAL;
 		};
 
@@ -6188,14 +6232,14 @@ static ssize_t bma2x2_fast_calibration_store(struct device *dev,
 			mdelay(20);
 			bma2x2_read_accel_xyz(bma2x2->bma2x2_client, bma2x2->sensor_type, &acc_cal);			
 	
-			printk(KERN_INFO "===============moved x,y,z=============== timeout = %d\n",timeout_shaking);
-			printk(KERN_INFO "(%d, %d, %d) (%d, %d, %d)\n", acc_cal_pre.x,	acc_cal_pre.y,	acc_cal_pre.z, acc_cal.x,acc_cal.y,acc_cal.z );
+			PINFO("===============moved x,y,z=============== timeout = %d",timeout_shaking);
+			PINFO("(%d, %d, %d) (%d, %d, %d)", acc_cal_pre.x,	acc_cal_pre.y,	acc_cal_pre.z, acc_cal.x,acc_cal.y,acc_cal.z );
 	
 			if((abs(acc_cal.x - acc_cal_pre.x) > BMA2X2_SHAKING_DETECT_THRESHOLD)
 				|| (abs((acc_cal.y - acc_cal_pre.y)) > BMA2X2_SHAKING_DETECT_THRESHOLD)
 				|| (abs((acc_cal.z - acc_cal_pre.z)) > BMA2X2_SHAKING_DETECT_THRESHOLD)) {
 					atomic_set(&bma2x2->fast_calib_rslt, 0);
-					printk(KERN_INFO "===============shaking x,y,z===============\n");
+					PERR("===============shaking x,y,z===============");
 					return -EINVAL;
 			}
 			else{
@@ -6205,22 +6249,21 @@ static ssize_t bma2x2_fast_calibration_store(struct device *dev,
 			}
 			timeout_shaking++;
 		}while(timeout_shaking < 30);
-
-		printk(KERN_INFO "===============complete shaking x,y,z check===============\n");
+		PINFO("===============complete shaking x,y,z check===============");
 
 	if (bma2x2_set_offset_target_fast_cal(bma2x2->bma2x2_client, (unsigned char)data) < 0)
-		{
-			printk(KERN_INFO "get bma2x2_set_offset_target_fastcal error\n");
-			return -EINVAL;
-		}
+	{
+		PERR("get bma2x2_set_offset_target_fastcal error\n");
+		return -EINVAL;
+	}
 		
 
 	if (bma2x2_set_cal_trigger_fast_cal(bma2x2->bma2x2_client) < 0)
-		{		
-			printk(KERN_INFO "get bma2x2_set_cal_trigger_fastcal error\n");
+	{
+		PERR("get bma2x2_set_cal_trigger_fastcal error");
 		return -EINVAL;
-		}
-	printk(KERN_INFO "x axis fast calibration finished\n");
+	}
+	PINFO("x axis fast calibration finished");
 
 	set_fs(KERNEL_DS);
 
@@ -6233,9 +6276,9 @@ static ssize_t bma2x2_fast_calibration_store(struct device *dev,
 	fd_offset_y = sys_open("/sns/offset_y.dat",O_WRONLY|O_CREAT, 0666);
 	fd_offset_z = sys_open("/sns/offset_z.dat",O_WRONLY|O_CREAT, 0666);	
 
-	printk(KERN_INFO "[fd_offset_x] writing %d\n", fd_offset_x);	
-	printk(KERN_INFO "[fd_offset_y] writing %d\n", fd_offset_y );	
-	printk(KERN_INFO "[fd_offset_z] writing %d\n", fd_offset_z);	
+	PINFO("[fd_offset_x] writing %d", fd_offset_x);
+	PINFO("[fd_offset_y] writing %d", fd_offset_y );
+	PINFO("[fd_offset_z] writing %d", fd_offset_z);
 
 	if((fd_offset_x < 0) || (fd_offset_y < 0) || (fd_offset_z < 0))
 		return -EINVAL;
@@ -6251,9 +6294,9 @@ static ssize_t bma2x2_fast_calibration_store(struct device *dev,
 	sprintf(offset_y_src, "%d", offset_y);
 	sprintf(offset_z_src, "%d", offset_z);
 
-	printk(KERN_INFO "[offset_x] writing %s\n", offset_x_src);	
-	printk(KERN_INFO "[offset_y] writing %s\n", offset_y_src);	
-	printk(KERN_INFO "[offset_z] writing %s\n", offset_z_src);	
+	PINFO("[offset_x] writing %s", offset_x_src);
+	PINFO("[offset_y] writing %s", offset_y_src);
+	PINFO("[offset_z] writing %s", offset_z_src);
 
 	if((sys_write(fd_offset_x, offset_x_src, sizeof(offset_x_src)) < 0)
 			||	(sys_write(fd_offset_y, offset_y_src,  sizeof(offset_y_src)) < 0)
@@ -6262,6 +6305,10 @@ static ssize_t bma2x2_fast_calibration_store(struct device *dev,
 
 	atomic_set(&bma2x2->fast_calib_rslt, 1);
 
+	sys_fsync(fd_offset_x);
+	sys_fsync(fd_offset_y);
+	sys_fsync(fd_offset_z);
+
 	sys_close(fd_offset_x);
 	sys_close(fd_offset_y);
 	sys_close(fd_offset_z);
@@ -6269,6 +6316,7 @@ static ssize_t bma2x2_fast_calibration_store(struct device *dev,
         sys_chmod("/sns/offset_y.dat", 0664);
         sys_chmod("/sns/offset_z.dat", 0664);
 	set_fs(old_fs);
+	PINFO("[CLOSE FILE]!!!!! ");
 
 	return count;
 }
@@ -6313,9 +6361,9 @@ static ssize_t bma2x2_eeprom_writing_store(struct device *dev,
 	fd_offset_y = sys_open("/sns/offset_y.dat",O_WRONLY|O_CREAT, 0666);
 	fd_offset_z = sys_open("/sns/offset_z.dat",O_WRONLY|O_CREAT, 0666);	
 
-	printk(KERN_INFO "[fd_offset_x] writing %d\n", fd_offset_x);	
-	printk(KERN_INFO "[fd_offset_y] writing %d\n", fd_offset_y );	
-	printk(KERN_INFO "[fd_offset_z] writing %d\n", fd_offset_z);	
+	PINFO("[fd_offset_x] writing %d", fd_offset_x);
+	PINFO("[fd_offset_y] writing %d", fd_offset_y );
+	PINFO("[fd_offset_z] writing %d", fd_offset_z);
 
 	if((fd_offset_x < 0) || (fd_offset_y < 0) || (fd_offset_z < 0))
 		return -EINVAL;
@@ -6331,9 +6379,9 @@ static ssize_t bma2x2_eeprom_writing_store(struct device *dev,
 	sprintf(offset_y_src, "%d", offset_y);
 	sprintf(offset_z_src, "%d", offset_z);
 
-	printk(KERN_INFO "[offset_x] writing %s\n", offset_x_src);	
-	printk(KERN_INFO "[offset_y] writing %s\n", offset_y_src);	
-	printk(KERN_INFO "[offset_z] writing %s\n", offset_z_src);	
+	PINFO("[offset_x] writing %s", offset_x_src);
+	PINFO("[offset_y] writing %s", offset_y_src);
+	PINFO("[offset_z] writing %s", offset_z_src);
 
 	if((sys_write(fd_offset_x, offset_x_src, sizeof(offset_x_src)) < 0)
 			||	(sys_write(fd_offset_y, offset_y_src,  sizeof(offset_y_src)) < 0)
@@ -6343,6 +6391,10 @@ static ssize_t bma2x2_eeprom_writing_store(struct device *dev,
 	atomic_set(&bma2x2->fast_calib_rslt, 1);
 	//bma2x2_set_bandwidth(bma2x2->bma2x2_client, BMA2X2_BW_62_50HZ);
 
+	sys_fsync(fd_offset_x);
+	sys_fsync(fd_offset_y);
+	sys_fsync(fd_offset_z);
+
 	sys_close(fd_offset_x);
 	sys_close(fd_offset_y);
 	sys_close(fd_offset_z);
@@ -6350,6 +6402,7 @@ static ssize_t bma2x2_eeprom_writing_store(struct device *dev,
         sys_chmod("/sns/offset_y.dat", 0664);
         sys_chmod("/sns/offset_z.dat", 0664);
 	set_fs(old_fs);
+	PINFO("[CLOSE FILE]!!!!! ");
 
 	return count;
 }
@@ -6362,8 +6415,8 @@ static void bma2x2_bakup_hw_cfg(struct bma2x2_data *client_data)
 	bma2x2_get_bandwidth(client_data->bma2x2_client, &client_data->bandwidth);
 	bma2x2_get_range(client_data->bma2x2_client, &client_data->range);
 
-	printk(KERN_INFO "bak_BW:%u\n", client_data->bandwidth);
-	printk(KERN_INFO "bak_range:%u\n", client_data->range);
+	PINFO("bak_BW:%u", client_data->bandwidth);
+	PINFO("bak_range:%u", client_data->range);
 }
 
 
@@ -6372,8 +6425,8 @@ static void bma2x2_restore_hw_cfg(struct bma2x2_data *client_data)
 	bma2x2_set_bandwidth(client_data->bma2x2_client, client_data->bandwidth);
 	bma2x2_set_range(client_data->bma2x2_client, client_data->range);
 
-	printk(KERN_INFO "restore_BW:%d\n", client_data->bandwidth);
-	printk(KERN_INFO "restore_range:%d\n", client_data->range);
+	PINFO("restore_BW:%d", client_data->bandwidth);
+	PINFO("restore_range:%d", client_data->range);
 }
 
 
@@ -6572,8 +6625,14 @@ static struct attribute_group bma2x2_attribute_group = {
 
 
 #ifdef CONFIG_SENSOR_LGE_DT
+#if 0
 static DEVICE_ATTR(dt_enable, S_IRUGO|S_IWUSR|S_IWGRP,
 		bma2x2_enable_dt_show, bma2x2_enable_dt_store);
+#endif
+
+static struct device_attribute dev_attr_dt_enable = __ATTR(enable, S_IRUGO|S_IWUSR|S_IWGRP,
+		bma2x2_enable_dt_show, bma2x2_enable_dt_store);
+
 
 static struct attribute *bma2x2_dt_attributes[] = {
 	&dev_attr_dt_enable.attr,
@@ -6606,44 +6665,70 @@ static void bma2x2_irq_work_func(struct work_struct *work)
 	unsigned char first_value = 0;
 	unsigned char sign_value = 0;
 
+	mutex_lock(&bma2x2->suspend_mutex);  /* wait device resume for i2c buss*/
+	mutex_unlock(&bma2x2->suspend_mutex);
+
+	if(wake_lock_active(&bma2x2->wakelock))
+		wake_unlock(&bma2x2->wakelock);
+
+	wake_lock_timeout(&bma2x2->wakelock, msecs_to_jiffies(2000));
+
 	bma2x2_get_interruptstatus1(bma2x2->bma2x2_client, &status);
 
 	switch (status) {
 	case 0x01:
-		printk(KERN_INFO "Low G interrupt happened\n");
+		PINFO("Low G interrupt happened");
+		bma2x2_set_Int_Enable(bma2x2->bma2x2_client,9,0);
+		bma2x2_set_Int_Enable(bma2x2->bma2x2_client,9,1);
 		break;
 
 	case 0x02:
-		printk(KERN_INFO "High G interrupt happened\n");
+		PINFO("High G interrupt happened");
 		break;
 	case 0x04:
-		printk(KERN_INFO "Slop interrupt happened\n");
+		PINFO("Slop interrupt happened");
 		break;
 
 	case 0x08:
-		printk(KERN_INFO "slow/ no motion interrupt happened\n");
+		PINFO("slow/ no motion interrupt happened");
 		break;
 
 	case 0x10:
-		printk(KERN_INFO "double tap interrupt happened\n");
+		PINFO("double tap interrupt happened");;
+		input_report_rel(bma2x2->input_tap, DOUBLE_TAP_INTERRUPT,
+					DOUBLE_TAP_INTERRUPT_HAPPENED);
+		input_sync(bma2x2->input_tap);
 		break;
 
 	case 0x20:
-		printk(KERN_INFO "single tap interrupt happened\n");
+		PINFO("single tap interrupt happened");
+		//input_report_rel(bma2x2->input_tap, SINGLE_TAP_INTERRUPT,
+		//	SINGLE_TAP_INTERRUPT_HAPPENED);
+		//input_sync(bma2x2->input_tap);
 		break;
 
 	case 0x40:
 		bma2x2_get_orient_status(bma2x2->bma2x2_client,
 				    &first_value);
-		printk(KERN_INFO "orient interrupt happened,%s\n",
+		PINFO("orient interrupt happened,%s",
 				orient[first_value]);
 		break;
 	case 0x80:
 		bma2x2_get_orient_flat_status(bma2x2->bma2x2_client,
 				    &sign_value);
-		printk(KERN_INFO "flat interrupt happened,flat status is %d\n",
-				    sign_value);
+		PINFO("flat interrupt happened,flat status is %d", sign_value);
+
+		if (sign_value == 1) {
+			PINFO("flat = 1 detection interrupt happened");
+                        bma2x2_set_tap_threshold(bma2x2->bma2x2_client, BMA2X2_TAP_THRESHOLD_FLAT);
+			bma2x2_set_dt_fileter(bma2x2->bma2x2_client, 1);
+		} else {
+			PINFO("flat = 0 detection interrupt happened");
+                        bma2x2_set_tap_threshold(bma2x2->bma2x2_client, BMA2X2_TAP_THRESHOLD);
+			bma2x2_set_dt_fileter(bma2x2->bma2x2_client, 0);
+		}
 		break;
+
 	default:
 		break;
 	}
@@ -6661,7 +6746,7 @@ static void bma2x2_irq_work_func(struct work_struct *work)
 	switch (status) {
 
 	case 0x01:
-		printk(KERN_INFO "Low G interrupt happened\n");
+		PINFO("Low G interrupt happened");
 		input_report_rel(bma2x2->input, LOW_G_INTERRUPT,
 				LOW_G_INTERRUPT_HAPPENED);
 		break;
@@ -6704,8 +6789,8 @@ static void bma2x2_irq_work_func(struct work_struct *work)
 				}
 			   }
 
-		      printk(KERN_INFO "High G interrupt happened,exis is %d,"
-				      "first is %d,sign is %d\n", i,
+		      PINFO("High G interrupt happened,exis is %d,"
+				      "first is %d,sign is %d", i,
 					   first_value, sign_value);
 		}
 		   break;
@@ -6748,24 +6833,24 @@ static void bma2x2_irq_work_func(struct work_struct *work)
 				}
 			}
 
-			printk(KERN_INFO "Slop interrupt happened,exis is %d,"
-					"first is %d,sign is %d\n", i,
+			PINFO("Slop interrupt happened,exis is %d,"
+					"first is %d,sign is %d", i,
 					first_value, sign_value);
 		}
 		break;
 
 	case 0x08:
-		printk(KERN_INFO "slow/ no motion interrupt happened\n");
+		PINFO("slow/ no motion interrupt happened");
 		input_report_rel(bma2x2->input, SLOW_NO_MOTION_INTERRUPT,
 					SLOW_NO_MOTION_INTERRUPT_HAPPENED);
 		break;
 	case 0x10:
-		printk(KERN_INFO "double tap interrupt happened\n");
+		PINFO("double tap interrupt happened");
 		input_report_rel(bma2x2->input, DOUBLE_TAP_INTERRUPT,
 					DOUBLE_TAP_INTERRUPT_HAPPENED);
 		break;
 	case 0x20:
-		printk(KERN_INFO "single tap interrupt happened\n");
+		PINFO("single tap interrupt happened");
 		input_report_rel(bma2x2->input, SINGLE_TAP_INTERRUPT,
 					SINGLE_TAP_INTERRUPT_HAPPENED);
 		break;
@@ -6773,7 +6858,7 @@ static void bma2x2_irq_work_func(struct work_struct *work)
 	case 0x40:
 		bma2x2_get_orient_status(bma2x2->bma2x2_client,
 				    &first_value);
-		printk(KERN_INFO "orient interrupt happened,%s\n",
+		PINFO("orient interrupt happened,%s",
 				orient[first_value]);
 		if (first_value == 0)
 			input_report_abs(bma2x2->input, ORIENT_INTERRUPT,
@@ -6803,7 +6888,7 @@ static void bma2x2_irq_work_func(struct work_struct *work)
 	case 0x80:
 		bma2x2_get_orient_flat_status(bma2x2->bma2x2_client,
 				    &sign_value);
-		printk(KERN_INFO "flat interrupt happened,flat status is %d\n",
+		PINFO("flat interrupt happened,flat status is %d",
 				    sign_value);
 		if (sign_value == 1) {
 			input_report_abs(bma2x2->input, FLAT_INTERRUPT,
@@ -7130,8 +7215,7 @@ static int sensor_parse_dt(struct device *dev, struct bma2x2_platform_data *pdat
 			ret = 0;
 			break;
 		default:
-			printk(KERN_INFO "%d is an unknown DT entry type\n",
-								itr->type);
+			PERR("%d is an unknown DT entry type", itr->type);
 			ret = -EBADE;
 		}
 		
@@ -7143,8 +7227,7 @@ static int sensor_parse_dt(struct device *dev, struct bma2x2_platform_data *pdat
 			*((int *)itr->ptr_data) = itr->default_val;
 
 			if (itr->status < DT_OPTIONAL) {
-				printk(KERN_INFO "Missing '%s' DT entry\n",
-								itr->dt_name);
+				PINFO("Missing '%s' DT entry", itr->dt_name);
 
 				/* cont on err to dump all missing entries */
 				if (itr->status == DT_REQUIRED && !err)
@@ -7176,11 +7259,11 @@ static int bma2x2_probe(struct i2c_client *client,
 #endif
 
 #ifdef CONFIG_OF
-    struct bma2x2_platform_data *platform_data;
+	struct bma2x2_platform_data *platform_data;
 #endif
-    printk("%s\n",__func__);
+	PINFO("Enter");
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
-		printk(KERN_INFO "i2c_check_functionality error\n");
+		PERR("i2c_check_functionality error");
 		goto exit;
 	}
 	p_bma2x2 = data = devm_kzalloc(&client->dev, sizeof(struct bma2x2_data), GFP_KERNEL);
@@ -7243,12 +7326,12 @@ static int bma2x2_probe(struct i2c_client *client,
 	}
 	if (data->sensor_type != -1) {
 		data->chip_id = tmp_chip_id;
-		printk(KERN_INFO "Bosch Sensortec Device detected!\n"
-				"%s registered I2C driver!\n",
+		PINFO("Bosch Sensortec Device detected!\n"
+				"%s registered I2C driver!",
 						sensor_name[data->sensor_type]);
 	} else{
-		printk(KERN_INFO "Bosch Sensortec Device not found "
-				"i2c error %d\n", tempvalue);
+		PERR("Bosch Sensortec Device not found "
+				"i2c error %d", tempvalue);
 		err = -ENODEV;
 		goto exit_hw_power_off;
 	}
@@ -7258,6 +7341,10 @@ static int bma2x2_probe(struct i2c_client *client,
 	mutex_init(&data->value_mutex);
 	mutex_init(&data->mode_mutex);
 	mutex_init(&data->enable_mutex);
+#ifdef CONFIG_SENSOR_LGE_DT
+	mutex_init(&data->suspend_mutex);
+	wake_lock_init(&data->wakelock, WAKE_LOCK_SUSPEND, "bma2x2");
+#endif
 	bma2x2_set_bandwidth(client, BMA2X2_BW_SET);
 	bma2x2_set_range(client, BMA2X2_RANGE_SET);
 	data->bandwidth = BMA2X2_BW_SET;
@@ -7303,7 +7390,10 @@ static int bma2x2_probe(struct i2c_client *client,
 	err = request_irq(data->IRQ, bma2x2_irq_handler, IRQF_TRIGGER_RISING,
 			"bma2x2", data);
 	if (err)
-		printk(KERN_ERR "could not request irq\n");
+		PERR("could not request irq");
+
+	err = enable_irq_wake(data->IRQ);
+        PINFO("enable_irq_wake return val = %d", err);
 
 	INIT_WORK(&data->irq_work, bma2x2_irq_work_func);
 #endif
@@ -7318,9 +7408,11 @@ static int bma2x2_probe(struct i2c_client *client,
 	dev_tap->id.bustype = BUS_I2C;
 	dev_tap->uniq = (client->addr == 0x18 || client->addr == 0x19) ? "bma255" : "bmc150";
 
+	//input_set_capability(dev_tap, EV_ABS, DOUBLE_TAP_INTERRUPT);
 	input_set_capability(dev_tap, EV_REL, DOUBLE_TAP_INTERRUPT);
-	input_set_capability(dev_tap, EV_REL, SLOP_INTERRUPT);
-	input_set_capability(dev_tap, EV_ABS, DOUBLE_TAP_INTERRUPT);
+
+	//input_set_capability(dev_tap, EV_ABS, SINGLE_TAP_INTERRUPT);
+	//input_set_capability(dev_tap, EV_REL, SINGLE_TAP_INTERRUPT);
 
 	input_set_drvdata(dev_tap, data);
 	err = input_register_device(dev_tap);
@@ -7350,11 +7442,11 @@ static int bma2x2_probe(struct i2c_client *client,
 
 #if defined(CONFIG_OF)
 #if defined(BMA2X2_ENABLE_INT1) || defined(BMA2X2_ENABLE_INT2)
-	disable_irq(data->IRQ);
+	disable_irq_wake(data->IRQ);
 #endif
 	bma2x2_set_mode(client, BMA2X2_MODE_SUSPEND);
 	if(sensor_platform_hw_power_on(false) < 0) {
-		printk(KERN_ERR "Accelerometer Power Off Fail in Probe\n");
+		PERR("Accelerometer Power Off Fail in Probe");
 	}
 #endif
 	return 0;
@@ -7373,7 +7465,7 @@ exit_hw_power_off:
 	sensor_platform_hw_power_on(false);
 
 exit:
-	printk(KERN_ERR "Accelerometer Probe Fail\n");
+	PERR("Accelerometer Probe Fail");
 	return err;
 }
 
@@ -7413,6 +7505,16 @@ static int __devexit bma2x2_remove(struct i2c_client *client)
 	struct bma2x2_data *data = i2c_get_clientdata(client);
 
 	bma2x2_set_enable(&client->dev, 0, false);
+
+#if defined(BMA2X2_ENABLE_INT1) || defined(BMA2X2_ENABLE_INT2)
+	disable_irq_wake(client->irq);
+	free_irq(client->irq, client);
+#endif
+
+#ifdef CONFIG_SENSOR_LGE_DT
+	wake_lock_destroy(&data->wakelock);
+#endif
+
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	unregister_early_suspend(&data->early_suspend);
 #endif
@@ -7430,6 +7532,7 @@ static int bma2x2_suspend(struct i2c_client *client, pm_message_t mesg)
 
 	data->enable_before_suspend = atomic_read(&data->enable);
 #ifdef CONFIG_SENSOR_LGE_DT
+	mutex_lock(&data->suspend_mutex);
 	bma2x2_set_enable(&client->dev, BMA2X2_CMD_ACCEL_DISABLE, true);
 #else
 	bma2x2_set_enable(&client->dev, false, true);
@@ -7440,7 +7543,9 @@ static int bma2x2_suspend(struct i2c_client *client, pm_message_t mesg)
 static int bma2x2_resume(struct i2c_client *client)
 {
 	struct bma2x2_data *data = i2c_get_clientdata(client);
-
+#ifdef CONFIG_SENSOR_LGE_DT
+	mutex_unlock(&data->suspend_mutex);
+#endif
 	if (data->enable_before_suspend) {
 #ifdef CONFIG_SENSOR_LGE_DT
 		bma2x2_set_enable(&client->dev, BMA2X2_CMD_ACCEL_ENABLE, true);

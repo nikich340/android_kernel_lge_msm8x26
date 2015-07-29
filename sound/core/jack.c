@@ -35,6 +35,7 @@ static int jack_switch_types[] = {
 	SW_HPHL_OVERCURRENT,
 	SW_HPHR_OVERCURRENT,
 	SW_UNSUPPORT_INSERT,
+	SW_MICROPHONE2_INSERT,
 };
 
 static int snd_jack_dev_free(struct snd_device *device)
@@ -223,15 +224,12 @@ void snd_jack_report(struct snd_jack *jack, int status)
 	for (i = 0; i < ARRAY_SIZE(jack->key); i++) {
 		int testbit = SND_JACK_BTN_0 >> i;
 
-		if (jack->type & testbit)
-		{
-			if((testbit == SND_JACK_BTN_0)||(testbit == SND_JACK_BTN_2)||(testbit == SND_JACK_BTN_7))
-			{
+		if (jack->type & testbit) {
+#ifdef CONFIG_MACH_LGE	/* LGE msm8x26 L-OS models support 4 buttons */
+			if (testbit >= SND_JACK_BTN_3)
+#endif
 				input_report_key(jack->input_dev, jack->key[i],
 					 status & testbit);
-			}
-
-			printk("[LGE MBHC] code %d, value %d \n", jack->key[i],status & testbit) ;
 		}
 	}
 

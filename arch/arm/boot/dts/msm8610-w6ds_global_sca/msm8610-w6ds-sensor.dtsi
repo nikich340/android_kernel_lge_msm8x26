@@ -78,7 +78,7 @@
             Avago,vddio_i2c_supply_max = <1800000>;
             Avago,vddio_i2c_load_ua = <10000>;
             /*add*/
-            Avago,ppcount = <8>;
+            Avago,ppcount = <9>;
             Avago,pdrive = <0>;
             Avago,near_offset = <150>;
             Avago,far_offset = <50>;

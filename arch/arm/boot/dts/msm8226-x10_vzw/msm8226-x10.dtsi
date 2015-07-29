@@ -23,7 +23,7 @@
 
 &soc {
 	serial@f991f000 {
-		status = "ok";
+		status = "disable";
 	};
 
 	syncoam_sm100_rev_a {
@@ -75,10 +75,59 @@
 		status = "disabled";
 	};
 
-
+	lge_sw_irrc { /* X10_IRRC */
+        status = "ok";
+        revision = "rev_a...";
+        };
 };
 
 &soc {
+	sdcc3_rev_0: qcom.sdcc_rev_a@f9864000 {
+		cell-index = <3>;
+		compatible = "qcom,msm-sdcc";
+		reg = <0xf9864000 0x800>,
+			<0xf9864800 0x100>,
+			<0xf9844000 0x7000>;
+		reg-names = "core_mem", "dml_mem", "bam_mem";
+		#address-cells = <0>;
+		interrupt-parent = <&sdcc3_rev_0>;
+		interrupts = <0 1 2>;
+		#interrupt-cells = <1>;
+		interrupt-map-mask = <0xffffffff>;
+		interrupt-map = <0 &intc 0 127 0
+				1 &intc 0 223 0
+				2 &msmgpio 56 0x3>;
+		interrupt-names = "core_irq", "bam_irq", "wlan_oob_irq";
+
+		gpios = <&msmgpio 44 0>, /* CLK */
+			<&msmgpio 43 0>, /* CMD */
+			<&msmgpio 42 0>, /* DATA0 */
+			<&msmgpio 41 0>, /* DATA1 */
+			<&msmgpio 40 0>, /* DATA2 */
+			<&msmgpio 39 0>; /* DATA3 */
+		qcom,gpio-names = "CLK", "CMD", "DAT0", "DAT1", "DAT2", "DAT3";
+		qcom,clk-rates = <400000 20000000 25000000 50000000 100000000>;
+                qcom,sup-voltages = <1800 2950>;
+		qcom,bus-width = <4>;
+		qcom,nonremovable;
+
+		qcom,msm-bus,name = "sdcc3";
+		qcom,msm-bus,num-cases = <8>;
+		qcom,msm-bus,active-only = <0>;
+		qcom,msm-bus,num-paths = <1>;
+		qcom,msm-bus,vectors-KBps = <79 512 0 0>, /* No vote */
+			<79 512 1600 3200>,    /* 400 KB/s*/
+			<79 512 80000 160000>, /* 20 MB/s */
+			<79 512 100000 200000>, /* 25 MB/s */
+			<79 512 200000 400000>, /* 50 MB/s */
+			<79 512 400000 800000>, /* 100 MB/s */
+			<79 512 400000 800000>, /* 200 MB/s */
+			<79 512 2048000 4096000>; /* Max. bandwidth */
+		qcom,bus-bw-vectors-bps = <0 400000 20000000 25000000 50000000 100000000 200000000 4294967295>;
+		revision = "rev_0";
+		status = "ok";
+	};
+
 	sdcc3_rev_a: qcom.sdcc_rev_a@f9864000 {
 		cell-index = <3>;
 		compatible = "qcom,msm-sdcc";
@@ -132,9 +181,67 @@
 			<79 512 400000 800000>, /* 200 MB/s */
 			<79 512 2048000 4096000>; /* Max. bandwidth */
 		qcom,bus-bw-vectors-bps = <0 400000 20000000 25000000 50000000 100000000 200000000 4294967295>;
-		revision = "rev_0...";
+		revision = "rev_a";
 		status = "ok";
 	};
+        sdcc3_rev_b: qcom.sdcc_rev_b@f9864000 {
+                cell-index = <3>;
+                compatible = "qcom,msm-sdcc";
+                reg = <0xf9864000 0x800>,
+                        <0xf9864800 0x100>,
+                        <0xf9844000 0x7000>;
+                reg-names = "core_mem", "dml_mem", "bam_mem";
+                #address-cells = <0>;
+                interrupt-parent = <&sdcc3_rev_b>;
+                interrupts = <0 1 2>;
+                #interrupt-cells = <1>;
+                interrupt-map-mask = <0xffffffff>;
+                interrupt-map = <0 &intc 0 127 0
+                                1 &intc 0 223 0
+                                2 &msmgpio 54 0x3>;
+                interrupt-names = "core_irq", "bam_irq", "wlan_oob_irq";
+
+                gpios = <&msmgpio 44 0>, /* CLK */
+                        <&msmgpio 43 0>, /* CMD */
+                        <&msmgpio 42 0>, /* DATA0 */
+                        <&msmgpio 41 0>, /* DATA1 */
+                        <&msmgpio 40 0>, /* DATA2 */
+                        <&msmgpio 39 0>; /* DATA3 */
+                qcom,gpio-names = "CLK", "CMD", "DAT0", "DAT1", "DAT2", "DAT3";
+                /*
+                vdd-io-supply = <&pm8226_l12>;
+                qcom,vdd-io-always-on;
+                qcom,vdd-io-voltage-level = <1800000 1800000>;
+                qcom,vdd-io-current-level = <250 154000>;
+
+                vdd-supply = <&pm8226_l22>;
+                qcom,vdd-voltage-level = <1800000 2950000>;
+                qcom,vdd-current-level = <9000 800000>;
+                */
+                qcom,clk-rates = <400000 20000000 25000000 50000000 100000000>;
+                //qcom,clk-rates = <400000 20000000 25000000 50000000>;
+                qcom,sup-voltages = <1800 2950>;
+                qcom,bus-width = <4>;
+                qcom,nonremovable;
+                /*qcom,bus-speed-mode = "SDR12", "SDR25", "SDR50";*/
+
+                qcom,msm-bus,name = "sdcc3";
+                qcom,msm-bus,num-cases = <8>;
+                qcom,msm-bus,active-only = <0>;
+                qcom,msm-bus,num-paths = <1>;
+                qcom,msm-bus,vectors-KBps = <79 512 0 0>, /* No vote */
+                        <79 512 1600 3200>,    /* 400 KB/s*/
+                        <79 512 80000 160000>, /* 20 MB/s */
+                        <79 512 100000 200000>, /* 25 MB/s */
+                        <79 512 200000 400000>, /* 50 MB/s */
+                        <79 512 400000 800000>, /* 100 MB/s */
+                        <79 512 400000 800000>, /* 200 MB/s */
+                        <79 512 2048000 4096000>; /* Max. bandwidth */
+                qcom,bus-bw-vectors-bps = <0 400000 20000000 25000000 50000000 100000000 200000000 4294967295>;
+                revision = "rev_b...";
+                status = "ok";
+        };
+
 
 };
 

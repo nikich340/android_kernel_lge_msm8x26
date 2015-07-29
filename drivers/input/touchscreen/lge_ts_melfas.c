@@ -32,12 +32,12 @@
 
 #ifdef SENSING_TEST
 #define SENSING_TEST_PATH		"/data/ts_log.txt"
-static char sensing_test = 0;
+static char sensing_test;
 #endif
 static uint8_t edge_expand[4] = {0};
 
 static int mms_get_packet(struct i2c_client *client);
-static int mms_power(struct i2c_client* client, int power_ctrl);
+static int mms_power(struct i2c_client *client, int power_ctrl);
 
 int mms_i2c_read(struct i2c_client *client, u8 reg, char *buf, int len)
 {
@@ -93,13 +93,13 @@ static int mms_i2c_write(struct i2c_client *client, u8 reg, int len, u8 *buf)
 #endif
 
 static struct gpiomux_setting gpio_isp_config[] = {
-	{ // SDA, SCL
+	{ /* SDA, SCL */
 		.func = GPIOMUX_FUNC_GPIO,
 		.drv = GPIOMUX_DRV_2MA,
 		.pull = GPIOMUX_PULL_DOWN,
 		.dir = GPIOMUX_OUT_LOW,
 	},
-	{ // INT
+	{ /* INT */
 		.func = GPIOMUX_FUNC_GPIO,
 		.drv = GPIOMUX_DRV_2MA,
 		.pull = GPIOMUX_PULL_UP,
@@ -108,13 +108,13 @@ static struct gpiomux_setting gpio_isp_config[] = {
 };
 
 static struct gpiomux_setting gpio_i2c_config[] = {
-	{ // SDA, SCL
+	{ /* SDA, SCL */
 		.func = GPIOMUX_FUNC_3,
 		.drv = GPIOMUX_DRV_2MA,
 		.pull = GPIOMUX_PULL_NONE,
 		.dir = GPIOMUX_IN,
 	},
-	{ // INT
+	{ /* INT */
 		.func = GPIOMUX_FUNC_GPIO,
 		.drv = GPIOMUX_DRV_2MA,
 		.pull = GPIOMUX_PULL_UP,
@@ -123,13 +123,13 @@ static struct gpiomux_setting gpio_i2c_config[] = {
 };
 
 static struct gpiomux_setting gpio_fx_config[] = {
-	{ // SDA, SCL
+	{ /* SDA, SCL */
 		.func = GPIOMUX_FUNC_GPIO,
 		.drv = GPIOMUX_DRV_2MA,
 		.pull = GPIOMUX_PULL_NONE,
 		.dir = GPIOMUX_IN,
 	},
-	{ // INT
+	{ /* INT */
 		.func = GPIOMUX_FUNC_GPIO,
 		.drv = GPIOMUX_DRV_2MA,
 		.pull = GPIOMUX_PULL_NONE,
@@ -262,16 +262,16 @@ void mms_edge_expand_write(struct mms_data *ts)
 	};
 
 	for (i = 0; i < 4; i++) {
-		if (edge_expand[i] == 0 )
+		if (edge_expand[i] == 0)
 			return;
 	}
 
 	msg[0].len = 5;
 	write_buf[0] = MMS_SET_EDGE_EXPAND;
-	write_buf[1] = edge_expand[0]; //top
-	write_buf[2] = edge_expand[1]; //bottom
-	write_buf[3] = edge_expand[2]; //left
-	write_buf[4] = edge_expand[3]; //right
+	write_buf[1] = edge_expand[0]; /* top */
+	write_buf[2] = edge_expand[1]; /* bottom */
+	write_buf[3] = edge_expand[2]; /* left */
+	write_buf[4] = edge_expand[3]; /* right */
 
 	if (i2c_transfer(ts->client->adapter, &msg[0], 1) != 1) {
 		TOUCH_INFO_MSG("mms_edge_expand_write i2c transfer failed\n");
@@ -292,13 +292,13 @@ void mms_edge_expand_read(struct mms_data *ts)
 			.addr = ts->client->addr,
 			.flags = 0,
 			.buf = write_buf,
-		},{
+		}, {
 			.addr = ts->client->addr,
 			.flags = 1,
 		},
 	};
 
-	for ( i = 0; i < 4; i++) {
+	for (i = 0; i < 4; i++) {
 		write_buf[0] = MMS_UNIVERSAL_CMD;
 		write_buf[1] = MMS_UNIVCMD_GET_TOP_EDGE_EXPAND + i;
 		msg[0].len = 2;
@@ -324,7 +324,7 @@ void mms_edge_expand_read(struct mms_data *ts)
 		edge_tmp[i] = read_buf[0];
 	}
 
-	for ( i = 0; i < 4; i++)
+	for (i = 0; i < 4; i++)
 		edge_expand[i] = edge_tmp[i];
 
 	TOUCH_INFO_MSG("Read Edge Expand : %d, %d, %d, %d \n",
@@ -338,7 +338,7 @@ static int mms_get_panel_id(struct mms_data *ts)
 	int panel_id = 0xFF;
 	int ret = 0;
 	int value = 0;
-	static bool init = false;
+	static bool init;
 
 	if (init && ts_pdata->panel_id) {
 		return ts_pdata->panel_id;
@@ -382,7 +382,7 @@ static int mms_get_panel_id(struct mms_data *ts)
 
 	return panel_id;
 
-Exit :
+Exit:
 
 	TOUCH_ERR_MSG("%s FAIL \n", __func__);
 
@@ -438,7 +438,7 @@ static int mms_get_ic_info(struct mms_data *ts, struct touch_fw_info *fw_info)
 	panel_id = mms_get_panel_id(ts);
 	if (unlikely((touch_debug_mask_ & DEBUG_BASE_INFO))) {
 #if 1
-		TOUCH_INFO_MSG("Firmware Version : %d.%02d \n", (ts->ts_section[2].version&0x80?1:0), ts->ts_section[2].version&0x7F);
+		TOUCH_INFO_MSG("Firmware Version : %d.%02d \n", (ts->ts_section[2].version&0x80 ? 1 : 0), ts->ts_section[2].version&0x7F);
 		TOUCH_INFO_MSG("Boot:0x%X Core:0x%X Config:0x%X \n", ts->ts_section[0].version, ts->ts_section[1].version, ts->ts_section[2].version);
 		TOUCH_INFO_MSG("FW Product : %s \n", ts->module.product_code);
 		if (panel_id != 0xFF)
@@ -477,14 +477,14 @@ static void write_file(char *filename, char *data, int time)
 	my_time = __current_kernel_time();
 	time_to_tm(my_time.tv_sec, sys_tz.tz_minuteswest * 60 * (-1), &my_date);
 	snprintf(time_string, 64, "%02d-%02d %02d:%02d:%02d.%03lu ",
-		my_date.tm_mon + 1,my_date.tm_mday,
+		my_date.tm_mon + 1, my_date.tm_mday,
 		my_date.tm_hour, my_date.tm_min, my_date.tm_sec,
 		(unsigned long) my_time.tv_nsec / 1000000);
 
 	set_fs(KERNEL_DS);
 	fd = sys_open(filename, O_WRONLY|O_CREAT|O_APPEND, 0666);
 	if (fd >= 0) {
-		if(time > 0)
+		if (time > 0)
 			sys_write(fd, time_string, strlen(time_string));
 		sys_write(fd, data, strlen(data));
 		sys_close(fd);
@@ -535,7 +535,8 @@ static int mms_probe(struct i2c_client *client, struct touch_platform_data *pdat
 			}
 
 			if (regulator_count_voltages(ts->vdd_regulator[i]) > 0) {
-				if ((ret = regulator_set_voltage(ts->vdd_regulator[i], ts_pwr[i].value, ts_pwr[i].value)) < 0) {
+				ret = regulator_set_voltage(ts->vdd_regulator[i], ts_pwr[i].value, ts_pwr[i].value);
+				if (ret < 0) {
 					TOUCH_ERR_MSG("Error set regulator(%s) voltage %d\n",
 							ts_pwr[i].name, ts_pwr[i].value);
 					goto err_regulator_get;
@@ -551,15 +552,15 @@ err_regulator_get:
 		if (ts_pwr[i].type == 1) {
 			if (gpio_is_valid(ts_pwr[i].value))
 				gpio_free(ts_pwr[i].value);
-		} else if(ts_pwr[i].type == 2) {
+		} else if (ts_pwr[i].type == 2) {
 			if (ts->vdd_regulator != NULL && !IS_ERR(ts->vdd_regulator[i]))
 				regulator_put(ts->vdd_regulator[i]);
 		}
-	} while(--i >= 0);
+	} while (--i >= 0);
 	return ret;
 }
 
-static void mms_remove(struct i2c_client* client)
+static void mms_remove(struct i2c_client *client)
 {
 	struct mms_data *ts = get_touch_handle_(client);
 	int i = TOUCH_PWR_NUM-1;
@@ -580,10 +581,10 @@ static void mms_remove(struct i2c_client* client)
 				regulator_put(ts->vdd_regulator[i]);
 			}
 		}
-	} while(--i >= 0);
+	} while (--i >= 0);
 }
 
-static int mms_init(struct i2c_client* client, struct touch_fw_info* fw_info)
+static int mms_init(struct i2c_client *client, struct touch_fw_info *fw_info)
 {
 	struct mms_data *ts = get_touch_handle_(client);
 
@@ -663,8 +664,7 @@ static int mms_touch_event(struct i2c_client *client, struct touch_data *data, u
 				if (state) {
 					TOUCH_INFO_MSG("Palm detected : %d \n", pressure);
 					data->palm = true;
-				}
-				else {
+				} else {
 					TOUCH_INFO_MSG("Palm released : %d \n", pressure);
 					data->palm = false;
 				}
@@ -703,8 +703,8 @@ static int mms_touch_event(struct i2c_client *client, struct touch_data *data, u
 						data->curr_data[id].y_position,
 						data->curr_data[id].pressure);
 #ifdef SENSING_TEST
-						if(sensing_test == 1) {
-							sprintf(log_buf,"%3d %3d %3d %s\n",
+						if (sensing_test == 1) {
+							sprintf(log_buf, "%3d %3d %3d %s\n",
 								data->curr_data[id].x_position,
 								data->curr_data[id].y_position,
 								data->curr_data[id].pressure,
@@ -722,12 +722,12 @@ static int mms_touch_event(struct i2c_client *client, struct touch_data *data, u
 
 					if (likely(touch_debug_mask_ & DEBUG_ABS_POINT)) {
 						TOUCH_INFO_MSG("touch_release[%s] : <%d> x[%3d] y[%3d]\n",
-						data->palm?"Palm":" ", id,
+						data->palm ? "Palm" : " ", id,
 						data->prev_data[id].x_position,
 						data->prev_data[id].y_position);
 #ifdef SENSING_TEST
-						if(sensing_test == 1) {
-							sprintf(log_buf,"%3d %3d     UP\n",
+						if (sensing_test == 1) {
+							sprintf(log_buf, "%3d %3d     UP\n",
 								data->curr_data[id].x_position,
 								data->curr_data[id].y_position);
 							write_file(SENSING_TEST_PATH, log_buf, 1);
@@ -865,10 +865,10 @@ static int mms_wake(struct i2c_client *client)
 	return 0;
 }
 
-static int mms_power(struct i2c_client* client, int power_ctrl)
+static int mms_power(struct i2c_client *client, int power_ctrl)
 {
-	struct mms_data* ts = get_touch_handle_(client);
-	static char power_state = 0;
+	struct mms_data *ts = get_touch_handle_(client);
+	static char power_state;
 	int i = 0;
 
 	TOUCH_TRACE_FUNC();
@@ -881,7 +881,7 @@ static int mms_power(struct i2c_client* client, int power_ctrl)
 
 	switch (power_ctrl) {
 	case POWER_OFF:
-		if(ts->pdata->ic_type == MMS100S){
+		if (ts->pdata->ic_type == MMS100S) {
 			i2c_smbus_write_byte_data(client, MMS_POWER_CONTROL, 1);
 
 			msleep(50);
@@ -901,12 +901,12 @@ static int mms_power(struct i2c_client* client, int power_ctrl)
 				if (ts->vdd_regulator[i] != NULL && !IS_ERR(ts->vdd_regulator[i])) {
 					regulator_disable(ts->vdd_regulator[i]);
 					/*
-					TOUCH_POWER_MSG("power[%d]: regulator[%s] disabled", i, 
+						TOUCH_POWER_MSG("power[%d]: regulator[%s] disabled", i,
 							rdev_get_name(ts->vdd_regulator[i]->rdev));
 					*/
 				}
 			}
-		} while(--i >= 0);
+		} while (--i >= 0);
 		break;
 
 	case POWER_ON:
@@ -924,12 +924,12 @@ static int mms_power(struct i2c_client* client, int power_ctrl)
 				if (ts->vdd_regulator[i] != NULL && !IS_ERR(ts->vdd_regulator[i])) {
 					regulator_enable(ts->vdd_regulator[i]);
 					/*
-					TOUCH_POWER_MSG("power[%d]: regulator[%s] enabled", i, 
+						TOUCH_POWER_MSG("power[%d]: regulator[%s] enabled", i,
 							rdev_get_name(ts->vdd_regulator[i]->rdev));
 					*/
 				}
 			}
-		} while(++i < TOUCH_PWR_NUM);
+		} while (++i < TOUCH_PWR_NUM);
 		break;
 
 	case POWER_SLEEP:
@@ -952,9 +952,9 @@ static int mms_power(struct i2c_client* client, int power_ctrl)
 	return 0;
 }
 
-int mms_power_ctrl(struct i2c_client* client, int power_ctrl)
+int mms_power_ctrl(struct i2c_client *client, int power_ctrl)
 {
-	int result =0;
+	int result = 0;
 	TOUCH_INFO_MSG("%s : %d \n", __func__, power_ctrl);
 
 	result = mms_power(client, power_ctrl);
@@ -986,7 +986,7 @@ static int mms_firmware_img_parse_show(const char *image_bin, char *show_buf, in
 	for (i = 0; i < fw_hdr->section_num; i++) {
 		img = (struct mms_fw_img *) (image_bin + offset);
 		ret += sprintf(show_buf + ret, "mms_fw_hdr[%d:%s]:\n", i, section_name[img->type]);
-		ret += sprintf(show_buf + ret, "\ttype[%d],version[0x%02X],page[%02d-%02d],offset[%d],length[%d]\n", 
+		ret += sprintf(show_buf + ret, "\ttype[%d],version[0x%02X],page[%02d-%02d],offset[%d],length[%d]\n",
 				img->type, img->version, img->start_page, img->end_page, img->offset, img->length);
 		offset += sizeof(struct mms_fw_img);
 	}
@@ -994,7 +994,7 @@ static int mms_firmware_img_parse_show(const char *image_bin, char *show_buf, in
 	return ret;
 }
 
-static int mms_fw_upgrade(struct i2c_client* client, struct touch_fw_info *info)
+static int mms_fw_upgrade(struct i2c_client *client, struct touch_fw_info *info)
 {
 	struct mms_data *ts = get_touch_handle_(client);
 	int ret = 0;
@@ -1002,7 +1002,7 @@ static int mms_fw_upgrade(struct i2c_client* client, struct touch_fw_info *info)
 	TOUCH_TRACE_FUNC();
 
 	if (info->fw) {
-		if(ts->pdata->ic_type == MMS100A)
+		if (ts->pdata->ic_type == MMS100A)
 			ret = mms_100a_fw_upgrade(ts, info);
 		else
 			ret = mms_100s_isc(ts, info);
@@ -1014,7 +1014,7 @@ static int mms_fw_upgrade(struct i2c_client* client, struct touch_fw_info *info)
 
 static int mms_ic_ctrl(struct i2c_client *client, u32 code, u32 value)
 {
-	struct mms_data* ts = (struct mms_data *) get_touch_handle_(client);
+	struct mms_data *ts = (struct mms_data *) get_touch_handle_(client);
 	struct ic_ctrl_param *param = (struct ic_ctrl_param *) value;
 	int ret = 0;
 	char *buf = NULL;
@@ -1029,10 +1029,10 @@ static int mms_ic_ctrl(struct i2c_client *client, u32 code, u32 value)
 	case IC_CTRL_INFO_SHOW:
 		mms_get_ic_info(ts, NULL);
 		buf = (char *) param->v1;
-		if(buf) {
-			ret += sprintf(buf+ret, "Firmware Version : %d.%02d \n", (ts->ts_section[2].version&0x80?1:0), ts->ts_section[2].version&0x7F);
-			ret += sprintf(buf+ret, "Boot:0x%X  Core:0x%X  Config:0x%X \n", ts->ts_section[0].version, ts->ts_section[1].version, ts->ts_section[2].version);
-			ret += sprintf(buf+ret, "FW Product : %s \n", ts->module.product_code);
+		if (buf) {
+			ret += sprintf(buf + ret, "Firmware Version : %d.%02d \n", (ts->ts_section[2].version&0x80 ? 1 : 0), ts->ts_section[2].version&0x7F);
+			ret += sprintf(buf + ret, "Boot:0x%X  Core:0x%X  Config:0x%X \n", ts->ts_section[0].version, ts->ts_section[1].version, ts->ts_section[2].version);
+			ret += sprintf(buf + ret, "FW Product : %s \n", ts->module.product_code);
 			if (ts_pdata->panel_id != 0xFF)
 				ret += sprintf(buf+ret, "Panel ID : %d [%c] \n", ts_pdata->panel_id, ts_pdata->panel_type[ts_pdata->panel_id]);
 			ret += sprintf(buf+ret, "Num of Channel. TX:%d RX:%d KEY:%d\n", ts->dev.tx_ch_num, ts->dev.rx_ch_num, ts->dev.key_num);
@@ -1042,9 +1042,9 @@ static int mms_ic_ctrl(struct i2c_client *client, u32 code, u32 value)
 	case IC_CTRL_TESTMODE_VERSION_SHOW:
 		mms_get_ic_info(ts, NULL);
 		buf = (char *) param->v1;
-		if(buf) {
+		if (buf) {
 			ret += sprintf(buf+ret, "%d.%02d(0x%X, 0x%X, 0x%X, %s)\n",
-					(ts->ts_section[2].version&0x80?1:0), ts->ts_section[2].version&0x7F, ts->ts_section[0].version, ts->ts_section[1].version, ts->ts_section[2].version, ts->module.product_code);
+					(ts->ts_section[2].version&0x80 ? 1 : 0), ts->ts_section[2].version&0x7F, ts->ts_section[0].version, ts->ts_section[1].version, ts->ts_section[2].version, ts->module.product_code);
 		}
 		break;
 
@@ -1066,37 +1066,37 @@ static int mms_reg_control_store(struct i2c_client *client, const char *buf)
 	if (sscanf(buf, "%d, 0x%x, %d", &cmd, &reg_addr, &length) != 3)
 		return -EINVAL;
 	switch (cmd) {
-		case 1:
-			reg_buf[0] = reg_addr;
-			ret = i2c_master_send(ts->client, reg_buf, 1);
-			if (ret < 0) {
-				TOUCH_INFO_MSG("i2c master send fail\n");
-				break;
-			}
-			ret = i2c_master_recv(ts->client, reg_buf, length);
-			if (ret < 0) {
-				TOUCH_INFO_MSG("i2c master recv fail\n");
-				break;
-			}
-			for (i = 0; i < length; i++) {
-				TOUCH_INFO_MSG("0x%x", reg_buf[i]);
-			}
-			TOUCH_INFO_MSG("\n 0x%x register read done\n", reg_addr);
+	case 1:
+		reg_buf[0] = reg_addr;
+		ret = i2c_master_send(ts->client, reg_buf, 1);
+		if (ret < 0) {
+			TOUCH_INFO_MSG("i2c master send fail\n");
 			break;
-		case 2:
-			reg_buf[0] = reg_addr;
-			reg_buf[1] = length;
-			ret = i2c_master_send(ts->client, reg_buf, 2);
-			if (ret < 0) {
-				TOUCH_INFO_MSG("i2c master send fail\n");
-				break;
-			}
-			TOUCH_INFO_MSG("\n 0x%x register write done\n", reg_addr);
+		}
+		ret = i2c_master_recv(ts->client, reg_buf, length);
+		if (ret < 0) {
+			TOUCH_INFO_MSG("i2c master recv fail\n");
 			break;
-		default:
-			TOUCH_INFO_MSG("usage: echo [1(read)|2(write)], [reg address], [length|value] > reg_control\n");
-			TOUCH_INFO_MSG("  - Register Set or Read\n");
+		}
+		for (i = 0; i < length; i++) {
+			TOUCH_INFO_MSG("0x%x", reg_buf[i]);
+		}
+		TOUCH_INFO_MSG("\n 0x%x register read done\n", reg_addr);
+		break;
+	case 2:
+		reg_buf[0] = reg_addr;
+		reg_buf[1] = length;
+		ret = i2c_master_send(ts->client, reg_buf, 2);
+		if (ret < 0) {
+			TOUCH_INFO_MSG("i2c master send fail\n");
 			break;
+		}
+		TOUCH_INFO_MSG("\n 0x%x register write done\n", reg_addr);
+		break;
+	default:
+		TOUCH_INFO_MSG("usage: echo [1(read)|2(write)], [reg address], [length|value] > reg_control\n");
+		TOUCH_INFO_MSG("  - Register Set or Read\n");
+		break;
 	}
 	return 0;
 }
@@ -1104,7 +1104,7 @@ static int mms_reg_control_store(struct i2c_client *client, const char *buf)
 static int mms_fx_control_store(struct i2c_client *client, const char *buf)
 {
 	struct mms_data *ts = (struct mms_data *) get_touch_handle_(client);
-	static int fx_state = 0;
+	static int fx_state;
 	int	ret = 0;
 	int cmd = 0;
 	if (sscanf(buf, "%d", &cmd) != 1)
@@ -1130,7 +1130,7 @@ static int mms_fx_control_store(struct i2c_client *client, const char *buf)
 		ts_pwr[1].type = 2;
 		if (ret < 0) {
 			TOUCH_INFO_MSG("Regulator vdd enable failed retval = %d\n", ret);
-		}else{
+		} else {
 			TOUCH_INFO_MSG("regulator_enable(VDD) \n");
 		}
 
@@ -1166,7 +1166,7 @@ static int mms_fx_control_store(struct i2c_client *client, const char *buf)
 }
 
 
-static int get_limit(struct mms_data *ts, char* breakpoint, int *limit_data, int *limit_jitter)
+static int get_limit(struct mms_data *ts, char *breakpoint, int *limit_data, int *limit_jitter)
 {
 	int fd = 0;
 	char *fname = "/data/mms_limit.txt";
@@ -1176,7 +1176,7 @@ static int get_limit(struct mms_data *ts, char* breakpoint, int *limit_data, int
 	int r = 0;
 	const struct firmware *fwlimit = NULL;
 	int ret = 0;
-	char* line = NULL;
+	char *line = NULL;
 
 	mm_segment_t old_fs = get_fs();
 	set_fs(KERNEL_DS);
@@ -1189,7 +1189,7 @@ static int get_limit(struct mms_data *ts, char* breakpoint, int *limit_data, int
 	}
 
 	fd = sys_open(fname, O_RDONLY, 0);
-	if ( fd < 0 ) {
+	if (fd < 0) {
 		if (ts->pdata->panel_spec == NULL) {
 			TOUCH_INFO_MSG("panel_spec_file name is null\n");
 			ret = -1;
@@ -1222,7 +1222,7 @@ static int get_limit(struct mms_data *ts, char* breakpoint, int *limit_data, int
 		goto get_jitter_limit;
 
 	memset(limit_data, 0, (ts->dev.rx_ch_num * ts->dev.tx_ch_num + ts->dev.key_num) * 4);
-	while(1) {
+	while (1) {
 		if (line[q] == ',') {
 			cipher = 1;
 			for (p = 1; (line[q - p] >= '0') && (line[q - p] <= '9'); p++) {
@@ -1233,8 +1233,8 @@ static int get_limit(struct mms_data *ts, char* breakpoint, int *limit_data, int
 		}
 		q++;
 
-		if(line[q] == '}') {
-			if(r == ts->dev.rx_ch_num * ts->dev.tx_ch_num){
+		if (line[q] == '}') {
+			if (r == ts->dev.rx_ch_num * ts->dev.tx_ch_num) {
 				ret = -2;
 				goto exit;
 			}
@@ -1246,7 +1246,7 @@ static int get_limit(struct mms_data *ts, char* breakpoint, int *limit_data, int
 		}
 	}
 
-	if(line)
+	if (line)
 		kfree(line);
 
 	if (fd >= 0)
@@ -1262,7 +1262,7 @@ static int get_limit(struct mms_data *ts, char* breakpoint, int *limit_data, int
 get_jitter_limit:
 	cipher = 1;
 	*limit_jitter = 0;
-	while(1) {
+	while (1) {
 		if ((line[q] >= '0') && (line[q] <= '9')) {
 			*limit_jitter = (*limit_jitter) * cipher + (line[q] - '0');
 			cipher *= 10;
@@ -1276,8 +1276,8 @@ get_jitter_limit:
 	if (line[p] == '-')
 		*limit_jitter *= -1;
 
-exit :
-	if(line)
+exit:
+	if (line)
 		kfree(line);
 
 	if (fd >= 0)
@@ -1296,7 +1296,7 @@ static int mms_sensing_test_store(struct i2c_client *client, const char *buf)
 {
 	int cmd = 2;
 
-	if(sscanf(buf, "%d", &cmd) != 1)
+	if (sscanf(buf, "%d", &cmd) != 1)
 		return -EINVAL;
 
 	switch (cmd) {
@@ -1322,7 +1322,7 @@ static ssize_t mms_chstatus_show(struct i2c_client *client, char *buf)
 {
 	struct mms_data *ts = (struct mms_data *) get_touch_handle_(client);
 	char c = '-';
-	int len=0, i=0, j=0, t=0;
+	int len = 0, i = 0, j = 0, t = 0;
 	uint8_t write_buf[5] = {0};
 	uint8_t read_buf[80] = {0};
 	uint8_t read_size = 0;
@@ -1376,7 +1376,7 @@ static ssize_t mms_chstatus_show(struct i2c_client *client, char *buf)
 	write_buf[1] = MMS_ENTER_TEST_MODE;
 	i2c_master_send(ts->client, write_buf, 2);
 
-	do{
+	do {
 		while (gpio_get_value(ts->pdata->int_pin)) {
 			flag++;
 			if (flag == 30) {
@@ -1397,7 +1397,7 @@ static ssize_t mms_chstatus_show(struct i2c_client *client, char *buf)
 		i2c_master_recv(ts->client, read_buf, 1);
 		TOUCH_INFO_MSG("Maker is %x\n", read_buf[0]);
 		count++;
-	}while(read_buf[0]!=0x0C&&count!=10);
+	} while (read_buf[0] != 0x0C && count != 10);
 
 	write_buf[0] = MMS_UNIVERSAL_CMD;
 	write_buf[1] = MMS_TEST_CHSTATUS;
@@ -1424,11 +1424,11 @@ static ssize_t mms_chstatus_show(struct i2c_client *client, char *buf)
 	TOUCH_INFO_MSG("Chstatus TEST =%d \n", read_buf[0]);
 
 	len = snprintf(buf, PAGE_SIZE, "\n<< SHOW CHANNEL STATUS >>\n");
-	if(ts->pdata->panel_on == POWER_OFF){
+	if (ts->pdata->panel_on == POWER_OFF) {
 		len += snprintf(buf + len, PAGE_SIZE - len, "************************\n");
 		len += snprintf(buf + len, PAGE_SIZE - len, "*** LCD STATUS : OFF ***\n");
 		len += snprintf(buf + len, PAGE_SIZE - len, "************************\n");
-	}else if(ts->pdata->panel_on == POWER_ON){
+	} else if (ts->pdata->panel_on == POWER_ON) {
 		len += snprintf(buf + len, PAGE_SIZE - len, "************************\n");
 		len += snprintf(buf + len, PAGE_SIZE - len, "*** LCD STATUS : O N ***\n");
 		len += snprintf(buf + len, PAGE_SIZE - len, "************************\n");
@@ -1486,8 +1486,8 @@ static ssize_t mms_chstatus_show(struct i2c_client *client, char *buf)
 
 		write_buf[0] = MMS_UNIVERSAL_CMD;
 		write_buf[1] = MMS_KEY_CHSTATUS;
-		write_buf[2] = 0xff; //KEY CH.
-		write_buf[3] = 0; //Dummy Info
+		write_buf[2] = 0xff; /*KEY CH. */
+		write_buf[3] = 0; /*Dummy Info */
 		i2c_master_send(ts->client, write_buf, 4);
 		while (gpio_get_value(ts->pdata->int_pin)) {
 			flag++;
@@ -1505,12 +1505,11 @@ static ssize_t mms_chstatus_show(struct i2c_client *client, char *buf)
 		write_buf[0] = MMS_UNIVERSAL_RESULT;
 		i2c_master_send(ts->client, write_buf, 1);
 		i2c_master_recv(ts->client, read_buf, read_size);
-		for (t = 0; t < ts->dev.key_num ; t++) //Model Dependent
-		{
+		for (t = 0; t < ts->dev.key_num ; t++) {/*Model Dependent */
 			chstatus = read_buf[2 * t] | (read_buf[2 * t + 1] << 8);
-			if((alloc_flag != -1) && (ret != -1)){
-				if((chstatus > chstatus_max[ts->dev.rx_ch_num* ts->dev.tx_ch_num + t]) || (chstatus < chstatus_min[ts->dev.rx_ch_num* ts->dev.tx_ch_num + t])){
-					error_point[ts->dev.rx_ch_num* ts->dev.tx_ch_num + t] = 1;
+			if ((alloc_flag != -1) && (ret != -1)) {
+				if ((chstatus > chstatus_max[ts->dev.rx_ch_num * ts->dev.tx_ch_num + t]) || (chstatus < chstatus_min[ts->dev.rx_ch_num * ts->dev.tx_ch_num + t])) {
+					error_point[ts->dev.rx_ch_num * ts->dev.tx_ch_num + t] = 1;
 					ts->pdata->selfdiagnostic_state[0] = 0;
 				}
 			}
@@ -1608,16 +1607,16 @@ static ssize_t mms_rawdata_show(struct i2c_client *client, char *buf)
 {
 	struct mms_data *ts = (struct mms_data *) get_touch_handle_(client);
 	char c = '-';
-	int len=0, i=0, j=0, t=0;
+	int len = 0, i = 0, j = 0, t = 0;
 	uint8_t write_buf[5] = {0};
 	uint8_t read_buf[80] = {0};
 	uint8_t read_size = 0;
 	uint16_t rawdata = 0;
 	int flag = 0;
 	int count = 0;
-	int* error_point = NULL;
-	int* raw_data_max = NULL;
-	int* raw_data_min = NULL;
+	int *error_point = NULL;
+	int *raw_data_max = NULL;
+	int *raw_data_min = NULL;
 	int ret = 0;
 	int alloc_flag = 0;
 
@@ -1661,7 +1660,7 @@ static ssize_t mms_rawdata_show(struct i2c_client *client, char *buf)
 	write_buf[1] = MMS_ENTER_TEST_MODE;
 	i2c_master_send(ts->client, write_buf, 2);
 
-	do{
+	do {
 		while (gpio_get_value(ts->pdata->int_pin)) {
 			flag++;
 			if (flag == 30) {
@@ -1681,7 +1680,7 @@ static ssize_t mms_rawdata_show(struct i2c_client *client, char *buf)
 		i2c_master_recv(ts->client, read_buf, 1);
 		TOUCH_INFO_MSG("Maker is %x\n", read_buf[0]);
 		count++;
-	}while(read_buf[0]!=0x0C&&count!=10);
+	} while (read_buf[0] != 0x0C && count != 10);
 
 	write_buf[0] = MMS_UNIVERSAL_CMD;
 	write_buf[1] = MMS_TEST_RAWDATA;
@@ -1707,11 +1706,11 @@ static ssize_t mms_rawdata_show(struct i2c_client *client, char *buf)
 	TOUCH_INFO_MSG("RAWDATA TEST =%d \n", read_buf[0]);
 
 	len = snprintf(buf, PAGE_SIZE, "\n<< SHOW RAWDATA TEST >>\n");
-	if(ts->pdata->panel_on == POWER_OFF){
+	if (ts->pdata->panel_on == POWER_OFF) {
 		len += snprintf(buf + len, PAGE_SIZE - len, "************************\n");
 		len += snprintf(buf + len, PAGE_SIZE - len, "*** LCD STATUS : OFF ***\n");
 		len += snprintf(buf + len, PAGE_SIZE - len, "************************\n");
-	}else if(ts->pdata->panel_on == POWER_ON){
+	} else if (ts->pdata->panel_on == POWER_ON) {
 		len += snprintf(buf + len, PAGE_SIZE - len, "************************\n");
 		len += snprintf(buf + len, PAGE_SIZE - len, "*** LCD STATUS : O N ***\n");
 		len += snprintf(buf + len, PAGE_SIZE - len, "************************\n");
@@ -1769,8 +1768,8 @@ static ssize_t mms_rawdata_show(struct i2c_client *client, char *buf)
 
 		write_buf[0] = MMS_UNIVERSAL_CMD;
 		write_buf[1] = MMS_KEY_RAWDATA;
-		write_buf[2] = 0xff; //KEY CH.
-		write_buf[3] = 0; //Dummy Info
+		write_buf[2] = 0xff; /*KEY CH. */
+		write_buf[3] = 0; /*Dummy Info */
 		i2c_master_send(ts->client, write_buf, 4);
 		while (gpio_get_value(ts->pdata->int_pin)) {
 			flag++;
@@ -1788,11 +1787,10 @@ static ssize_t mms_rawdata_show(struct i2c_client *client, char *buf)
 		write_buf[0] = MMS_UNIVERSAL_RESULT;
 		i2c_master_send(ts->client, write_buf, 1);
 		i2c_master_recv(ts->client, read_buf, read_size);
-		for (t = 0; t < ts->dev.key_num ; t++) //Model Dependent
-		{
+		for (t = 0; t < ts->dev.key_num ; t++) {/*Model Dependent */
 			rawdata = read_buf[2 * t] | (read_buf[2 * t + 1] << 8);
-			if ((rawdata > raw_data_max[ts->dev.rx_ch_num* ts->dev.tx_ch_num + t]) || (rawdata < raw_data_min[ts->dev.rx_ch_num* ts->dev.tx_ch_num + t])) {
-				error_point[ts->dev.rx_ch_num* ts->dev.tx_ch_num + t] = 1;
+			if ((rawdata > raw_data_max[ts->dev.rx_ch_num * ts->dev.tx_ch_num + t]) || (rawdata < raw_data_min[ts->dev.rx_ch_num * ts->dev.tx_ch_num + t])) {
+				error_point[ts->dev.rx_ch_num * ts->dev.tx_ch_num + t] = 1;
 				ts->pdata->selfdiagnostic_state[1] = 0;
 			}
 			len += snprintf(buf + len, PAGE_SIZE - len, "%5d", rawdata);
@@ -1929,15 +1927,15 @@ static ssize_t mms_delta_show(struct i2c_client *client, char *buf)
 	len += snprintf(buf + len, PAGE_SIZE - len, "-----------------------------------------------");
 	len += snprintf(buf + len, PAGE_SIZE - len, "------------------------\n");
 
-	for(i=0; i<ts->dev.rx_ch_num; i++) {
+	for (i = 0; i < ts->dev.rx_ch_num; i++) {
 		len += snprintf(buf + len, PAGE_SIZE - len, "%5d", i);
-		for(j = 0; j<ts->dev.tx_ch_num; j++){
+		for (j = 0; j < ts->dev.tx_ch_num; j++) {
 			write_buf[0] = MMS_UNIVERSAL_CMD;
 			write_buf[1] = MMS_DELTA_SCREEN;
 			write_buf[2] = j;
 			write_buf[3] = i;
 			msg[0].len = 4;
-			if(i2c_transfer(ts->client->adapter, &msg[0], 1)!=1){
+			if (i2c_transfer(ts->client->adapter, &msg[0], 1) != 1) {
 				TOUCH_INFO_MSG("intensity i2c transfer failed\n");
 				return -1;
 			}
@@ -1946,10 +1944,10 @@ static ssize_t mms_delta_show(struct i2c_client *client, char *buf)
 			msg[0].len = 1;
 			msg[1].len = sz;
 			msg[1].buf = read_buf;
-			if(i2c_transfer(ts->client->adapter, msg, ARRAY_SIZE(msg))!=ARRAY_SIZE(msg)){
+			if (i2c_transfer(ts->client->adapter, msg, ARRAY_SIZE(msg)) != ARRAY_SIZE(msg)) {
 				return -1;
 			}
-			sz>>=1;
+			sz >>= 1;
 			delta = read_buf[1];
 			delta = ((delta<<8)|read_buf[0]);
 			len += snprintf(buf + len, PAGE_SIZE - len, "%5d", delta);
@@ -1959,12 +1957,12 @@ static ssize_t mms_delta_show(struct i2c_client *client, char *buf)
 
 	if (ts->dev.key_num) {
 		len += snprintf(buf + len, PAGE_SIZE - len, "key: ");
-		for(j = 0; j<ts->dev.key_num; j++){
+		for (j = 0; j < ts->dev.key_num; j++) {
 			write_buf[0] = MMS_UNIVERSAL_CMD;
 			write_buf[1] = MMS_DELTA_KEY;
 			write_buf[2] = j;
 			msg[0].len = 4;
-			if(i2c_transfer(ts->client->adapter, &msg[0], 1)!=1){
+			if (i2c_transfer(ts->client->adapter, &msg[0], 1) != 1) {
 				TOUCH_INFO_MSG("intensity i2c transfer failed\n");
 				return -1;
 			}
@@ -1973,10 +1971,10 @@ static ssize_t mms_delta_show(struct i2c_client *client, char *buf)
 			msg[0].len = 1;
 			msg[1].len = sz;
 			msg[1].buf = read_buf;
-			if(i2c_transfer(ts->client->adapter, msg, ARRAY_SIZE(msg))!=ARRAY_SIZE(msg)){
+			if (i2c_transfer(ts->client->adapter, msg, ARRAY_SIZE(msg)) != ARRAY_SIZE(msg)) {
 				return -1;
 			}
-			sz>>=1;
+			sz >>= 1;
 			delta = read_buf[1];
 			delta = ((delta<<8)|read_buf[0]);
 			len += snprintf(buf + len, PAGE_SIZE - len, "%5d", delta);
@@ -1996,7 +1994,7 @@ static ssize_t mms_jitter_show(struct i2c_client *client, char *buf)
 {
 	struct mms_data *ts = (struct mms_data *) get_touch_handle_(client);
 	char c = '-';
-	int len=0, i=0, j=0, t=0;
+	int len = 0, i = 0, j = 0, t = 0;
 	uint8_t write_buf[5] = {0};
 	uint8_t read_buf[40] = {0};
 	uint8_t read_size = 0;
@@ -2038,7 +2036,7 @@ static ssize_t mms_jitter_show(struct i2c_client *client, char *buf)
 	write_buf[1] = MMS_ENTER_TEST_MODE;
 	i2c_master_send(ts->client, write_buf, 2);
 
-	do{
+	do {
 		while (gpio_get_value(ts->pdata->int_pin)) {
 			flag++;
 			if (flag == 30) {
@@ -2058,7 +2056,7 @@ static ssize_t mms_jitter_show(struct i2c_client *client, char *buf)
 		i2c_master_recv(ts->client, read_buf, 1);
 		TOUCH_INFO_MSG("Maker is %x\n", read_buf[0]);
 		count++;
-	}while(read_buf[0]!=0x0C&&count!=10);
+	} while (read_buf[0] != 0x0C && count != 10);
 
 	write_buf[0] = MMS_UNIVERSAL_CMD;
 	write_buf[1] = MMS_TEST_JITTER;
@@ -2084,11 +2082,11 @@ static ssize_t mms_jitter_show(struct i2c_client *client, char *buf)
 	TOUCH_INFO_MSG("JITTER TEST =%d \n", read_buf[0]);
 
 	len = snprintf(buf, PAGE_SIZE, "\n<< SHOW JITTER TEST >>\n");
-	if(ts->pdata->panel_on == POWER_OFF){
+	if (ts->pdata->panel_on == POWER_OFF) {
 		len += snprintf(buf + len, PAGE_SIZE - len, "************************\n");
 		len += snprintf(buf + len, PAGE_SIZE - len, "*** LCD STATUS : OFF ***\n");
 		len += snprintf(buf + len, PAGE_SIZE - len, "************************\n");
-	}else if(ts->pdata->panel_on == POWER_ON){
+	} else if (ts->pdata->panel_on == POWER_ON) {
 		len += snprintf(buf + len, PAGE_SIZE - len, "************************\n");
 		len += snprintf(buf + len, PAGE_SIZE - len, "*** LCD STATUS : O N ***\n");
 		len += snprintf(buf + len, PAGE_SIZE - len, "************************\n");
@@ -2146,8 +2144,8 @@ static ssize_t mms_jitter_show(struct i2c_client *client, char *buf)
 
 		write_buf[0] = MMS_UNIVERSAL_CMD;
 		write_buf[1] = MMS_KEY_JITTER;
-		write_buf[2] = 0xff; //KEY CH.
-		write_buf[3] = 0; //Dummy Info
+		write_buf[2] = 0xff; /*KEY CH. */
+		write_buf[3] = 0; /*Dummy Info */
 		i2c_master_send(ts->client, write_buf, 4);
 		while (gpio_get_value(ts->pdata->int_pin)) {
 			flag++;
@@ -2165,12 +2163,11 @@ static ssize_t mms_jitter_show(struct i2c_client *client, char *buf)
 		write_buf[0] = MMS_UNIVERSAL_RESULT;
 		i2c_master_send(ts->client, write_buf, 1);
 		i2c_master_recv(ts->client, read_buf, read_size);
-		for (t = 0; t < ts->dev.key_num ; t++) //Model Dependent
-		{
-			//jitter = read_buf[2 * t] | (read_buf[2 * t + 1] << 8);
+		for (t = 0; t < ts->dev.key_num ; t++) {/*Model Dependent */
+			/*jitter = read_buf[2 * t] | (read_buf[2 * t + 1] << 8); */
 			jitter = read_buf[0];
 			if ((jitter > jitter_upper_limit) || (jitter < jitter_low_limit)) {
-				error_point[ts->dev.rx_ch_num* ts->dev.tx_ch_num + t] = 1;
+				error_point[ts->dev.rx_ch_num * ts->dev.tx_ch_num + t] = 1;
 				ts->pdata->selfdiagnostic_state[2] = 0;
 			}
 			len += snprintf(buf + len, PAGE_SIZE - len, "%5d", jitter);
@@ -2258,7 +2255,7 @@ static ssize_t mms_self_diagnostic_show(struct i2c_client *client, char *buf)
 {
 	struct mms_data *ts = (struct mms_data *) get_touch_handle_(client);
 	int len = 0;
-	char *sd_path = "/data/touch_self_test.txt";
+	char *sd_path = "/mnt/sdcard/touch_self_test.txt";
 	struct ic_ctrl_param param;
 
 	param.v1 = (u32) buf;
@@ -2275,7 +2272,7 @@ static ssize_t mms_self_diagnostic_show(struct i2c_client *client, char *buf)
 	mms_jitter_show(client, buf);
 	write_file(sd_path, buf, 0);
 
-	len += snprintf(buf + len, PAGE_SIZE - len, "Firmware Version : %d.%02d \n", (ts->ts_section[2].version&0x80?1:0), ts->ts_section[2].version&0x7F);
+	len += snprintf(buf + len, PAGE_SIZE - len, "Firmware Version : %d.%02d \n", (ts->ts_section[2].version&0x80 ? 1 : 0), ts->ts_section[2].version&0x7F);
 	len += snprintf(buf + len, PAGE_SIZE - len, "Boot:0x%X Core:0x%X Config:0x%X \n", ts->ts_section[0].version, ts->ts_section[1].version, ts->ts_section[2].version);
 	len += snprintf(buf + len, PAGE_SIZE - len, "FW Product : %s \n", ts->module.product_code);
 	if (ts_pdata->panel_id != 0xFF)
@@ -2283,7 +2280,7 @@ static ssize_t mms_self_diagnostic_show(struct i2c_client *client, char *buf)
 	len += snprintf(buf + len, PAGE_SIZE - len, "=======RESULT========\n");
 	len += snprintf(buf + len, PAGE_SIZE - len, "Channel Status : %s\n", ts->pdata->selfdiagnostic_state[0] == 1 ? "PASS" : "FAIL");
 	len += snprintf(buf + len, PAGE_SIZE - len, "Raw Data : %s\n", ts->pdata->selfdiagnostic_state[1] == 1 ? "PASS" : "FAIL");
-	//len += snprintf(buf + len, PAGE_SIZE - len, "Jitter Test: %s\n", ts->pdata->selfdiagnostic_state[2] == 1 ? "PASS" : "FAIL");
+	/*len += snprintf(buf + len, PAGE_SIZE - len, "Jitter Test: %s\n", ts->pdata->selfdiagnostic_state[2] == 1 ? "PASS" : "FAIL"); */
 
 	return len;
 }
@@ -2301,7 +2298,7 @@ static ssize_t mms_edge_expand_show(struct i2c_client *client, char *buf)
 	return len;
 }
 
-static ssize_t mms_edge_expand_store(struct i2c_client *client, const char *buf )
+static ssize_t mms_edge_expand_store(struct i2c_client *client, const char *buf)
 {
 	struct mms_data *ts = (struct mms_data *) get_touch_handle_(client);
 	int i = 0;
@@ -2314,9 +2311,9 @@ static ssize_t mms_edge_expand_store(struct i2c_client *client, const char *buf 
 
 	if (ptr[0] >= '0' && ptr[0] <= '9') {
 		len = strlen(ptr);
-		num_pos[find_num_cnt++] = ptr; // first value
+		num_pos[find_num_cnt++] = ptr; /* first value */
 
-		for ( i = 1; i < len; i++) {
+		for (i = 1; i < len; i++) {
 			if (ptr[i] == ',' && ptr[i+1] == ' ') {
 				ptr[i] = '\0';
 				num_pos[find_num_cnt++] = &ptr[i+2];
@@ -2343,7 +2340,7 @@ static ssize_t mms_edge_expand_store(struct i2c_client *client, const char *buf 
 
 	return 0;
 
-ErrorExit :
+ErrorExit:
 	TOUCH_INFO_MSG("edge_expand_store error. %s \n", buf);
 
 	return 0;
@@ -2361,11 +2358,11 @@ static int mms_sysfs(struct i2c_client *client, char *buf1, const char *buf2, u3
 	msleep(30);
 
 	switch (code) {
-	case SYSFS_VERSION_SHOW :
+	case SYSFS_VERSION_SHOW:
 		param.v1 = (u32) buf1;
 		ret = mms_ic_ctrl(client, IC_CTRL_INFO_SHOW, (u32) &param);
 		break;
-	case SYSFS_TESTMODE_VERSION_SHOW :
+	case SYSFS_TESTMODE_VERSION_SHOW:
 		param.v1 = (u32) buf1;
 		ret = mms_ic_ctrl(client, IC_CTRL_TESTMODE_VERSION_SHOW, (u32) &param);
 		break;
@@ -2395,10 +2392,10 @@ static int mms_sysfs(struct i2c_client *client, char *buf1, const char *buf2, u3
 	case SYSFS_SELF_DIAGNOSTIC_SHOW:
 		ret = mms_self_diagnostic_show(client, buf1);
 		break;
-	case SYSFS_EDGE_EXPAND_SHOW :
+	case SYSFS_EDGE_EXPAND_SHOW:
 		ret = mms_edge_expand_show(client, buf1);
 		break;
-	case SYSFS_EDGE_EXPAND_STORE :
+	case SYSFS_EDGE_EXPAND_STORE:
 		ret = mms_edge_expand_store(client, buf2);
 		break;
 	}

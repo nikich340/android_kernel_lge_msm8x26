@@ -211,8 +211,10 @@ static int gpio_reserved_pin_rev_A[] = {
 	MSM8x26_GPIO_END // This is included to notify the end of reserved GPIO configuration.
 	};
 // Rev A -34, +45, +46, -55
+
+// Rev B -56 for DSV_AVDD_EN(LCD)
 static int gpio_reserved_pin_rev_B[] = {
-	0, 1, 2, 3, 12, 13, 14, 15, 16, 33, 45, 46, 49, 50, 51, 52, 54, 55, 56, 63, 64, 65, 67, 75, 76, 83, 84, 85, 86, 88, 89, 90, 94, 95, 96, 97, 98, 109, 115, 116, 117, 118,
+	0, 1, 2, 3, 12, 13, 14, 15, 16, 33, 45, 46, 49, 50, 51, 52, 54, 55, 63, 64, 65, 67, 75, 76, 83, 84, 85, 86, 88, 89, 90, 94, 95, 96, 97, 98, /* 109, */ 115, 116, 117, 118,
 	MSM8x26_GPIO_END // This is included to notify the end of reserved GPIO configuration.
 	};
 
@@ -242,7 +244,7 @@ static struct msm_gpiomux_config gpio_func_sensor_configs[] __initdata = {
 static struct gpiomux_setting hall_ic_sus_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_2MA,
-	.pull = GPIOMUX_PULL_NONE,
+	.pull = GPIOMUX_PULL_UP,
 	.dir = GPIOMUX_IN,
 };
 
@@ -442,7 +444,7 @@ static struct msm_gpiomux_config msm_atmel_s540_configs[] __initdata = {
 //Need to set GPIO[021] NFC_IRQ
 //Need to set GPIO[022] NFC_MODE
 /*  LGE_CHANGE_S, [NFC][garam.kim@lge.com], NFC Bring up*/
-#ifdef CONFIG_LGE_NFC_PN547
+#ifdef CONFIG_LGE_NFC_PN547_C2
 static struct gpiomux_setting nfc_pn547_sda_cfg = {
 	.func = GPIOMUX_FUNC_3,
 	.drv = GPIOMUX_DRV_8MA,
@@ -621,7 +623,7 @@ static struct gpiomux_setting lcd_rst_act_cfg = {
 };
 
 
-#if defined(CONFIG_TSPDRV) //for sm100
+#if 0 //defined(CONFIG_TSPDRV) //for sm100
 static struct gpiomux_setting vibrator_suspend_cfg = {
        .func = GPIOMUX_FUNC_GPIO,
        .drv = GPIOMUX_DRV_2MA,
@@ -677,15 +679,16 @@ static struct msm_gpiomux_config msm_lcd_configs[] __initdata = {
 // GPIO related function <<7.CAMERA>>
 //Need to set GPIO[026] MAIN_CAM0_MCLK
 //Need to set GPIO[027] VT_CAM_MCLK
-//Need to set GPIO[028] VT_CAM_RESET_N
 //Need to set GPIO[029] CAM0_I2C_SDA
 //Need to set GPIO[030] CAM0_I2C_SCL
-//Need to set GPIO[036] MAIN_CAM0_PWDN  - using for 2.8V LDO en at Rev A
-//Need to set GPIO[097] VT_CAM_PWDN
-//Need to set GPIO[098] MAIN_CAM0_RESET_N
+//Need to set GPIO[114] MAIN_CAM0_RESET_N
+//Need to set GPIO[028] VT_CAM_RESET_N
 //Need to set GPIO[062] LDO1_EN
-//Need to set GPIO[110] LDO2_EN
 //Need to set GPIO[113] LDO3_EN
+//Need to set GPIO[036] VCM_EN
+//Need to set GPIO[109] LDAF_EN
+//Need to set GPIO[107] LDAF_INT
+
 static struct gpiomux_setting gpio_suspend_config[] = {
 	{
 		.func = GPIOMUX_FUNC_GPIO,  /* IN-NP */
@@ -729,6 +732,119 @@ static struct gpiomux_setting cam_settings[] = {
 		.func = GPIOMUX_FUNC_GPIO, /*suspend 0*/ /* 4 */
 		.drv = GPIOMUX_DRV_2MA,
 		.pull = GPIOMUX_PULL_DOWN,
+	},
+
+	{
+		.func = GPIOMUX_FUNC_GPIO, /*active 2*/ /* 5 */ // for INPUT
+		.drv = GPIOMUX_DRV_2MA,
+		.pull = GPIOMUX_PULL_UP,
+		.dir = GPIOMUX_IN,
+	},
+
+	{
+		.func = GPIOMUX_FUNC_GPIO, /*suspend 2*/ /* 6 */ // for INPUT
+		.drv = GPIOMUX_DRV_2MA,
+		.pull = GPIOMUX_PULL_NONE,
+		.dir = GPIOMUX_IN,
+	},
+};
+
+static struct msm_gpiomux_config msm_sensor_configs[] __initdata = {
+	{
+		.gpio = 26, /* CAM_MCLK0 */
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &cam_settings[0],
+			[GPIOMUX_SUSPENDED] = &cam_settings[1],
+		},
+	},
+	{
+		.gpio = 27, /* CAM_MCLK1 */
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &cam_settings[0],
+			[GPIOMUX_SUSPENDED] = &cam_settings[1],
+		},
+	},
+	{
+		.gpio = 29, /* CCI_I2C_SDA0 */
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &cam_settings[0],
+			[GPIOMUX_SUSPENDED] = &gpio_suspend_config[0],
+		},
+	},
+	{
+		.gpio = 30, /* CCI_I2C_SCL0 */
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &cam_settings[0],
+			[GPIOMUX_SUSPENDED] = &gpio_suspend_config[0],
+		},
+	},
+#if 0
+	{
+		.gpio = 36, /* CAM1_STANDBY_N */
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &cam_settings[3],
+			[GPIOMUX_SUSPENDED] = &cam_settings[4],
+		},
+	},
+#endif
+	{
+		.gpio = 114, /* CAM1_RST_N */
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &cam_settings[3],
+			[GPIOMUX_SUSPENDED] = &cam_settings[4],
+		},
+	},
+#if 0
+	{
+		.gpio = 35, /* CAM2_STANDBY_N */
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &cam_settings[3],
+			[GPIOMUX_SUSPENDED] = &cam_settings[4],
+		},
+	},
+#endif
+	{
+		.gpio = 28, /* CAM2_RST_N */
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &cam_settings[3],
+			[GPIOMUX_SUSPENDED] = &cam_settings[4],
+		},
+	},
+
+	{
+		.gpio = 62, /* LDO1_EN */
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &cam_settings[3],
+			[GPIOMUX_SUSPENDED] = &cam_settings[4],
+		},
+	},
+	{
+		.gpio = 113, /* LDO3_EN */
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &cam_settings[3],
+			[GPIOMUX_SUSPENDED] = &cam_settings[4],
+		},
+	},
+	{
+		.gpio = 36, /* VCM_EN */
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &cam_settings[3],
+			[GPIOMUX_SUSPENDED] = &cam_settings[4],
+		},
+	},
+	{
+		.gpio = 109, /* LDAF_EN */
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &cam_settings[3],
+			[GPIOMUX_SUSPENDED] = &cam_settings[4],
+		},
+	},
+	{
+		.gpio = 107, /* LDAF_INT */
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &cam_settings[5],
+			[GPIOMUX_SUSPENDED] = &cam_settings[6],
+		},
 	},
 };
 
@@ -906,68 +1022,6 @@ static void bluetooth_msm_gpiomux_install(void)
 }
 #endif /* CONFIG_LGE_BLUETOOTH */
 /* LGE_CHANGE_E, BT][teddy.ju@lge.com], 2013-05-13 */
-static struct msm_gpiomux_config msm_sensor_configs[] __initdata = {
-	{
-		.gpio = 26, /* CAM_MCLK0 */
-		.settings = {
-			[GPIOMUX_ACTIVE]    = &cam_settings[0],
-			[GPIOMUX_SUSPENDED] = &cam_settings[1],
-		},
-	},
-	{
-		.gpio = 27, /* CAM_MCLK1 */
-		.settings = {
-			[GPIOMUX_ACTIVE]    = &cam_settings[0],
-			[GPIOMUX_SUSPENDED] = &cam_settings[1],
-		},
-
-	},
-	{
-		.gpio = 29, /* CCI_I2C_SDA0 */
-		.settings = {
-			[GPIOMUX_ACTIVE]    = &cam_settings[0],
-			[GPIOMUX_SUSPENDED] = &gpio_suspend_config[0],
-		},
-	},
-	{
-		.gpio = 30, /* CCI_I2C_SCL0 */
-		.settings = {
-			[GPIOMUX_ACTIVE]    = &cam_settings[0],
-			[GPIOMUX_SUSPENDED] = &gpio_suspend_config[0],
-		},
-	},
-	{
-		.gpio = 36, /* CAM1_STANDBY_N */
-		.settings = {
-			[GPIOMUX_ACTIVE]    = &cam_settings[3],
-			[GPIOMUX_SUSPENDED] = &cam_settings[4],
-		},
-	},
-#if 0
-	{
-		.gpio = 37, /* CAM1_RST_N */
-		.settings = {
-			[GPIOMUX_ACTIVE]    = &cam_settings[3],
-			[GPIOMUX_SUSPENDED] = &cam_settings[4],
-		},
-	},
-	{
-		.gpio = 35, /* CAM2_STANDBY_N */
-		.settings = {
-			[GPIOMUX_ACTIVE]    = &cam_settings[3],
-			[GPIOMUX_SUSPENDED] = &cam_settings[4],
-		},
-	},
-#endif
-	{
-		.gpio = 28, /* CAM2_RST_N */
-		.settings = {
-			[GPIOMUX_ACTIVE]    = &cam_settings[3],
-			[GPIOMUX_SUSPENDED] = &cam_settings[4],
-		},
-	},
-
-};
 
 // GPIO related function <<8.FLASH LED>>
 //Need to set GPIO[032] FLASH_STROBE_TRIG
@@ -1160,6 +1214,7 @@ static struct msm_gpiomux_config msm_keypad_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &gpio_keys_suspend,
 		},
 	},
+#if 0 // GPIO 107 is used for LDAF_INT
 	{
 		.gpio = 107,
 		.settings = {
@@ -1167,6 +1222,7 @@ static struct msm_gpiomux_config msm_keypad_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &gpio_keys_suspend,
 		},
 	},
+#endif
 	{
 		.gpio = 108,
 		.settings = {
@@ -1174,13 +1230,15 @@ static struct msm_gpiomux_config msm_keypad_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &gpio_keys_suspend,
 		},
 	},
-        {
-                .gpio = 109,
-                .settings = {
-                        [GPIOMUX_ACTIVE]    = &gpio_keys_active,
-                        [GPIOMUX_SUSPENDED] = &gpio_keys_suspend,
-                },
-        },
+#if 0 // GPIO 109 is used for LDAF_EN
+	{
+		.gpio = 109,
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &gpio_keys_active,
+			[GPIOMUX_SUSPENDED] = &gpio_keys_suspend,
+		},
+	},
+#endif
 };
 
 // GPIO related function <<21.LOGIC>>
@@ -1286,7 +1344,7 @@ void __init msm8226_init_gpiomux(void)
 
 	// GPIO related function <<5.NFC>>
 /*  LGE_CHANGE_S, [NFC][garam.kim@lge.com], NFC Bring up */
-#ifdef CONFIG_LGE_NFC_PN547
+#ifdef CONFIG_LGE_NFC_PN547_C2
 	msm_gpiomux_install(msm_nfc_configs, ARRAY_SIZE(msm_nfc_configs));
 #endif
 /*  LGE_CHANGE_E, [NFC][garam.kim@lge.com], NFC Bring up */
@@ -1363,7 +1421,7 @@ void __init msm8226_init_gpiomux(void)
 msm_gpiomux_install(msm_auxpcm_configs,
 		ARRAY_SIZE(msm_auxpcm_configs));
 
-#if defined(CONFIG_TSPDRV)
+#if 0//defined(CONFIG_TSPDRV)
 	msm_gpiomux_install(vibrator_configs, ARRAY_SIZE(vibrator_configs));
 #endif
 

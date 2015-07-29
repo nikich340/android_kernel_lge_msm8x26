@@ -277,7 +277,14 @@ enum {
 	POWER_WAKE
 };
 
-
+enum {
+	ELK_PANEL_W7 = 0,
+	LGIT_PANEL_W7,
+	SUNTEL_PANEL_X5,
+	SUNTEL_PANEL_G2M_A,
+	SUNTEL_PANEL_G2M_B,
+	MAX_PANEL,
+};
 enum{
 	TIME_EX_INIT_TIME,
 	TIME_EX_FIRST_INT_TIME,
@@ -338,8 +345,7 @@ typedef enum error_type {
     IGNORE_EVENT_BUT_SAVE_IT,
 } err_t;
 
-struct point
-{
+struct point {
 	int x;
 	int y;
 };
@@ -368,6 +374,7 @@ struct mxt_platform_data {
 	unsigned long gpio_reset;
 	unsigned long gpio_int;
 	unsigned int panel_check;
+	unsigned int panel_delta_value[MAX_PANEL];
 	unsigned char panel_on;
 	const char *fw_name[DIVERSIFY_FW_NUM];
 	const char *extra_fw_name;
@@ -504,13 +511,13 @@ struct mxt_ref_limit{
 };
 
 struct mxt_patch{
-	u8* patch;
-	u16* stage_addr;
-	u16* tline_addr;
-	u16* trigger_addr;
-	u16* event_addr;
-	u16* src_item;
-	u16* check_cnt;
+	u8 *patch;
+	u16 *stage_addr;
+	u16 *tline_addr;
+	u16 *trigger_addr;
+	u16 *event_addr;
+	u16 *src_item;
+	u16 *check_cnt;
 	u16 period;
 	u8 stage_cnt;
 	u8 tline_cnt;
@@ -540,8 +547,7 @@ struct mxt_reportid {
 	u8 index;
 };
 
-struct t_data
-{
+struct t_data {
 	u16	id;
 	u16	x_position;
 	u16	y_position;
@@ -552,14 +558,12 @@ struct t_data
 	u8	status;
 };
 
-struct b_data
-{
+struct b_data {
 	u16	key_code;
 	u16	state;
 };
 
-struct touch_data
-{
+struct touch_data {
 	u8		total_num;
 	u8		prev_total_num;
 	u8		touch_count;
@@ -572,16 +576,14 @@ struct touch_data
 	struct b_data	prev_button;
 };
 
-struct quickcover_size
-{
+struct quickcover_size {
 	int x_max;
 	int y_max;
 	int x_min;
 	int y_min;
 };
 
-struct hw_reset_data
-{
+struct hw_reset_data {
 	u16 x_position;
 	u16 y_position;
 	u8 state;
@@ -724,6 +726,9 @@ struct mxt_data {
 	u8 cal_cnt;
 	struct hw_reset_data reset;
 	enum lge_boot_mode_type boot_mode;
+	int panel_offset_value;
+	int g2m_offset_value_a;
+	int g2m_offset_value_b;
 };
 
 struct tci_abs {
@@ -737,7 +742,7 @@ struct tci_abs {
 
 int fb_notifier_callback(struct notifier_block *self, unsigned long event, void *data);
 int mxt_initialize_t9_input_device(struct mxt_data *data);
-void mxt_request_firmware_work(const struct firmware *fw,void *context);
+void mxt_request_firmware_work(const struct firmware *fw, void *context);
 int mxt_write_mem(struct mxt_data *data, u16 reg, u8 len, const u8 *buf);
 int mxt_read_mem(struct mxt_data *data, u16 reg, u8 len, void *buf);
 int mxt_write_object(struct mxt_data *data, u8 type, u8 offset, u8 val);

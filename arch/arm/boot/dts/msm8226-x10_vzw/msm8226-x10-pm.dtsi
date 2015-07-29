@@ -16,8 +16,35 @@
 
 &spmi_bus {
 	qcom,pm8226@0 {
+		qcom,power-on@800{
+			qcom,pon_1 {
+				revision = "...rev_b";
+			};
+			qcom,pon_1_rev10 {
+				qcom,pon-type = <0>;
+				qcom,pull-up = <1>;
+				linux,code = <116>;
+				revision = "rev_10...";
+				qcom,support-reset = <0>;
+			};
+			qcom,pon_2 {
+				revision = "...rev_b";
+				status = "disable";
+			};
+			qcom,pon_2_rev10 {
+				qcom,pon-type = <1>;
+				qcom,pull-up = <1>;
+				linux,code = <114>;
+				qcom,s1-timer = <6720>;
+				qcom,s2-timer = <2000>;
+				qcom,s2-type = <7>;
+				status = "ok";
+				revision = "rev_10...";
+				qcom,support-reset = <0>;
+			};
+		};
 		qcom,leds@a100 {
-				status = "okay";
+				status = "disable";
 				qcom,led_mpp_2 {
 				label = "mpp";
 				linux,name = "button-backlight";
@@ -30,6 +57,29 @@
 				qcom,source-sel = <1>;
 				qcom,mode-ctrl = <0x60>;
 				};
+		};
+		qcom,leds@a300 {
+			status = "okay";
+			qcom,led_mpp_4 {
+				label = "mpp";
+				linux,name = "red";
+				linux,default-trigger = "none";
+				qcom,default-state = "off";
+				qcom,max-current = <40>;
+				qcom,current-setting = <5>;
+				qcom,id = <6>;
+				qcom,mode = "pwm";
+				qcom,pwm-us = <1000>;
+				qcom,source-sel = <8>;
+				qcom,mode-ctrl = <0x60>;
+				qcom,pwm-channel = <0>;
+				qcom,start-idx = <0>;
+				qcom,idx-len = <2>;
+				qcom,ramp-step-ms = <1000>;
+				qcom,duty-pcts = [
+					FF 00];
+				qcom,use-blink;
+			};
 		};
 	};
 	qcom,pm8226@1 {
@@ -295,6 +345,7 @@
 	qcom,ibatterm-ma = <150>;
 	qcom,vbatdet-delta-mv = <100>;
 	qcom,tchg-mins = <480>;
+	qcom,btc-disabled = <1>;
 	qcom,ext-ovp-present = <1>;
 
 	lge,ext_ovp_gpio = <&pm8226_gpios 2 0x00>;
@@ -340,6 +391,39 @@
 			status = "okay";
 		};
 	};
+	rpm-regulator-ldoa16 {
+		status = "okay";
+		revision = "rev_b...";
+		pm8226_l16: regulator-l16 {
+			regulator-name = "8226_l16";
+			regulator-min-microvolt = <2850000>;
+			regulator-max-microvolt = <2850000>;
+			qcom,init-voltage = <2850000>;
+			status = "okay";
+			revision = "rev_b...";
+		};
+	};
+	rpm-regulator-ldoa23 {
+		status = "okay";
+		pm8226_l23: regulator-l23 {
+			regulator-min-microvolt = <1800000>;
+			regulator-max-microvolt = <1800000>;
+			qcom,init-voltage = <1800000>;
+			regulator-always-on;
+			status = "okay";
+			revision = "...rev_b";
+		};
+		pm8226_l23_rev_c: regulator-l23_rev_c {
+			compatible = "qcom,rpm-regulator-smd";
+			qcom,set = <3>;
+			regulator-name = "8226_l23";
+			regulator-min-microvolt = <1800000>;
+			regulator-max-microvolt = <1800000>;
+			qcom,init-voltage = <1800000>;
+			status = "okay";
+			revision = "rev_c...";
+		};
+	};
 	rpm-regulator-ldoa26 {
 		status = "okay";
 		pm8226_l26: regulator-l26 {
@@ -349,8 +433,31 @@
 	};
 	rpm-regulator-ldoa27 {
 		status = "okay";
-		pm8226_l27: regulator-l27 {
+		pm8226_l27: regulator-l27{
+			revision = "...rev_a";
 			qcom,init-enable = <0>;
+			status = "okay";
+		};		
+		pm8226_l27_revb: regulator-l27_revb {
+			revision = "rev_b";
+			compatible = "qcom,rpm-regulator-smd";
+			regulator-name = "8226_l27";
+			qcom,init-enable = <1>;
+			regulator-min-microvolt = <2800000>;
+			regulator-max-microvolt = <2800000>;
+			qcom,init-voltage = <2800000>;
+			qcom,set = <3>;
+			status = "okay";
+		};
+		pm8226_l27_rev10: regulator-l27_rev10 {
+			revision = "rev_10...";
+			compatible = "qcom,rpm-regulator-smd";
+			regulator-name = "8226_l27";
+			qcom,init-enable = <1>;
+			regulator-min-microvolt = <1800000>;
+			regulator-max-microvolt = <1800000>;
+			qcom,init-voltage = <1800000>;
+			qcom,set = <3>;
 			status = "okay";
 		};
 	};

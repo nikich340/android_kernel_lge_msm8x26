@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -463,14 +463,23 @@ void *a3xx_snapshot(struct adreno_device *adreno_dev, void *snapshot,
 	size = (adreno_is_a330(adreno_dev) ||
 		adreno_is_a305b(adreno_dev)) ? 0x2E : 0x14;
 
-	snapshot = kgsl_snapshot_indexed_registers(device, snapshot,
-			remain, REG_CP_STATE_DEBUG_INDEX,
-			REG_CP_STATE_DEBUG_DATA, 0x0, size);
+	/* Skip indexed register dump for these chipsets 8974, 8x26, 8x10 */
+	if (adreno_is_a330(adreno_dev) ||
+		adreno_is_a330v2(adreno_dev) ||
+		adreno_is_a305b(adreno_dev) ||
+		adreno_is_a305c(adreno_dev)	) {
+		KGSL_DRV_ERR(device,
+		"Skipping indexed register dump\n");
+	} else {
+		snapshot = kgsl_snapshot_indexed_registers(device, snapshot,
+				remain, REG_CP_STATE_DEBUG_INDEX,
+				REG_CP_STATE_DEBUG_DATA, 0x0, size);
 
-	/* CP_ME indexed registers */
-	snapshot = kgsl_snapshot_indexed_registers(device, snapshot,
-			remain, REG_CP_ME_CNTL, REG_CP_ME_STATUS,
-			64, 44);
+		/* CP_ME indexed registers */
+		snapshot = kgsl_snapshot_indexed_registers(device, snapshot,
+				remain, REG_CP_ME_CNTL, REG_CP_ME_STATUS,
+				64, 44);
+	}
 
 	/* VPC memory */
 	snapshot = kgsl_snapshot_add_section(device,
@@ -482,16 +491,41 @@ void *a3xx_snapshot(struct adreno_device *adreno_dev, void *snapshot,
 			KGSL_SNAPSHOT_SECTION_DEBUG, snapshot, remain,
 			a3xx_snapshot_cp_meq, NULL);
 
-	/* Shader working/shadow memory */
-	snapshot = kgsl_snapshot_add_section(device,
+	/* Skip shader memory dump for these chipsets: 8974, 8x26, 8x10 */
+	if (adreno_is_a330(adreno_dev) ||
+		adreno_is_a330v2(adreno_dev) ||
+		adreno_is_a305b(adreno_dev) ||
+		adreno_is_a305c(adreno_dev)	) {
+		KGSL_DRV_ERR(device,
+		"Skipping shader memory dump\n");
+	} else {
+		/* Shader working/shadow memory */
+		snapshot = kgsl_snapshot_add_section(device,
 			KGSL_SNAPSHOT_SECTION_DEBUG, snapshot, remain,
 			a3xx_snapshot_shader_memory, NULL);
+	}
 
 
 	/* CP PFP and PM4 */
 	/* Reading these will hang the GPU if it isn't already hung */
 
 	if (hang) {
+		unsigned int reg;
+
+		/*
+		 * Reading the microcode while the CP will is running will
+		 * basically basically move the CP instruction pointer to
+		 * whatever address we read. Big badaboom ensues. Stop the CP
+		 * (if it isn't already stopped) to ensure that we are safe.
+		 * We do this here and not earlier to avoid corrupting the RBBM
+		 * status and CP registers - by the time we get here we don't
+		 * care about the contents of the CP anymore.
+		 */
+
+		adreno_readreg(adreno_dev, ADRENO_REG_CP_ME_CNTL, &reg);
+		reg |= (1 << 27) | (1 << 28);
+		adreno_writereg(adreno_dev, ADRENO_REG_CP_ME_CNTL, reg);
+
 		snapshot = kgsl_snapshot_add_section(device,
 			KGSL_SNAPSHOT_SECTION_DEBUG, snapshot, remain,
 			a3xx_snapshot_cp_pfp_ram, NULL);

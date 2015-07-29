@@ -22,7 +22,7 @@
 			rt8542,min_brightness = <0x04>;
 			rt8542,default_brightness = <0x66>;
 			rt8542,max_brightness = <0x7D>;
-			rt8542,enable_pwm = <1>;
+			rt8542,enable_pwm = <0>;
 			rt8542,blmap_size = <127>;
 			rt8542,blmap = <
 				5 5 5 5 5 5 5 5 5 5 				//9

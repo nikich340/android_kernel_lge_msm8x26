@@ -106,7 +106,7 @@
 		qcom,csid-sd-index = <0>;
 		qcom,mount-angle = <270>;
 		qcom,sensor-name = "hi707";
-
+		qcom,maker-gpio = <112>;
 		qcom,gpio-no-mux = <0>;
 		gpios = <&msmgpio 27 0>,
 			<&msmgpio 28 0>,		//VT_CAM_RESET_N, GPIO 28

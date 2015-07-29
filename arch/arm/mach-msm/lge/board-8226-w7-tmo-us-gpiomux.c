@@ -464,7 +464,7 @@ static struct msm_gpiomux_config msm_atmel_configs_rev_e[] __initdata = {
 //Need to set GPIO[021] NFC_IRQ
 //Need to set GPIO[022] NFC_MODE
 /*  LGE_CHANGE_S, [NFC][garam.kim@lge.com], NFC Bring up*/
-#ifdef CONFIG_LGE_NFC_PN547
+#ifdef CONFIG_LGE_NFC_PN547_C2
 static struct gpiomux_setting nfc_pn547_sda_cfg = {
 	.func = GPIOMUX_FUNC_3,
 	.drv = GPIOMUX_DRV_8MA,
@@ -1127,7 +1127,7 @@ void __init msm8226_init_gpiomux(void)
 
 	// GPIO related function <<5.NFC>>
 	/*	LGE_CHANGE_S, [NFC][garam.kim@lge.com], NFC Bring up */
-#ifdef CONFIG_LGE_NFC_PN547
+#ifdef CONFIG_LGE_NFC_PN547_C2
 	msm_gpiomux_install(msm_nfc_configs, ARRAY_SIZE(msm_nfc_configs));
 #endif
 	/*	LGE_CHANGE_E, [NFC][garam.kim@lge.com], NFC Bring up */

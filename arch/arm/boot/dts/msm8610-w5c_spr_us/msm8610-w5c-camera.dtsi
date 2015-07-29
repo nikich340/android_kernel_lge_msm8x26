@@ -65,6 +65,7 @@
 	};
 
 /* HI543(5M) eeprom */
+/* Rev A ~ */
 	eeprom0: msm_eeprom_hi543@14 { //EEPROM READ
 		cell-index = <0>;
 		reg = <0x14 0x0>;
@@ -96,9 +97,34 @@
 		qcom,cam-power-seq-cfg-val = <1 1>;
 		qcom,cam-power-seq-delay = <1 1>;
 	};
+	/* Rev C ~ */
+	eeprom1: msm_eeprom_hi543@14 { //EEPROM READ
+		cell-index = <0>;
+		reg = <0x14 0x0>;
+		qcom,eeprom-name = "hi543_eeprom";
+		compatible = "msm_eeprom";
+		qcom,slave-addr = <0x14>;
 
+		qcom,num-blocks = <1>;
+		qcom,page0 = <0 0x0 1 0x0 1 20>; // valid size, addr, addr_t, data, data_t, delay
+		qcom,poll0 = <0 0x0 1 0x0 1 20>;
+		qcom,mem0  = <0x06 0x0000 2 0 1 0>; //EEPROM READ
+
+		cam_vio-supply = <&pm8110_l7>;
+		cam_vaf-supply = <&pm8110_l12>;
+		qcom,cam-vreg-name = "cam_vio", "cam_vaf";
+		qcom,cam-vreg-type = <0 0>;
+              qcom,cam-vreg-min-voltage = <1800000 2800000>;
+              qcom,cam-vreg-max-voltage = <1800000 2800000>;
+	       qcom,cam-vreg-op-mode = <80000 80000>;
+
+		qcom,cam-power-seq-type = "sensor_vreg","sensor_vreg";
+		qcom,cam-power-seq-val = "cam_vio","cam_vaf";
+		qcom,cam-power-seq-cfg-val = <1 1>;
+		qcom,cam-power-seq-delay = <1 1>;
+	};
 /* Rev A ~ */
-	hi543: qcom,camera_rev_a@40 {
+	hi543a: qcom,camera_rev_a@40 {
 		compatible = "qcom,hi543";
 		reg = <0x40 0x0>;
 		qcom,slave-id = <0x40 0x0 0x1F3C>;
@@ -134,6 +160,78 @@
 		qcom,sensor-position = <0>;
 		qcom,sensor-mode = <0>;
 		status = "okay";
-		revision = "rev_a...";
+		revision = "rev_a";
 	};
+/* Rev B ~ */
+	hi543: qcom,camera_rev_b@40 {
+		compatible = "qcom,hi543";
+		reg = <0x40 0x0>;
+		qcom,slave-id = <0x40 0x0 0x1F3C>;
+		qcom,csiphy-sd-index = <0>;
+		qcom,csid-sd-index = <0>;
+		qcom,actuator-src = <&actuator0>;
+		qcom,led-flash-src = <&led_flash0>;
+		qcom,eeprom-src = <&eeprom1>;
+		qcom,mount-angle = <90>;
+		qcom,sensor-name = "hi543";
+		cam_vdig-supply = <&pm8110_l7>;             /* Dummy VDIG Setting, We never use this LDO7 for DIG, youngwook.song@lge.com, 2013.08.26 */
+		cam_vio-supply = <&pm8110_l7>;
+		cam_vana-supply = <&pm8110_l15>;
+		cam_vaf-supply = <&pm8110_l12>;
+		qcom,cam-vreg-name = "cam_vdig", "cam_vio", "cam_vana", "cam_vaf";
+		qcom,cam-vreg-type = <0 0 0 0>;
+		qcom,cam-vreg-min-voltage = <1300000 1800000 2800000 2800000>;
+		qcom,cam-vreg-max-voltage = <1300000 1800000 2800000 2800000>;
+		qcom,cam-vreg-op-mode = <200000 80000 80000 80000>;
+
+		qcom,gpio-no-mux = <0>;
+		gpios = <&msmgpio 13 0>,
+			<&msmgpio 21 0>;
+		qcom,gpio-reset = <1>;
+		qcom,gpio-req-tbl-num = <0 1>;
+		qcom,gpio-req-tbl-flags = <1 0>;
+		qcom,gpio-req-tbl-label = "CAMIF_MCLK", "CAM_RESET1";
+		qcom,csi-lane-assign = <0xe4>;
+		qcom,csi-lane-mask = <0x7>;
+		qcom,sensor-position = <0>;
+		qcom,sensor-mode = <0>;
+		status = "okay";
+		revision = "rev_b...";
+	};
+
+	hi707: qcom,camera_rev_b@60 {
+		compatible = "qcom,hi707";
+		reg = <0x60>;
+		qcom,slave-id = <0x60 0x4 0xB8>;
+		qcom,csiphy-sd-index = <1>;
+		qcom,csid-sd-index = <1>;
+		qcom,mount-angle = <270>;
+		qcom,sensor-name = "hi707";
+
+		cam_vdig-supply = <&pm8110_l7>;             /* Dummy VDIG Setting, We never use this LDO7 for DIG, youngwook.song@lge.com, 2013.08.26 */
+		cam_vio-supply = <&pm8110_l7>;
+		cam_vana-supply = <&pm8110_l15>;
+		qcom,cam-vreg-name = "cam_vdig", "cam_vio", "cam_vana";
+		qcom,cam-vreg-type = <0 0 0>;
+		qcom,cam-vreg-min-voltage = <1300000 1800000 2800000>;
+		qcom,cam-vreg-max-voltage = <1300000 1800000 2800000>;
+		qcom,cam-vreg-op-mode = <200000 80000 80000>;
+		qcom,sensor-type = <1>;
+		qcom,gpio-no-mux = <0>;
+		gpios = <&msmgpio 14 0>,
+			<&msmgpio 15 0>,		//VT_CAM_RESET_N, GPIO 15
+			<&msmgpio 67 0>;		//VT_CAM_PWDN, GPIO=67
+		qcom,gpio-reset = <1>;
+		qcom,gpio-standby = <2>;
+		qcom,gpio-req-tbl-num = <0 1 2>;
+		qcom,gpio-req-tbl-flags = <1 0 0>;
+		qcom,gpio-req-tbl-label = "CAMIF_MCLK2", "CAM_RESET2", "CAM_STANDBY2";
+		qcom,csi-lane-assign = <0xe4>;
+		qcom,csi-lane-mask = <0x3>;
+		qcom,sensor-position = <1>;
+		qcom,sensor-mode = <1>;
+		status = "okay";
+		revision = "rev_b...";
+	};
+
 };

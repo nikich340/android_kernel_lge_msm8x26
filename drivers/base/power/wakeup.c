@@ -24,6 +24,10 @@
  */
 bool events_check_enabled __read_mostly;
 
+ #ifdef CONFIG_MACH_MSM8X10_L70P
+static int counter_first = 0;
+#endif
+
 /*
  * Combined counters of registered wakeup events and wakeup events in progress.
  * They need to be modified together atomically, so it's better to use one
@@ -378,6 +382,18 @@ static void wakeup_source_activate(struct wakeup_source *ws)
 {
 	unsigned int cec;
 
+ #ifdef CONFIG_MACH_MSM8X10_L70P /* Boost Cpu when wake up */
+    extern int boost_freq;
+    extern bool suspend_marker_entry;
+    bool wakeup_pending = true;
+    
+    if (!strcmp(ws->name, "touch_irq") || !strcmp(ws->name, "hall_ic_wakeups")) {
+        if(!counter_first) {
+            wakeup_pending = false;
+            counter_first = 1;
+        }
+    }
+#endif
 	ws->active = true;
 	ws->active_count++;
 	ws->last_time = ktime_get();
@@ -388,6 +404,20 @@ static void wakeup_source_activate(struct wakeup_source *ws)
 	cec = atomic_inc_return(&combined_event_count);
 
 	trace_wakeup_source_activate(ws->name, cec);
+
+#ifdef CONFIG_MACH_MSM8X10_L70P  /* Boost cpu when wake up */
+	if (suspend_marker_entry) {
+		if (!wakeup_pending) {
+			if (boost_freq == 1) {
+				if (!strcmp(ws->name, "touch_irq") || !strcmp(ws->name, "hall_ic_wakeups")) {
+					printk(KERN_ERR "ws->name=%s, boost_Freq=%d\n", ws->name, boost_freq);
+					boost_freq++;
+					printk(KERN_ERR "ws->name=%s, boost_Freq=%d\n", ws->name, boost_freq);
+				}
+		    }
+		}
+	}
+#endif
 }
 
 /**
@@ -491,6 +521,11 @@ static void wakeup_source_deactivate(struct wakeup_source *ws)
 		ws->relax_count--;
 		return;
 	}
+#ifdef CONFIG_MACH_MSM8X10_L70P
+    if (!strcmp(ws->name, "touch_irq") || !strcmp(ws->name, "hall_ic_wakeups")) {
+        counter_first = 0;
+    }
+#endif
 
 	ws->active = false;
 
@@ -649,6 +684,35 @@ void pm_wakeup_event(struct device *dev, unsigned int msec)
 }
 EXPORT_SYMBOL_GPL(pm_wakeup_event);
 
+#ifdef CONFIG_LGE_PRINT_WAKEUP_PENDING
+static void print_active_wakeup_sources(void)
+{
+	struct wakeup_source *ws;
+	int active = 0;
+	struct wakeup_source *last_activity_ws = NULL;
+
+	rcu_read_lock();
+	list_for_each_entry_rcu(ws, &wakeup_sources, entry) {
+	if (ws->active) {
+	 	pr_info("active wakeup source: %s\n", ws->name);
+	 	active = 1;
+	 } else if (!active &&
+	 				(!last_activity_ws ||
+	 					ws->last_time.tv64 >
+	 					last_activity_ws->last_time.tv64)) {
+	 		last_activity_ws = ws;
+	 	}
+	}
+
+	if (!active && last_activity_ws)
+	{
+		pr_info("last active wakeup source: %s\n",
+										last_activity_ws->name);
+	}
+	rcu_read_unlock();
+}
+#endif
+
 /**
  * pm_wakeup_pending - Check if power transition in progress should be aborted.
  *
@@ -671,6 +735,12 @@ bool pm_wakeup_pending(void)
 		events_check_enabled = !ret;
 	}
 	spin_unlock_irqrestore(&events_lock, flags);
+#ifdef CONFIG_LGE_PRINT_WAKEUP_PENDING
+	if (ret)
+	{
+		print_active_wakeup_sources();
+	}
+#endif
 	return ret;
 }
 

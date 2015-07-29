@@ -45,9 +45,13 @@
 		atmel_s336@4a {
 			revision = "rev_c...";
 			status = "ok";
-			atmel,fw_name = "atmel/S2A47P1_1_04.fw";
+			atmel,t15_key_array = <0 12 1 12>;
+			atmel,fw_name = "atmel/S2A47P1_2_07.fw";
 			atmel,panel_check = <0>;
+			atmel,ghost_detection_enable = <1>;
+			atmel,butt_check_enable = <1>;
 		};
+
 		lge_ts_misc {
 			revision = "rev_b";
 			vdd_on = <1>;

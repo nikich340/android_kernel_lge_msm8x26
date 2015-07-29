@@ -18,7 +18,7 @@
 #ifndef __LINUX_ATMEL_PATCH_TS_H__
 #define __LINUX_ATMEL_PATCH_TS_H__
 
-#define TIME_WRAP_AROUND(x, y)		(((y)>(x)) ? (y)-(x) : (0-(x))+(y))
+#define TIME_WRAP_AROUND(x, y)		(((y) > (x)) ? (y) - (x) : (0 - (x)) + (y))
 
 #define MXT_PATCH_MAGIC		0x52296416
 #define MXT_PATCH_VERSION		1
@@ -93,7 +93,7 @@ enum{
 	MXT_PATCH_CON_MUL,
 	MXT_PATCH_CON_DIV,
 	MXT_PATCH_CON_MASK,
-	//...
+	/*... */
 	MXT_PATCH_CON_END
 };
 
@@ -116,7 +116,7 @@ enum {
 	MXT_PATCH_ITEM_USER5,
 	MXT_PATCH_ITEM_USER6,
 	MXT_PATCH_ITEM_USER7,
-	//...
+	/*... */
 	MXT_PATCH_ITEM_END
 };
 
@@ -126,11 +126,11 @@ enum {
 	MXT_PATCH_ACTION_EXTEND_TIMER,
 	MXT_PATCH_ACTION_GOTO_STAGE,
 	MXT_PATCH_ACTION_CHANGE_START,
-	//...
+	/*... */
 	MXT_PATCH_ACTION_END
 };
 
-struct patch_header{ // 32b
+struct patch_header{ /* 32b */
 	u32	magic;
 	u32	size;
 	u32	date;
@@ -144,7 +144,7 @@ struct patch_header{ // 32b
 	u8	reserved[12];
 };
 
-struct stage_def{	// 8b
+struct stage_def{	/* 8b */
 	u8	stage_id;
 	u8	option;
 	u16	stage_period;
@@ -153,14 +153,14 @@ struct stage_def{	// 8b
 	u16	reset_period;
 };
 
-struct stage_cfg{	// 4b
+struct stage_cfg{	/* 4b */
 	u8	obj_type;
 	u8	option;
 	u8	offset;
 	u8	val;
 };
 
-struct test_line{	// 12b
+struct test_line{	/* 12b */
 	u8	test_id;
 	u8	item_cnt;
 	u8	cfg_cnt;
@@ -171,28 +171,28 @@ struct test_line{	// 12b
 	u8	reserved[2];
 };
 
-struct action_cfg{	// 4b
+struct action_cfg{	/* 4b */
 	u8	obj_type;
 	u8	option;
 	u8	offset;
 	u8	val;
 };
 
-struct item_val{	// 4b
+struct item_val{	/* 4b */
 	u8	val_id;
 	u8	val_eq;
 	u16	val;
 };
 
-struct test_item{	// 8b
+struct test_item{	/* 8b */
 	u8	src_id;
 	u8	cond;
 	u8	reserved[2];
 	struct item_val ival;
 };
 
-// Message Trigger
-struct trigger{		// 12b
+/* Message Trigger */
+struct trigger{		/* 12b */
 	u8	tid;
 	u8	option;
 	u8	object;
@@ -204,7 +204,7 @@ struct trigger{		// 12b
 	u16	act_val;
 };
 
-struct match{		//8b
+struct match{		/*8b */
 	u8	offset;
 	u8	cond;
 	u16	mask;
@@ -212,22 +212,22 @@ struct match{		//8b
 	u16	val;
 };
 
-struct trigger_cfg{	// 4b
+struct trigger_cfg{	/* 4b */
 	u8	obj_type;
 	u8	reserved;
 	u8	offset;
 	u8	val;
 };
 
-// Event
-struct user_event{	// 8b
+/* Event */
+struct user_event{	/* 8b */
 	u8	eid;
 	u8	option;
 	u8	cfg_cnt;
 	u8	reserved[5];
 };
 
-struct event_cfg{	// 4b
+struct event_cfg{	/* 4b */
 	u8	obj_type;
 	u8	reserved;
 	u8	offset;
@@ -322,7 +322,7 @@ struct touch_supp{
 	TOUCH_PATCH_INFO_MSG(__VA_ARGS__);
 
 #define __mxt_patch_ddebug(_data, ...)	if (data->patch.debug > 1) \
-	TOUCH_PATCH_INFO_MSG( __VA_ARGS__);
+	TOUCH_PATCH_INFO_MSG(__VA_ARGS__);
 #else
 #define __mxt_patch_debug(_data, ...)	if (data->patch.debug) \
 	dev_info(&(_data)->client->dev, __VA_ARGS__);
@@ -332,10 +332,10 @@ struct touch_supp{
 #endif
 
 /* Function Define */
-int mxt_patch_init(struct mxt_data *data, u8* ppatch);
+int mxt_patch_init(struct mxt_data *data, u8 *ppatch);
 int mxt_patch_event(struct mxt_data *data, u8 event_id);
 void mxt_patch_message(struct mxt_data *data, struct mxt_message *message);
 void mxt_patch_dump_source(struct mxt_data *data, bool do_action);
 int mxt_patch_run_stage(struct mxt_data *data);
 
-#endif // __LINUX_ATMEL_PATCH_TS_H__
+#endif /* __LINUX_ATMEL_PATCH_TS_H__ */

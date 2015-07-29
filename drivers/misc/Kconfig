@@ -604,7 +604,19 @@ config FMR_INTENNA
 config TSPDRV
     bool "tspdrv"
         default n
-        
+
+config TSPDRV_3_0V_VIBRATOR
+	bool "tspdrv use 3.0V Vibrator"
+	default n
+
+config TSPDRV_2_9V_VIBRATOR
+	bool "tspdrv use 2.9V Vibrator"
+	default n
+
+config TSPDRV_IMM_TUNE
+        bool "tspdrv with immersion lib ver 3.7.45"
+        default n
+
 config ANDROID_SW_IRRC
 	bool "Android irrc support"
 	default n
@@ -682,6 +694,20 @@ config TI_DRV2667
 	  To compile this driver as a module, choose M here: the
 	  module will be called ti_drv2667.
 
+config ANDROID_SW_IRRC
+	bool "Android irrc support"
+	default n
+	---help---
+	This option enables device driver support for Android SW IRRC
+	Some functions should be given by platform data for enable PWM, Motor IC, etc.
+
+config BU52061NVX_SLIDE
+        tristate "Slide BU52061NVX support"
+        default n
+        help
+          This option enable device driver support for the cradle
+          on the PM8XXX chips. The cradle is controlled using the PM8XXX gpio
+
 config BU52061NVX
        tristate "Cradle BU52061NVX support"
        default n
@@ -696,6 +722,13 @@ config BU52033NVX_CARKIT
          This option enable device driver support for the carkit
          on the PM8XXX chips. The cradle is controlled using the PM8XXX gpio
 
+config LGE_INPUT_COVER_VALIDATION
+       tristate "SW3800 support"
+       default n
+       help
+          This option enable device driver support for the cover validation
+          on the SW3800 chips. The chip is controlled using the gpio
+
 config S5717
        tristate "Cradle S5717 support"
        default n
@@ -703,6 +736,13 @@ config S5717
          This option enable device driver support for the cradle
          on the PM8XXX chips. The cradle is controlled using the PM8XXX gpio
 
+config LGE_EVENT_LOCK
+    bool "factory 250-99 key lock cmd"
+    default n
+	depends on MACH_LGE
+    help
+      Support for keylock cmd using evdev.
+      If you need feature for keylock cmd using evdev, use this.
 
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"

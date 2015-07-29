@@ -11,14 +11,23 @@
  */
 
 &soc {
-    hall-bu52061nvx {
-        status = "ok";
+    hall-bu52061nvx_rev_a {
+        compatible = "rohm,hall-bu52061nvx";
+        status = "disable";
         interrupts = <66 0x0>;
         hallic-pouch-irq-gpio = <&msmgpio 66 0x00>;
-        revision = "rev_a...";
+        revision = "rev_a";
     };
 
-    hall-bu52033nvx-carkit {
+     hall-bu52061nvx_rev_b {
+        compatible = "rohm,hall-bu52061nvx";
+        status = "disable";
+        interrupts = <4 0x0>;
+        hallic-pouch-irq-gpio = <&msmgpio 4 0x00>;
+        revision = "rev_b...";
+    };
+
+   hall-bu52033nvx-carkit {
         status = "disable";
     };
 

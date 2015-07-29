@@ -30,7 +30,7 @@
 #include <linux/of_gpio.h>
 #include <linux/spinlock.h>
 
-#ifdef CONFIG_LGE_PM_PWR_KEY_FOR_CHG_LOGO
+#if defined CONFIG_LGE_PM_PWR_KEY_FOR_CHG_LOGO || defined (CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E8WIFI) || defined (CONFIG_MACH_MSM8226_E9WIFI) || defined (CONFIG_MACH_MSM8226_E9WIFIN)
 #include <mach/board_lge.h>
 #endif
 
@@ -348,12 +348,16 @@ static void gpio_keys_gpio_report_event(struct gpio_button_data *bdata)
 	input_sync(input);
 
 #ifdef CONFIG_LGE_PM_PWR_KEY_FOR_CHG_LOGO
-	if(lge_get_boot_mode() == LGE_BOOT_MODE_CHARGERLOGO) {
-		pr_info("=========== [CHG LOGO MODE] =========== Keycode : %d value : %d\n",button->code,button->value);
+	if (lge_get_boot_mode() == LGE_BOOT_MODE_CHARGERLOGO) {
+		pr_info("=========== [CHG LOGO MODE] =========== Keycode : %d value : %d\n", button->code, button->value);
+#if defined (CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E8WIFI) || defined (CONFIG_MACH_MSM8226_E9WIFI) || defined (CONFIG_MACH_MSM8226_E9WIFIN)
+		pr_err("Not using KEY_HOME in Epjt\n");
+#else
 		if (button->code == KEY_HOME) {
 			qpnp_pwr_key_action_set_for_chg_logo(input, button->code,
 					button->value);
 		}
+#endif
 	}
 #endif
 }
@@ -595,11 +599,11 @@ static int gpio_keys_get_devtree_pdata(struct device *dev,
 	while ((pp = of_get_next_child(node, pp))) {
 		enum of_gpio_flags flags;
 
-                if (!!of_get_property(pp, "unused", NULL)) {
-                        pdata->nbuttons--;
-                        dev_dbg(dev, "unused key\n");
-                        continue;
-                }
+		if (!!of_get_property(pp, "unused", NULL)) {
+			pdata->nbuttons--;
+			dev_dbg(dev, "unused key\n");
+			continue;
+		}
 
 		if (!of_find_property(pp, "gpios", NULL)) {
 			pdata->nbuttons--;
@@ -679,6 +683,12 @@ static int __devinit gpio_keys_probe(struct platform_device *pdev)
 	int i, error;
 	int wakeup = 0;
 
+#if defined (CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E8WIFI) || defined (CONFIG_MACH_MSM8226_E9WIFI) || defined (CONFIG_MACH_MSM8226_E9WIFIN)
+	if (lge_get_boot_mode() == LGE_BOOT_MODE_CHARGERLOGO) {
+		pr_info("Volume UP and DOWN gpio return in CHARGERLOGO\n");
+		return -1;
+	}
+#endif
 	if (!pdata) {
 		error = gpio_keys_get_devtree_pdata(dev, &alt_pdata);
 		if (error)

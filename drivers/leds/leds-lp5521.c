@@ -192,7 +192,7 @@ static struct lp5521_led_config lp5521_led_config[] = {
 	{
 		.name = "R",
 		.chan_nr	= 0,
-#if defined(CONFIG_MACH_MSM8926_X5_VZW) || defined(CONFIG_MACH_MSM8926_X5_SPR) || defined(CONFIG_MACH_MSM8X10_W3C_VZW) || defined(CONFIG_MACH_MSM8X10_W5C_VZW) //UX requirment for X5 Model - default current 55%
+#if defined(CONFIG_MACH_MSM8926_X5_VZW) || defined(CONFIG_MACH_MSM8X10_W3C_VZW) || defined(CONFIG_MACH_MSM8X10_W5C_VZW)|| defined(CONFIG_MACH_MSM8926_JAGC_SPR) //UX requirment for X5 Model - default current 55%
 		.led_current	= 55,
 		.max_current	= 55,
 #else
@@ -203,7 +203,7 @@ static struct lp5521_led_config lp5521_led_config[] = {
 	{
 		.name = "G",
 		.chan_nr	= 1,
-#if defined(CONFIG_MACH_MSM8926_X5_VZW) || defined(CONFIG_MACH_MSM8926_X5_SPR) || defined(CONFIG_MACH_MSM8X10_W3C_VZW) || defined(CONFIG_MACH_MSM8X10_W5C_VZW) //UX requirment for X5 Model - default current 55%
+#if defined(CONFIG_MACH_MSM8926_X5_VZW) || defined(CONFIG_MACH_MSM8X10_W3C_VZW) || defined(CONFIG_MACH_MSM8X10_W5C_VZW)|| defined(CONFIG_MACH_MSM8926_JAGC_SPR) //UX requirment for X5 Model - default current 55%
 		.led_current	= 55,
 		.max_current	= 55,
 #else
@@ -214,7 +214,7 @@ static struct lp5521_led_config lp5521_led_config[] = {
 	{
 		.name = "B",
 		.chan_nr	= 2,
-#if defined(CONFIG_MACH_MSM8926_X5_VZW) || defined(CONFIG_MACH_MSM8926_X5_SPR) || defined(CONFIG_MACH_MSM8X10_W3C_VZW) || defined(CONFIG_MACH_MSM8X10_W5C_VZW) //UX requirment for X5 Model - default current 55%
+#if defined(CONFIG_MACH_MSM8926_X5_VZW) || defined(CONFIG_MACH_MSM8X10_W3C_VZW) || defined(CONFIG_MACH_MSM8X10_W5C_VZW)|| defined(CONFIG_MACH_MSM8926_JAGC_SPR) //UX requirment for X5 Model - default current 55%
 		.led_current	= 55,
 		.max_current	= 55,
 #else

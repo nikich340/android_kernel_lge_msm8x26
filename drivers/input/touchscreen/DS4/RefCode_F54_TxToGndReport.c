@@ -39,6 +39,7 @@ unsigned char F54_TxToGndReport(void)
    int shift;
 
    unsigned char command;
+   int read_count = 0;
 
 #ifdef F54_Porting
 	char buf[512] = {0};
@@ -68,6 +69,10 @@ unsigned char F54_TxToGndReport(void)
 
    // Wait until the command is completed
    do {
+   	if(++read_count > 10) {
+		TOUCH_INFO_MSG("%s[%d], command = %d\n", __func__, __LINE__, command);
+		return 0;
+	}
       delayMS(1); //wait 1ms
       readRMI(F54_Command_Base, &command, 1);
    } while (command != 0x00);

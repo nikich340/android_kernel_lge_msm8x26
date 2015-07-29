@@ -51,3 +51,11 @@ config LGE_REINIT_SDCARD_FOR_DETECT_FAIL
 	help
 	  workaround for SD card removed pop-up in waiting status
 
+# LGE_CHANGE_S : bohyun.jung@lge.com 
+config MMC_DAMAGED_SDCARD_CTRL
+	bool "Damaged SD Card ctrl - block mmc_detect change for damaged sd card"
+    default n
+    help
+		If you say Y here, damaged flag is activated for sd card.
+		It is enabled if card init fails.
+# LGE_CHANGE_E : bohyun.jung@lge.com

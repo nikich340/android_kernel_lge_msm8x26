@@ -346,9 +346,9 @@ int	broadcast_drv_if_open(void)
 
 	return OK;
 
+release_mutex:
 	atomic_set(&mtv222_cb->open_flag, 0);
 
-release_mutex:
 	mutex_unlock(&mtv222_cb->ioctl_lock);
 
 	return rc;
@@ -384,8 +384,22 @@ int	broadcast_drv_if_set_channel(struct broadcast_dmb_set_ch_info *udata)
 		goto release_mutex;
 	}
 
-	if (mtv222_cb->tsout_enabled == true)
+	if (mtv222_cb->tsout_enabled == true) {
 		MTVERR("WARNNING! Stream was not stoppped!\n");
+
+		mtv222_cb->tsout_enabled = false;
+		mtv222_tsb_disable();
+
+		rtvISDBT_DisableStreamOut();
+
+#ifndef FEATURE_DMB_USE_WORKQUEUE
+		atomic_set(&mtv222_cb->isr_cnt, 0); /* Reset */
+#endif
+
+#ifdef _MTV_KERNEL_FILE_DUMP_ENABLE
+		mtv_ts_dump_kfile_close();
+#endif
+	}
 
 	if (udata->mode == 6)//1) /* Scan mode */
 		demod_ret = rtvISDBT_ScanFrequency(udata->channel);
@@ -607,22 +621,18 @@ int	broadcast_drv_if_reset_ch(void)
 		goto release_mutex;
 	}
 
-	if (mtv222_cb->tsout_enabled == true) {
-		mtv222_cb->tsout_enabled = false;
-		mtv222_tsb_disable();
+	mtv222_cb->tsout_enabled = false;
+	mtv222_tsb_disable();
 
-		rtvISDBT_DisableStreamOut();
+	rtvISDBT_DisableStreamOut();
 
 #ifndef FEATURE_DMB_USE_WORKQUEUE
-		atomic_set(&mtv222_cb->isr_cnt, 0); /* Reset */
+	atomic_set(&mtv222_cb->isr_cnt, 0); /* Reset */
 #endif
 
 #ifdef _MTV_KERNEL_FILE_DUMP_ENABLE
-		mtv_ts_dump_kfile_close();
+	mtv_ts_dump_kfile_close();
 #endif
-
-	} else
-		MTVMSG("Already TS out Disabled\n");
 
 release_mutex:
 	mutex_unlock(&mtv222_cb->ioctl_lock);

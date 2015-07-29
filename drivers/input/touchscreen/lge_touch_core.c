@@ -43,9 +43,9 @@
 #include <linux/wakelock.h>
 #include <linux/mutex.h>
 
-static int touch_gesture_enable = 0;
-static int ts_suspend = 0;
-static int power_block = 0;
+static int touch_gesture_enable;
+static int ts_suspend;
+static int power_block;
 
 static struct wake_lock touch_wake_lock;
 static struct mutex i2c_suspend_lock;
@@ -63,8 +63,8 @@ extern bool touch_irq_mask;
 extern void touch_enable_irq(unsigned int irq);
 extern void touch_disable_irq(unsigned int irq);
 
-struct touch_device_driver*	touch_device_func;
-struct workqueue_struct*	touch_wq;
+struct touch_device_driver *touch_device_func;
+struct workqueue_struct *touch_wq;
 
 struct lge_touch_attribute {
 	struct attribute	attr;
@@ -96,20 +96,20 @@ module_param_named(time_debug_mask, touch_time_debug_mask, int, S_IRUGO|S_IWUSR|
 
 /* ghost dtetection related stuff */
 struct timeval t_debug[TIME_PROFILE_MAX];
-#define get_time_interval(a,b) a>=b ? a-b : 1000000+a-b
-static u8 resume_flag = 0;
-static unsigned int ta_debouncing_count = 0;
-static unsigned int button_press_count =0;
-static unsigned int ts_rebase_count =0;
+#define get_time_interval(a, b) (a >= b ? a - b : 1000000 + a - b)
+static u8 resume_flag;
+static unsigned int ta_debouncing_count;
+static unsigned int button_press_count;
+static unsigned int ts_rebase_count;
 struct timeval t_ex_debug[EX_PROFILE_MAX];
 struct t_data	 ts_prev_finger_press_data;
-int force_continuous_mode = 0;
-int long_press_check_count = 0;
-int long_press_check = 0;
-int finger_subtraction_check_count = 0;
-int ghost_detection = 0;
-int ghost_detection_count = 0;
-int double_tap_enabled = 0;
+int force_continuous_mode;
+int long_press_check_count;
+int long_press_check;
+int finger_subtraction_check_count;
+int ghost_detection;
+int ghost_detection_count;
+int double_tap_enabled;
 
 #if defined(CONFIG_HAS_EARLYSUSPEND)
 static void touch_early_suspend(struct early_suspend *h);
@@ -117,7 +117,7 @@ static void touch_late_resume(struct early_suspend *h);
 #endif
 
 /* Auto Test interface for some model */
-struct lge_touch_data *touch_test_dev = NULL;
+struct lge_touch_data *touch_test_dev;
 EXPORT_SYMBOL(touch_test_dev);
 static void release_all_ts_event(struct lge_touch_data *ts);
 /* Jitter Filter
@@ -126,12 +126,12 @@ static void release_all_ts_event(struct lge_touch_data *ts);
 #define jitter_abs(x)		(x > 0 ? x : -x)
 #define abs_sub(x, y)	(x > y ? x - y : y - x)
 
-u8 synaptics_probe = 0;
-u8 device_control_reg = 0;
-u8 synaptics_rebase_retry_cnt = 0;
-int trigger_baseline = 0;
-int ts_charger_plug = 0;
-int ts_charger_type = 0;
+u8 synaptics_probe;
+u8 device_control_reg;
+u8 synaptics_rebase_retry_cnt;
+int trigger_baseline;
+int ts_charger_plug;
+int ts_charger_type;
 static void safety_reset(struct lge_touch_data *ts);
 static int touch_ic_init(struct lge_touch_data *ts);
 int cur_hopping_idx = 3;
@@ -143,7 +143,7 @@ static struct hrtimer hr_touch_trigger_timer;
 static enum hrtimer_restart touch_trigger_timer_handler(struct hrtimer *timer)
 {
 
-	if(synaptics_rebase_retry_cnt == MAX_RETRY_COUNT){
+	if (synaptics_rebase_retry_cnt == MAX_RETRY_COUNT) {
 		trigger_baseline = 0;
 		synaptics_rebase_retry_cnt = 0;
 		TOUCH_INFO_MSG("Do not attempt to rebase .\n");
@@ -152,14 +152,13 @@ static enum hrtimer_restart touch_trigger_timer_handler(struct hrtimer *timer)
 
 	if (touch_test_dev && touch_test_dev->pdata->role->ghost_detection_enable) {
 		TOUCH_INFO_MSG("total_num : %d , palm : %d \n ", touch_test_dev->ts_data.touch_count, touch_test_dev->ts_data.palm);
-		if(touch_test_dev->ts_data.total_num || touch_test_dev->ts_data.palm){
-			if(synaptics_rebase_retry_cnt < MAX_RETRY_COUNT){
+		if (touch_test_dev->ts_data.total_num || touch_test_dev->ts_data.palm) {
+			if (synaptics_rebase_retry_cnt < MAX_RETRY_COUNT) {
 				TOUCH_INFO_MSG("retry (%d/3) \n", ++synaptics_rebase_retry_cnt);
 				hrtimer_start(&hr_touch_trigger_timer, ktime_set(0, MS_TO_NS(1000)), HRTIMER_MODE_REL);
 			}
-		}
-		else {
-			if(trigger_baseline==1 && atomic_read(&touch_test_dev->device_init) == 1){
+		} else {
+			if (trigger_baseline == 1 && atomic_read(&touch_test_dev->device_init) == 1) {
 				trigger_baseline = 2;
 				synaptics_rebase_retry_cnt = 0;
 				atomic_inc(&touch_test_dev->next_work);
@@ -172,10 +171,10 @@ static enum hrtimer_restart touch_trigger_timer_handler(struct hrtimer *timer)
 
 void trigger_usb_state_from_otg(int type)
 {
-	u8 buf=0;
+	u8 buf = 0;
 	int plug_in = 0;
 
-	if(!synaptics_probe || !device_control_reg)
+	if (!synaptics_probe || !device_control_reg)
 		return;
 
 	mutex_lock(&i2c_suspend_lock);
@@ -186,21 +185,22 @@ void trigger_usb_state_from_otg(int type)
 		TOUCH_INFO_MSG("plug_in_type : %d \n", type);
 		/* INVALID:0, SDP:1, DCP:2, CDP:3 */
 
-	    if(plug_in == 0 || plug_in == 1)
-	    {
-			if(touch_test_dev->curr_pwr_state == POWER_ON
+
+	    if (plug_in == 0 || plug_in == 1) {
+			if (touch_test_dev->curr_pwr_state == POWER_ON
 				&& !touch_test_dev->fw_info.fw_upgrade.is_downloading) {
-				if(plug_in == 0){
+				if (plug_in == 0) {
 					touch_i2c_read(touch_test_dev->client, device_control_reg, 1, &buf);
 					buf = buf & 0xDF;
 					touch_i2c_write_byte(touch_test_dev->client, device_control_reg, buf);
 
 					cns_en = 0;
-					if(cur_hopping_idx != 3) cur_hopping_idx = 3;
+					if (cur_hopping_idx != 3)
+						cur_hopping_idx = 3;
 					safety_reset(touch_test_dev);
 					queue_delayed_work(touch_wq, &touch_test_dev->work_init,
 								msecs_to_jiffies(touch_test_dev->pdata->role->booting_delay));
-				} else if(plug_in == 1){
+				} else if (plug_in == 1) {
 					touch_i2c_read(touch_test_dev->client, device_control_reg, 1, &buf);
 					buf = buf | 0x20;
 					touch_i2c_write_byte(touch_test_dev->client, device_control_reg, buf);
@@ -211,7 +211,7 @@ void trigger_usb_state_from_otg(int type)
 			TOUCH_INFO_MSG(" trigger_baseline_state_machine = %d type = %d \n", plug_in, type);
 			ts_charger_plug = plug_in;
 
-			if( trigger_baseline==0 && plug_in == 1){
+			if (trigger_baseline == 0 && plug_in == 1) {
 				trigger_baseline = 1;
 
 				hrtimer_start(&hr_touch_trigger_timer, ktime_set(0, MS_TO_NS(1000)), HRTIMER_MODE_REL);
@@ -223,6 +223,7 @@ void trigger_usb_state_from_otg(int type)
 
 }
 
+
 #define ts_caps	(ts->pdata->caps)
 #define ts_role	(ts->pdata->role)
 #define ts_ghost_value	(ts->pdata->caps->ghost_detection_value)
@@ -230,18 +231,18 @@ void trigger_usb_state_from_otg(int type)
 static bool is_valid_ghost_jitter(struct lge_touch_data *ts, struct t_data prev_data, struct t_data curr_data)
 {
 	int ret = 0;
-	ret = (abs_sub(prev_data.x_position,curr_data.x_position) <= ts_ghost_value[JITTER_VALUE]
-		&& abs_sub(prev_data.y_position,curr_data.y_position) <= ts_ghost_value[JITTER_VALUE]);
+	ret = (abs_sub(prev_data.x_position, curr_data.x_position) <= ts_ghost_value[JITTER_VALUE]
+		&& abs_sub(prev_data.y_position, curr_data.y_position) <= ts_ghost_value[JITTER_VALUE]);
 	return ret;
 }
 
 bool chk_time_interval(struct timeval t_aft, struct timeval t_bef, int t_val)
 {
-	if( t_aft.tv_sec - t_bef.tv_sec == 0 ) {
-		if((get_time_interval(t_aft.tv_usec, t_bef.tv_usec)) <= t_val)
+	if (t_aft.tv_sec - t_bef.tv_sec == 0) {
+		if ((get_time_interval(t_aft.tv_usec, t_bef.tv_usec)) <= t_val)
 			return true;
-	} else if( t_aft.tv_sec - t_bef.tv_sec == 1 ) {
-		if( t_aft.tv_usec + 1000000 - t_bef.tv_usec <= t_val)
+	} else if (t_aft.tv_sec - t_bef.tv_sec == 1) {
+		if (t_aft.tv_usec + 1000000 - t_bef.tv_usec <= t_val)
 			return true;
 	}
 
@@ -252,21 +253,21 @@ int ghost_detect_solution(struct lge_touch_data *ts)
 {
 	extern u8 pressure_zero;
 	int first_int_detection = 0;
-	int cnt = 0, id =0;
+	int cnt = 0, id = 0;
 
-	if(trigger_baseline==2)
+	if (trigger_baseline == 2)
 		goto out_need_to_rebase;
 
-	if(resume_flag) {
+	if (resume_flag) {
 		resume_flag = 0;
 		do_gettimeofday(&t_ex_debug[EX_FIRST_INT]);
 
-		if(chk_time_interval(t_ex_debug[EX_FIRST_INT], t_ex_debug[EX_INIT], ts_ghost_value[TIME_SINCE_BOOTING] * 1000)) {
+		if (chk_time_interval(t_ex_debug[EX_FIRST_INT], t_ex_debug[EX_INIT], ts_ghost_value[TIME_SINCE_BOOTING] * 1000)) {
 			first_int_detection = 1;
 		}
 	}
 
-	if(first_int_detection) {
+	if (first_int_detection) {
 		for (cnt = 0; cnt < ts_caps->max_id; cnt++) {
 			if (ts->ts_data.curr_data[cnt].status == FINGER_PRESSED) {
 					TOUCH_INFO_MSG("first input time is 200ms\n");
@@ -275,64 +276,57 @@ int ghost_detect_solution(struct lge_touch_data *ts)
 		}
 	}
 
-	if(pressure_zero == 1) {
+	if (pressure_zero == 1) {
 		TOUCH_INFO_MSG("pressure\n");
 		ghost_detection = true;
 	}
 
 	if (ts_charger_plug) {
-		if((ts_role->ta_debouncing_finger_num  <= ts->ts_data.total_num) && (ta_debouncing_count < ts_role->ta_debouncing_count)) {
-			ta_debouncing_count ++;
+		if ((ts_role->ta_debouncing_finger_num  <= ts->ts_data.total_num) && (ta_debouncing_count < ts_role->ta_debouncing_count)) {
+			ta_debouncing_count++;
 			memset(&ts->ts_data.curr_data, 0x0, sizeof(ts->ts_data.curr_data));
 			goto out_need_to_debounce;
 		} else if (ts->ts_data.total_num < ts_role->ta_debouncing_finger_num) {
 			ta_debouncing_count = 0;
-		} else ;
+		} else
+		;
 	}
 
 	if ((ts->ts_data.state != TOUCH_ABS_LOCK) && (ts->ts_data.total_num)) {
 
-		if (ts->ts_data.prev_total_num != ts->ts_data.total_num)
-		{
-			if (ts->ts_data.prev_total_num <= ts->ts_data.total_num)
-			{
+		if (ts->ts_data.prev_total_num != ts->ts_data.total_num) {
+			if (ts->ts_data.prev_total_num <= ts->ts_data.total_num) {
 				if (ts->gf_ctrl.stage == GHOST_STAGE_CLEAR || (ts->gf_ctrl.stage | GHOST_STAGE_1) || ts->gf_ctrl.stage == GHOST_STAGE_4)
 					ts->ts_data.state = TOUCH_BUTTON_LOCK;
 
-				for(id=0; id < ts_caps->max_id; id++){
+				for (id = 0; id < ts_caps->max_id; id++) {
 					if (ts->ts_data.curr_data[id].status == FINGER_PRESSED
 							&& ts->ts_data.prev_data[id].status == FINGER_RELEASED) {
 						break;
 					}
 				}
 
-				if ( id < MAX_FINGER)
-				{
+				if (id < MAX_FINGER) {
 					memcpy(&t_ex_debug[EX_PREV_PRESS], &t_ex_debug[EX_CURR_PRESS], sizeof(struct timeval));
 					do_gettimeofday(&t_ex_debug[EX_CURR_PRESS]);
 
-					if (1 <= ts->ts_data.prev_total_num && 1 <= ts->ts_data.total_num && is_valid_ghost_jitter(ts, ts_prev_finger_press_data, ts->ts_data.curr_data[id]))
-					{
-						// if time_interval between prev fingger pressed and curr finger pressed is less than 50ms, we need to rebase touch ic.
-						if(chk_time_interval(t_ex_debug[EX_CURR_PRESS], t_ex_debug[EX_PREV_PRESS], ts_ghost_value[DURATION_BET_PRESS] * 1000)) {
+					if (1 <= ts->ts_data.prev_total_num && 1 <= ts->ts_data.total_num && is_valid_ghost_jitter(ts, ts_prev_finger_press_data, ts->ts_data.curr_data[id])) {
+						/* if time_interval between prev fingger pressed and curr finger pressed is less than 50ms, we need to rebase touch ic. */
+						if (chk_time_interval(t_ex_debug[EX_CURR_PRESS], t_ex_debug[EX_PREV_PRESS], ts_ghost_value[DURATION_BET_PRESS] * 1000)) {
 							ghost_detection = true;
 							ghost_detection_count++;
-						}
-						else	; // do not anything
-					}
-					else if (ts->ts_data.prev_total_num == 0 && ts->ts_data.total_num == 1 && is_valid_ghost_jitter(ts, ts_prev_finger_press_data, ts->ts_data.curr_data[id]))
-					{
-					       // if time_interval between prev fingger pressed and curr finger pressed is less than 50ms, we need to rebase touch ic.
-						if(chk_time_interval(t_ex_debug[EX_CURR_PRESS], t_ex_debug[EX_PREV_PRESS], ts_ghost_value[DURATION_BET_PRESS] * 1000)) {
+						} else
+						;/* do not anything */
+					} else if (ts->ts_data.prev_total_num == 0 && ts->ts_data.total_num == 1 && is_valid_ghost_jitter(ts, ts_prev_finger_press_data, ts->ts_data.curr_data[id])) {
+					       /* if time_interval between prev fingger pressed and curr finger pressed is less than 50ms, we need to rebase touch ic. */
+						if (chk_time_interval(t_ex_debug[EX_CURR_PRESS], t_ex_debug[EX_PREV_PRESS], ts_ghost_value[DURATION_BET_PRESS] * 1000)) {
 							ghost_detection = true;
-						}
-						else	; // do not anything
-					}
-					else if (abs_sub(ts->ts_data.prev_total_num,ts->ts_data.total_num) >= ts_ghost_value[DIFF_FINGER_NUM])
-					{
+						} else
+						;/* do not anything */
+					} else if (abs_sub(ts->ts_data.prev_total_num, ts->ts_data.total_num) >= ts_ghost_value[DIFF_FINGER_NUM]) {
 						 ghost_detection = true;
-					}
-					else; //do not anything
+					} else
+					;/*do not anything */
 
 					memcpy(&ts_prev_finger_press_data, &ts->ts_data.curr_data[id], sizeof(ts_prev_finger_press_data));
 				}
@@ -340,13 +334,13 @@ int ghost_detect_solution(struct lge_touch_data *ts)
 				memcpy(&t_ex_debug[EX_PREV_PRESS], &t_ex_debug[EX_CURR_PRESS], sizeof(struct timeval));
 				do_gettimeofday(&t_ex_debug[EX_CURR_INT]);
 
-				// if finger subtraction time is less than 10ms, we need to check ghost state.
-				if(chk_time_interval(t_ex_debug[EX_CURR_INT], t_ex_debug[EX_PREV_PRESS], ts_ghost_value[SUBTRACTION_TIME] * 1000))
+				/* if finger subtraction time is less than 10ms, we need to check ghost state. */
+				if (chk_time_interval(t_ex_debug[EX_CURR_INT], t_ex_debug[EX_PREV_PRESS], ts_ghost_value[SUBTRACTION_TIME] * 1000))
 					finger_subtraction_check_count++;
 				else
 					finger_subtraction_check_count = 0;
 
-				if(finger_subtraction_check_count >= ts_ghost_value[FINGER_SUBTRACTION_CNT]){
+				if (finger_subtraction_check_count >= ts_ghost_value[FINGER_SUBTRACTION_CNT]) {
 					finger_subtraction_check_count = 0;
 					TOUCH_INFO_MSG("need_to_rebase finger_subtraction!!! \n");
 					goto out_need_to_rebase;
@@ -354,12 +348,12 @@ int ghost_detect_solution(struct lge_touch_data *ts)
 			}
 		}
 
-		if (force_continuous_mode){
+		if (force_continuous_mode) {
 			do_gettimeofday(&t_ex_debug[EX_CURR_INT]);
-			// if 10 sec have passed since resume, then return to the original report mode.
-			if( t_ex_debug[EX_CURR_INT].tv_sec - t_ex_debug[EX_INIT].tv_sec >= ts_ghost_value[FORCE_CONT_TIME]) {
-				if(touch_device_func->ic_ctrl){
-					if(touch_device_func->ic_ctrl(ts->client, IC_CTRL_REPORT_MODE, ts_role->report_mode) < 0){
+			/* if 10 sec have passed since resume, then return to the original report mode. */
+			if (t_ex_debug[EX_CURR_INT].tv_sec - t_ex_debug[EX_INIT].tv_sec >= ts_ghost_value[FORCE_CONT_TIME]) {
+				if (touch_device_func->ic_ctrl) {
+					if (touch_device_func->ic_ctrl(ts->client, IC_CTRL_REPORT_MODE, ts_role->report_mode) < 0) {
 						TOUCH_ERR_MSG("IC_CTRL_BASELINE handling fail\n");
 						goto out_need_to_init;
 					}
@@ -378,7 +372,7 @@ int ghost_detect_solution(struct lge_touch_data *ts)
 			}
 
 			if (long_press_check)
-				long_press_check_count ++;
+				long_press_check_count++;
 			else
 				long_press_check_count = 0;
 
@@ -388,7 +382,7 @@ int ghost_detect_solution(struct lge_touch_data *ts)
 				goto out_need_to_rebase;
 			}
 		}
-	}else if (!ts->ts_data.total_num){
+	} else if (!ts->ts_data.total_num) {
 		long_press_check_count = 0;
 		finger_subtraction_check_count = 0;
 	}
@@ -398,39 +392,39 @@ int ghost_detect_solution(struct lge_touch_data *ts)
 		if (ts->work_sync_err_cnt > 0
 			&& ts->ts_data.prev_button.state == BUTTON_RELEASED) {
 			/* Do nothing */
-		} else if (ts_role->ghost_detection_button_enable){
+		} else if (ts_role->ghost_detection_button_enable) {
 
-			if (button_press_count ==0)
+			if (button_press_count  == 0)
 				do_gettimeofday(&t_ex_debug[EX_BUTTON_PRESS_START]);
 			else
 				do_gettimeofday(&t_ex_debug[EX_BUTTON_PRESS_END]);
 
 			button_press_count++;
 
-			if (button_press_count >= ts_ghost_value[BUTTON_INT_NUM])
-			{
-				if(chk_time_interval(t_ex_debug[EX_BUTTON_PRESS_END], t_ex_debug[EX_BUTTON_PRESS_START], ts_ghost_value[BUTTON_DURATION] * 1000))	{
+			if (button_press_count >= ts_ghost_value[BUTTON_INT_NUM]) {
+				if (chk_time_interval(t_ex_debug[EX_BUTTON_PRESS_END], t_ex_debug[EX_BUTTON_PRESS_START], ts_ghost_value[BUTTON_DURATION] * 1000))	{
 					TOUCH_INFO_MSG("need_to_rebase button zero\n");
 					goto out_need_to_rebase;
-				} else; //do not anything
+				} else
+				; /*do not anything */
 
 				button_press_count = 0;
 			} else {
-				if((t_ex_debug[EX_BUTTON_PRESS_END].tv_sec -
+				if ((t_ex_debug[EX_BUTTON_PRESS_END].tv_sec -
 					t_ex_debug[EX_BUTTON_PRESS_START].tv_sec) > 1)
 						button_press_count = 0;
-				if(!chk_time_interval(t_ex_debug[EX_BUTTON_PRESS_END], t_ex_debug[EX_BUTTON_PRESS_START], ts_ghost_value[BUTTON_DURATION] * 1000))	{
+				if (!chk_time_interval(t_ex_debug[EX_BUTTON_PRESS_END], t_ex_debug[EX_BUTTON_PRESS_START], ts_ghost_value[BUTTON_DURATION] * 1000))	{
 						button_press_count = 0;
-				} else; //do not anything
+				} else
+				; /*do not anything */
 			}
 		}
 	}
 
-	if(ghost_detection == true && ts->ts_data.total_num == 0){
+	if (ghost_detection == true && ts->ts_data.total_num == 0) {
 		TOUCH_INFO_MSG("need_to_rebase zero\n");
 		goto out_need_to_rebase;
-	}
-	else if (ghost_detection == true && 3 <= ghost_detection_count ){
+	} else if (ghost_detection == true && 3 <= ghost_detection_count) {
 		TOUCH_INFO_MSG("need_to_rebase zero 3\n");
 		goto out_need_to_rebase;
 	}
@@ -447,10 +441,10 @@ out_need_to_rebase:
 	button_press_count = 0;
 	ts_rebase_count++;
 
-	if(ts_rebase_count == 1) {
+	if (ts_rebase_count == 1) {
 		do_gettimeofday(&t_ex_debug[EX_FIRST_GHOST_DETECT]);
 
-		if((t_ex_debug[EX_FIRST_GHOST_DETECT].tv_sec - t_ex_debug[EX_INIT].tv_sec) <= 3) {
+		if ((t_ex_debug[EX_FIRST_GHOST_DETECT].tv_sec - t_ex_debug[EX_INIT].tv_sec) <= 3) {
 			ts_rebase_count = 0;
 			TOUCH_INFO_MSG("need_to_init in 3 sec\n");
 			goto out_need_to_init;
@@ -458,8 +452,7 @@ out_need_to_rebase:
 	} else {
 		do_gettimeofday(&t_ex_debug[EX_SECOND_GHOST_DETECT]);
 
-		if(((t_ex_debug[EX_SECOND_GHOST_DETECT].tv_sec - t_ex_debug[EX_FIRST_GHOST_DETECT].tv_sec) <= ts_ghost_value[TIME_SINCE_REBASE]))
-		{
+		if (((t_ex_debug[EX_SECOND_GHOST_DETECT].tv_sec - t_ex_debug[EX_FIRST_GHOST_DETECT].tv_sec) <= ts_ghost_value[TIME_SINCE_REBASE])) {
 			ts_rebase_count = 0;
 			TOUCH_INFO_MSG("need_to_init\n");
 			goto out_need_to_init;
@@ -472,8 +465,8 @@ out_need_to_rebase:
 	memset(&ts->ts_data, 0, sizeof(ts->ts_data));
 	memset(&ts->accuracy_filter.his_data, 0, sizeof(ts->accuracy_filter.his_data));
 	ts->accuracy_filter.finish_filter = 0;
-	if(touch_device_func->ic_ctrl){
-		if(touch_device_func->ic_ctrl(ts->client, IC_CTRL_BASELINE, BASELINE_REBASE) < 0){
+	if (touch_device_func->ic_ctrl) {
+		if (touch_device_func->ic_ctrl(ts->client, IC_CTRL_BASELINE, BASELINE_REBASE) < 0) {
 			TOUCH_ERR_MSG("IC_CTRL_REBASE handling fail\n");
 		}
 	}
@@ -485,32 +478,31 @@ out_need_to_init:
 	return NEED_TO_INIT;
 }
 
-static bool touch_irq_wake = 0;
-static int touch_enable_irq_wake(struct lge_touch_data *ts){
+static bool touch_irq_wake;
+static int touch_enable_irq_wake(struct lge_touch_data *ts)
+{
 	int ret = 0;
-	if(!touch_irq_wake){
+	if (!touch_irq_wake) {
 		touch_irq_wake = 1;
-		ret= enable_irq_wake(ts->client->irq);
-	}
-	else
+		ret = enable_irq_wake(ts->client->irq);
+	} else
 		TOUCH_INFO_MSG("touch_enable_irq_wake!!!\n");
 	return ret;
 }
-static int touch_disable_irq_wake(struct lge_touch_data *ts){
+static int touch_disable_irq_wake(struct lge_touch_data *ts)
+{
 	int ret = 0;
-	if(touch_irq_wake){
+	if (touch_irq_wake) {
 		touch_irq_wake = 0;
 		ret = disable_irq_wake(ts->client->irq);
-	}
-	else
+	} else
 		TOUCH_INFO_MSG("touch_disable_irq_wake!!!\n");
 	return ret;
 }
 
-void Send_Touch( unsigned int x, unsigned int y)
+void Send_Touch(unsigned int x, unsigned int y)
 {
-	if (touch_test_dev)
-	{
+	if (touch_test_dev) {
 		/* press */
 #if !defined(MT_PROTOCOL_A)
 		input_mt_slot(touch_test_dev->input_dev, 0);
@@ -534,9 +526,7 @@ void Send_Touch( unsigned int x, unsigned int y)
 		input_mt_sync(touch_test_dev->input_dev);
 #endif	/* !defined(MT_PROTOCOL_A) */
 		input_sync(touch_test_dev->input_dev);
-	}
-	else
-	{
+	} else {
 		TOUCH_ERR_MSG("Touch device not found\n");
 	}
 }
@@ -544,17 +534,14 @@ EXPORT_SYMBOL(Send_Touch);
 
 int get_touch_ts_fw_version(char *fw_ver)
 {
-	if (touch_test_dev)
-	{
+	if (touch_test_dev) {
 		char ver[2];
 		ver[0] = (touch_test_dev->fw_info.ic_fw_version[3] & 0x80) >> 7;
 		ver[1] = (touch_test_dev->fw_info.ic_fw_version[3] & 0x7F);
 
 		sprintf(fw_ver, "v%d.%02d", ver[0], ver[1]);
 		return 1;
-	}
-	else
-	{
+	} else {
 		return 0;
 	}
 }
@@ -572,7 +559,7 @@ void set_touch_handle(struct i2c_client *client, void* h_touch)
 	ts->h_touch = h_touch;
 }
 
-void* get_touch_handle(struct i2c_client *client)
+void *get_touch_handle(struct i2c_client *client)
 {
 	struct lge_touch_data *ts = i2c_get_clientdata(client);
 	return ts->h_touch;
@@ -600,8 +587,7 @@ int touch_i2c_read(struct i2c_client *client, u8 reg, int len, u8 *buf)
 			.flags = 0,
 			.len = 1,
 			.buf = &reg,
-		},
-		{
+		}, {
 			.addr = client->addr,
 			.flags = I2C_M_RD,
 			.len = len,
@@ -724,6 +710,7 @@ static void time_profile_result(struct lge_touch_data *ts)
  *
  * finger status report
  */
+
 static int touch_asb_input_report(struct lge_touch_data *ts, int status)
 {
 	u16 id = 0;
@@ -737,6 +724,11 @@ static int touch_asb_input_report(struct lge_touch_data *ts, int status)
 				continue;
 
 			if (ts->ts_data.curr_data[id].status == FINGER_PRESSED) {
+
+				u16 temp = ts->ts_data.curr_data[id].pressure;
+				u16 temp2 = (u16)(temp * 9);
+				ts->ts_data.curr_data[id].pressure = (u16)(temp2 / 10);
+
 #if !defined(MT_PROTOCOL_A)
 				input_mt_slot(ts->input_dev, id);
 				input_mt_report_slot_state(ts->input_dev, MT_TOOL_FINGER, true);
@@ -746,7 +738,7 @@ static int touch_asb_input_report(struct lge_touch_data *ts, int status)
 
 				/* When a user's finger cross the boundary (from key to LCD),
 				    a ABS-event will change its y-position to edge of LCD, automatically.*/
-				if(ts->pdata->role->key_type == TOUCH_SOFT_KEY
+				if (ts->pdata->role->key_type == TOUCH_SOFT_KEY
 						&& ts->ts_data.curr_data[id].y_position < ts->pdata->caps->y_button_boundary
 						&& ts->ts_data.prev_data[id].y_position > ts->pdata->caps->y_button_boundary
 						&& ts->ts_data.prev_button.key_code != KEY_NULL)
@@ -776,38 +768,68 @@ static int touch_asb_input_report(struct lge_touch_data *ts, int status)
 
 				total++;
 
+#ifdef ISIS_L2
 				if (ts->ts_data.prev_data[id].status == FINGER_RELEASED)
-					TOUCH_INFO_MSG("%d finger pressed : <%d> x[%3d] y[%3d] z[%3d]\n",
-						++ts->ts_data.touch_count, id,
-						ts->ts_data.curr_data[id].x_position,
-						ts->ts_data.curr_data[id].y_position,
-						ts->ts_data.curr_data[id].pressure);
-
-				if (unlikely(touch_debug_mask & DEBUG_ABS))
-					TOUCH_INFO_MSG("<%d> pos[%4d,%4d] w_m[%2d] w_n[%2d] w_o[%2d] p[%3d]\n",
-							ts->pdata->caps->is_id_supported? id : 0,
+					TOUCH_INFO_MSG("%d finger pressed : <%d> x[****] y[****] z[****]\n",
+						++ts->ts_data.touch_count, id);
+#else
+				if (ts->ts_data.prev_data[id].status == FINGER_RELEASED) {
+					if (ts->lockscreen) {
+						TOUCH_INFO_MSG("%d finger pressed : <%d> x[XXXX] y[XXXX] z[%3d]\n",
+							++ts->ts_data.touch_count, id,
+							ts->ts_data.curr_data[id].pressure);
+					} else {
+						TOUCH_INFO_MSG("%d finger pressed : <%d> x[%4d] y[%4d] z[%3d]\n",
+							++ts->ts_data.touch_count, id,
 							ts->ts_data.curr_data[id].x_position,
 							ts->ts_data.curr_data[id].y_position,
-							ts->pdata->caps->is_width_supported?
-							ts->ts_data.curr_data[id].width_major: 0,
-							ts->pdata->caps->is_width_supported?
-							ts->ts_data.curr_data[id].width_minor: 0,
-							ts->pdata->caps->is_width_supported?
-							ts->ts_data.curr_data[id].width_orientation: 0,
+							ts->ts_data.curr_data[id].pressure);
+					}
+				}
+
+				if (unlikely(touch_debug_mask & DEBUG_ABS) && !ts->lockscreen)
+					TOUCH_INFO_MSG("<%d> pos[%4d,%4d] w_m[%2d] w_n[%2d] w_o[%2d] p[%3d]\n",
+							ts->pdata->caps->is_id_supported ? id : 0,
+							ts->ts_data.curr_data[id].x_position,
+							ts->ts_data.curr_data[id].y_position,
+							ts->pdata->caps->is_width_supported ?
+							ts->ts_data.curr_data[id].width_major : 0,
+							ts->pdata->caps->is_width_supported ?
+							ts->ts_data.curr_data[id].width_minor : 0,
+							ts->pdata->caps->is_width_supported ?
+							ts->ts_data.curr_data[id].width_orientation : 0,
 							ts->pdata->caps->is_pressure_supported ?
 							ts->ts_data.curr_data[id].pressure : 0);
+#endif
 			} else {
 #if !defined(MT_PROTOCOL_A)	/* Protocol B type only */
 				/* release handling */
+#ifdef ISIS_L2
 				if (ts->pdata->role->key_type != TOUCH_SOFT_KEY
 						&& ts->ts_data.prev_data[id].status == FINGER_PRESSED) {
 					input_mt_slot(ts->input_dev, id);
 					input_mt_report_slot_state(ts->input_dev, MT_TOOL_FINGER, false);
-					TOUCH_INFO_MSG("touch_release[ ] : <%d> x[%3d] y[%3d]\n",
-						id,
-						ts->ts_data.prev_data[id].x_position,
-						ts->ts_data.prev_data[id].y_position);
+					TOUCH_INFO_MSG("touch_release[ ] : <%d> x[****] y[****]\n",
+						id);
 					ts->ts_data.touch_count--;
+#else
+				if (ts->pdata->role->key_type != TOUCH_SOFT_KEY
+						&& ts->ts_data.prev_data[id].status == FINGER_PRESSED) {
+					input_mt_slot(ts->input_dev, id);
+					input_mt_report_slot_state(ts->input_dev, MT_TOOL_FINGER, false);
+
+					if (ts->lockscreen) {
+						TOUCH_INFO_MSG("touch_release[ ] : <%d> x[XXXX] y[XXXX]\n",
+							id);
+					} else {
+						TOUCH_INFO_MSG("touch_release[ ] : <%d> x[%4d] y[%4d]\n",
+							id,
+							ts->ts_data.prev_data[id].x_position,
+							ts->ts_data.prev_data[id].y_position);
+					}
+
+					ts->ts_data.touch_count--;
+#endif
 				}
 #endif
 			}
@@ -816,17 +838,36 @@ static int touch_asb_input_report(struct lge_touch_data *ts, int status)
 #if defined(MT_PROTOCOL_A)
 		input_mt_sync(ts->input_dev);
 #else	/* MT_PROTOCOL_B */
+#ifdef ISIS_L2
 		for (id = 0; id < ts->pdata->caps->max_id; id++) {
 			if (ts->ts_data.prev_data[id].status == FINGER_PRESSED) {
 				input_mt_slot(ts->input_dev, id);
 				input_mt_report_slot_state(ts->input_dev, MT_TOOL_FINGER, false);
-				TOUCH_INFO_MSG("touch_release[ ] : <%d> x[%3d] y[%3d]\n",
-					id,
-					ts->ts_data.prev_data[id].x_position,
-					ts->ts_data.prev_data[id].y_position);
+				TOUCH_INFO_MSG("touch_release[ ] : <%d> x[****] y[****]\n",
+					id);
 				ts->ts_data.touch_count--;
 			}
 		}
+#else	/* MT_PROTOCOL_B */
+		for (id = 0; id < ts->pdata->caps->max_id; id++) {
+			if (ts->ts_data.prev_data[id].status == FINGER_PRESSED) {
+				input_mt_slot(ts->input_dev, id);
+				input_mt_report_slot_state(ts->input_dev, MT_TOOL_FINGER, false);
+
+				if (ts->lockscreen) {
+					TOUCH_INFO_MSG("touch_release[ ] : <%d> x[XXXX] y[XXXX]\n",
+						id);
+				} else {
+					TOUCH_INFO_MSG("touch_release[ ] : <%d> x[%4d] y[%4d]\n",
+						id,
+						ts->ts_data.prev_data[id].x_position,
+						ts->ts_data.prev_data[id].y_position);
+				}
+
+				ts->ts_data.touch_count--;
+			}
+		}
+#endif
 #endif	/* defined(MT_PROTOCOL_A) */
 	}
 	return total;
@@ -839,40 +880,38 @@ static int touch_asb_input_report(struct lge_touch_data *ts, int status)
  */
 static void release_all_ts_event(struct lge_touch_data *ts)
 {
-	if (ts->pdata->role->key_type == TOUCH_HARD_KEY){
+	if (ts->pdata->role->key_type == TOUCH_HARD_KEY) {
 		if (ts->ts_data.prev_total_num) {
 			touch_asb_input_report(ts, FINGER_RELEASED);
 
 			if (likely(touch_debug_mask & (DEBUG_ABS | DEBUG_BASE_INFO)))
 				TOUCH_INFO_MSG("touch finger position released\n");
 
-			if(ts->ts_data.palm || ts->ts_data.prev_palm){
+			if (ts->ts_data.palm || ts->ts_data.prev_palm) {
 				memset(ts->ts_data.prev_data, 0x0, sizeof(ts->ts_data.prev_data));
 				memset(ts->ts_data.curr_data, 0x0, sizeof(ts->ts_data.curr_data));
 			}
 		}
 
-		if(ts->ts_data.prev_button.state == BUTTON_PRESSED) {
+		if (ts->ts_data.prev_button.state == BUTTON_PRESSED) {
 			input_report_key(ts->input_dev, ts->ts_data.prev_button.key_code, BUTTON_RELEASED);
 
 			if (likely(touch_debug_mask & (DEBUG_BUTTON | DEBUG_BASE_INFO)))
 				TOUCH_INFO_MSG("Touch KEY[%d] is released\n", ts->ts_data.prev_button.key_code);
 
-			if(ts->ts_data.palm || ts->ts_data.prev_palm){
+			if (ts->ts_data.palm || ts->ts_data.prev_palm) {
 				memset(&ts->ts_data.prev_button, 0x0, sizeof(ts->ts_data.prev_button));
 				memset(&ts->ts_data.curr_button, 0x0, sizeof(ts->ts_data.curr_button));
 			}
 		}
-	}
-	else if (ts->pdata->role->key_type == VIRTUAL_KEY){
+	} else if (ts->pdata->role->key_type == VIRTUAL_KEY) {
 		if (ts->ts_data.prev_total_num) {
 			touch_asb_input_report(ts, FINGER_RELEASED);
 
 			if (likely(touch_debug_mask & (DEBUG_ABS | DEBUG_BASE_INFO)))
 				TOUCH_INFO_MSG("touch finger position released\n");
 		}
-	}
-	else if (ts->pdata->role->key_type == TOUCH_SOFT_KEY){
+	} else if (ts->pdata->role->key_type == TOUCH_SOFT_KEY) {
 		if (ts->ts_data.state == ABS_PRESS) {
 			touch_asb_input_report(ts, FINGER_RELEASED);
 
@@ -985,8 +1024,14 @@ static void safety_reset(struct lge_touch_data *ts)
 	}
 	release_all_ts_event(ts);
 
-	touch_power_cntl(ts, POWER_OFF);
-	touch_power_cntl(ts, POWER_ON);
+	if (ts->pdata->role->suspend_pwr == POWER_OFF) {
+		touch_power_cntl(ts, POWER_OFF);
+		touch_power_cntl(ts, POWER_ON);
+	} else if (ts->pdata->role->suspend_pwr == POWER_SLEEP) {
+		TOUCH_INFO_MSG("SOFT RESET in safety_reset func");
+		touch_device_func->ic_ctrl(ts->client, IC_CTRL_RESET_CMD, 0);
+	} else {
+	}
 	msleep(ts->pdata->role->booting_delay);
 
 	if (ts->pdata->role->operation_mode)
@@ -1004,10 +1049,10 @@ static void safety_reset(struct lge_touch_data *ts)
 static int touch_ic_init(struct lge_touch_data *ts)
 {
 	int next_work = 0;
-	//unsigned char *r_mem = NULL;
+	/*unsigned char *r_mem = NULL; */
 	ts->int_pin_state = 0;
 
-	if(unlikely(ts->ic_init_err_cnt >= MAX_RETRY_COUNT)){
+	if (unlikely(ts->ic_init_err_cnt >= MAX_RETRY_COUNT)) {
 		TOUCH_ERR_MSG("Init Failed: Irq-pin has some unknown problems\n");
 		goto err_out_critical;
 	}
@@ -1025,19 +1070,19 @@ static int touch_ic_init(struct lge_touch_data *ts)
 		goto err_out_retry;
 	}
 
-	if(touch_device_func->ic_ctrl) {
-		if(touch_device_func->ic_ctrl(ts->client, IC_CTRL_DOUBLE_TAP_WAKEUP_MODE, 0) < 0){
+	if (touch_device_func->ic_ctrl) {
+		if (touch_device_func->ic_ctrl(ts->client, IC_CTRL_DOUBLE_TAP_WAKEUP_MODE, 0) < 0) {
 			TOUCH_ERR_MSG("IC_CTRL_DOUBLE_TAP_WAKEUP_MODE handling fail\n");
 			goto err_out_retry;
 		}
 	}
 
 	/* Interrupt pin check after IC init - avoid Touch lockup */
-	if(ts->pdata->role->operation_mode == INTERRUPT_MODE){
+	if (ts->pdata->role->operation_mode == INTERRUPT_MODE) {
 		ts->int_pin_state = gpio_get_value(ts->pdata->int_pin);
 		next_work = atomic_read(&ts->next_work);
 
-		if(unlikely(ts->int_pin_state != 1 && next_work <= 0)){
+		if (unlikely(ts->int_pin_state != 1 && next_work <= 0)) {
 			TOUCH_INFO_MSG("WARN: Interrupt pin is low - next_work: %d, try_count: %d]\n",
 					next_work, ts->ic_init_err_cnt);
 			goto err_out_retry;
@@ -1046,9 +1091,9 @@ static int touch_ic_init(struct lge_touch_data *ts)
 
 	if (ts->pdata->role->ghost_detection_enable) {
 		   /* force continuous mode after IC init  */
-		if(touch_device_func->ic_ctrl){
+		if (touch_device_func->ic_ctrl) {
 			TOUCH_INFO_MSG("force continuous mode !!!\n");
-			if(touch_device_func->ic_ctrl(ts->client, IC_CTRL_REPORT_MODE, 0) < 0){
+			if (touch_device_func->ic_ctrl(ts->client, IC_CTRL_REPORT_MODE, 0) < 0) {
 				TOUCH_ERR_MSG("IC_CTRL_BASELINE handling fail\n");
 				goto err_out_retry;
 			}
@@ -1065,30 +1110,28 @@ static int touch_ic_init(struct lge_touch_data *ts)
 	ts->gf_ctrl.saved_x = -1;
 	ts->gf_ctrl.saved_y = -1;
 
-	if(ts->gf_ctrl.probe){
+	if (ts->gf_ctrl.probe) {
 		ts->gf_ctrl.stage = GHOST_STAGE_1;
-		if(touch_device_func->ic_ctrl){
-			if(touch_device_func->ic_ctrl(ts->client, IC_CTRL_BASELINE, BASELINE_OPEN) < 0){
+		if (touch_device_func->ic_ctrl) {
+			if (touch_device_func->ic_ctrl(ts->client, IC_CTRL_BASELINE, BASELINE_OPEN) < 0) {
 				TOUCH_ERR_MSG("IC_CTRL_BASELINE handling fail\n");
 				goto err_out_retry;
 			}
 		}
-	}
-	else{
-		if(ts->gf_ctrl.stage & GHOST_STAGE_2) {
+	} else {
+		if (ts->gf_ctrl.stage & GHOST_STAGE_2) {
 			ts->gf_ctrl.stage = GHOST_STAGE_1 | GHOST_STAGE_2 | GHOST_STAGE_4;
 			ts->gf_ctrl.ghost_check_count = MAX_GHOST_CHECK_COUNT - 1;
-			if(touch_device_func->ic_ctrl){
-				if(touch_device_func->ic_ctrl(ts->client, IC_CTRL_BASELINE, BASELINE_OPEN) < 0){
+			if (touch_device_func->ic_ctrl) {
+				if (touch_device_func->ic_ctrl(ts->client, IC_CTRL_BASELINE, BASELINE_OPEN) < 0) {
 					TOUCH_ERR_MSG("IC_CTRL_BASELINE handling fail\n");
 					goto err_out_retry;
 				}
 			}
-		}
-		else {
+		} else {
 			ts->gf_ctrl.stage = GHOST_STAGE_3;
-			if(touch_device_func->ic_ctrl){
-				if(touch_device_func->ic_ctrl(ts->client, IC_CTRL_BASELINE, BASELINE_FIX) < 0){
+			if (touch_device_func->ic_ctrl) {
+				if (touch_device_func->ic_ctrl(ts->client, IC_CTRL_BASELINE, BASELINE_FIX) < 0) {
 					TOUCH_ERR_MSG("IC_CTRL_BASELINE handling fail\n");
 					goto err_out_retry;
 				}
@@ -1096,17 +1139,16 @@ static int touch_ic_init(struct lge_touch_data *ts)
 		}
 	}
 
-	if (unlikely(touch_debug_mask & (DEBUG_BASE_INFO | DEBUG_GHOST))){
-		if(ts->fw_info.ic_fw_version[0] > 0x40){
+	if (unlikely(touch_debug_mask & (DEBUG_BASE_INFO | DEBUG_GHOST))) {
+		if (ts->fw_info.ic_fw_version[0] > 0x40) {
 			TOUCH_INFO_MSG("%s %s(%s): FW ver[%s], force[%d]\n",
 				ts->pdata->maker, ts->fw_info.ic_fw_identifier,
-				ts->pdata->role->operation_mode?"Interrupt mode":"Polling mode",
+				ts->pdata->role->operation_mode ? "Interrupt mode" : "Polling mode",
 				ts->fw_info.ic_fw_version, ts->fw_info.fw_upgrade.fw_force_upgrade);
-		}
-		else{
+		} else{
 			TOUCH_INFO_MSG("%s %s(%s): FW ver[V%d.%02d (0x%02X 0x%02X 0x%02X 0x%02X)], force[%d]\n",
 				ts->pdata->maker, ts->fw_info.ic_fw_identifier,
-				ts->pdata->role->operation_mode?"Interrupt mode":"Polling mode",
+				ts->pdata->role->operation_mode ? "Interrupt mode" : "Polling mode",
 				(ts->fw_info.ic_fw_version[3]&0x80 ? 1 : 0), ts->fw_info.ic_fw_version[3]&0x7F,
 				ts->fw_info.ic_fw_version[0], ts->fw_info.ic_fw_version[1],
 				ts->fw_info.ic_fw_version[2], ts->fw_info.ic_fw_version[3],
@@ -1166,22 +1208,21 @@ static int ghost_finger_solution(struct lge_touch_data *ts)
 {
 	u8	id = 0;
 
-	for (id = 0; id < ts->pdata->caps->max_id; id++){
+	for (id = 0; id < ts->pdata->caps->max_id; id++) {
 		if (ts->ts_data.curr_data[id].status == FINGER_PRESSED) {
 			break;
 		}
 	}
 
-	if(ts->gf_ctrl.stage & GHOST_STAGE_1){
-		if(ts->ts_data.total_num == 0 && ts->ts_data.curr_button.state == 0 && ts->ts_data.palm == 0){
-			if(ts->gf_ctrl.count < ts->gf_ctrl.min_count || ts->gf_ctrl.count >= ts->gf_ctrl.max_count){
-				if(ts->gf_ctrl.stage & GHOST_STAGE_2)
+	if (ts->gf_ctrl.stage & GHOST_STAGE_1) {
+		if (ts->ts_data.total_num == 0 && ts->ts_data.curr_button.state == 0 && ts->ts_data.palm == 0) {
+			if (ts->gf_ctrl.count < ts->gf_ctrl.min_count || ts->gf_ctrl.count >= ts->gf_ctrl.max_count) {
+				if (ts->gf_ctrl.stage & GHOST_STAGE_2)
 					ts->gf_ctrl.ghost_check_count = MAX_GHOST_CHECK_COUNT - 1;
 				else
 					ts->gf_ctrl.ghost_check_count = 0;
-			}
-			else{
-				if(ghost_sub(ts->gf_ctrl.saved_x, ts->gf_ctrl.saved_last_x) > ts->gf_ctrl.max_moved ||
+			} else {
+				if (ghost_sub(ts->gf_ctrl.saved_x, ts->gf_ctrl.saved_last_x) > ts->gf_ctrl.max_moved ||
 				   ghost_sub(ts->gf_ctrl.saved_y, ts->gf_ctrl.saved_last_y) > ts->gf_ctrl.max_moved)
 					ts->gf_ctrl.ghost_check_count = MAX_GHOST_CHECK_COUNT;
 				else
@@ -1197,16 +1238,16 @@ static int ghost_finger_solution(struct lge_touch_data *ts)
 			if (unlikely(touch_debug_mask & DEBUG_GHOST || touch_debug_mask & DEBUG_BASE_INFO))
 				TOUCH_INFO_MSG("ghost_stage_1: ghost_check_count+[0x%x]\n", ts->gf_ctrl.ghost_check_count);
 
-			if(ts->gf_ctrl.ghost_check_count >= MAX_GHOST_CHECK_COUNT){
+			if (ts->gf_ctrl.ghost_check_count >= MAX_GHOST_CHECK_COUNT) {
 				ts->gf_ctrl.ghost_check_count = 0;
-				if(touch_device_func->ic_ctrl){
-					if(touch_device_func->ic_ctrl(ts->client, IC_CTRL_BASELINE, BASELINE_FIX) < 0)
+				if (touch_device_func->ic_ctrl) {
+					if (touch_device_func->ic_ctrl(ts->client, IC_CTRL_BASELINE, BASELINE_FIX) < 0)
 						return -1;
 				}
 				ts->gf_ctrl.stage &= ~GHOST_STAGE_1;
-				if (unlikely(touch_debug_mask & DEBUG_GHOST|| touch_debug_mask & DEBUG_BASE_INFO))
+				if (unlikely(touch_debug_mask & DEBUG_GHOST || touch_debug_mask & DEBUG_BASE_INFO))
 					TOUCH_INFO_MSG("ghost_stage_1: cleared[0x%x]\n", ts->gf_ctrl.stage);
-				if(!ts->gf_ctrl.stage){
+				if (!ts->gf_ctrl.stage) {
 					if (unlikely(touch_debug_mask & DEBUG_GHOST))
 						TOUCH_INFO_MSG("ghost_stage_finished. (NON-KEYGUARD)\n");
 				}
@@ -1214,60 +1255,56 @@ static int ghost_finger_solution(struct lge_touch_data *ts)
 			ts->gf_ctrl.count = 0;
 			ts->gf_ctrl.saved_x = -1;
 			ts->gf_ctrl.saved_y = -1;
-		}
-		else if(ts->ts_data.total_num == 1 && ts->ts_data.curr_button.state == 0
-				&& id == 0 && ts->ts_data.palm == 0){
-			if(ts->gf_ctrl.saved_x == -1 && ts->gf_ctrl.saved_x == -1){
+		} else if (ts->ts_data.total_num == 1 && ts->ts_data.curr_button.state == 0
+				&& id == 0 && ts->ts_data.palm == 0) {
+			if (ts->gf_ctrl.saved_x == -1 && ts->gf_ctrl.saved_x == -1) {
 				ts->gf_ctrl.saved_x = ts->ts_data.curr_data[id].x_position;
 				ts->gf_ctrl.saved_y = ts->ts_data.curr_data[id].y_position;
 			}
 			ts->gf_ctrl.count++;
 			if (unlikely(touch_debug_mask & DEBUG_GHOST))
 				TOUCH_INFO_MSG("ghost_stage_1: int_count[%d/%d]\n", ts->gf_ctrl.count, ts->gf_ctrl.max_count);
-		}
-		else {
+		} else {
 			if (unlikely(touch_debug_mask & DEBUG_GHOST) && ts->gf_ctrl.count != ts->gf_ctrl.max_count)
 				TOUCH_INFO_MSG("ghost_stage_1: Not good condition. total[%d] button[%d] id[%d] palm[%d]\n",
 						ts->ts_data.total_num, ts->ts_data.curr_button.state,
 						id, ts->ts_data.palm);
 			ts->gf_ctrl.count = ts->gf_ctrl.max_count;
 		}
-	}
-	else if(ts->gf_ctrl.stage & GHOST_STAGE_2){
-		if(ts->ts_data.total_num > 1 || (ts->ts_data.total_num == 1 && ts->ts_data.curr_button.state)){
+	} else if (ts->gf_ctrl.stage & GHOST_STAGE_2) {
+		if (ts->ts_data.total_num > 1 || (ts->ts_data.total_num == 1 && ts->ts_data.curr_button.state)) {
 			ts->gf_ctrl.stage |= GHOST_STAGE_1;
 			ts->gf_ctrl.ghost_check_count = MAX_GHOST_CHECK_COUNT - 1;
 			ts->gf_ctrl.count = 0;
 			ts->gf_ctrl.saved_x = -1;
 			ts->gf_ctrl.saved_y = -1;
-			if(touch_device_func->ic_ctrl){
-				if(touch_device_func->ic_ctrl(ts->client, IC_CTRL_BASELINE, BASELINE_OPEN) < 0)
+			if (touch_device_func->ic_ctrl) {
+				if (touch_device_func->ic_ctrl(ts->client, IC_CTRL_BASELINE, BASELINE_OPEN) < 0)
 					return -1;
 			}
 			if (unlikely(touch_debug_mask & DEBUG_GHOST))
 				TOUCH_INFO_MSG("ghost_stage_2: multi_finger. return to ghost_stage_1[0x%x]\n", ts->gf_ctrl.stage);
 		}
-	}
-	else if(ts->gf_ctrl.stage & GHOST_STAGE_3){
-		if(ts->ts_data.total_num == 0 && ts->ts_data.curr_button.state == 0 && ts->ts_data.palm == 0){
+	} else if (ts->gf_ctrl.stage & GHOST_STAGE_3) {
+		if (ts->ts_data.total_num == 0 && ts->ts_data.curr_button.state == 0 && ts->ts_data.palm == 0) {
 			ts->gf_ctrl.ghost_check_count++;
 
 			if (unlikely(touch_debug_mask & DEBUG_GHOST || touch_debug_mask & DEBUG_BASE_INFO))
 				TOUCH_INFO_MSG("ghost_stage_3: ghost_check_count+[0x%x]\n", ts->gf_ctrl.ghost_check_count);
 
-			if(ts->gf_ctrl.ghost_check_count >= MAX_GHOST_CHECK_COUNT){
+			if (ts->gf_ctrl.ghost_check_count >= MAX_GHOST_CHECK_COUNT) {
 				ts->gf_ctrl.stage &= ~GHOST_STAGE_3;
 				if (unlikely(touch_debug_mask & DEBUG_GHOST || touch_debug_mask & DEBUG_BASE_INFO))
 					TOUCH_INFO_MSG("ghost_stage_3: cleared[0x%x]\n", ts->gf_ctrl.stage);
-				if(!ts->gf_ctrl.stage){
+				if (!ts->gf_ctrl.stage) {
 					if (unlikely(touch_debug_mask & DEBUG_GHOST))
 						TOUCH_INFO_MSG("ghost_stage_finished. (NON-KEYGUARD)\n");
 				}
 			}
-		}
-		else if(ts->ts_data.total_num == 1 && ts->ts_data.curr_button.state == 0
-				&& id == 0 && ts->ts_data.palm == 0);
-		else{
+		} else if (ts->ts_data.total_num == 1 && ts->ts_data.curr_button.state == 0
+				&& id == 0 && ts->ts_data.palm == 0)
+		;
+		else {
 			ts->gf_ctrl.stage &= ~GHOST_STAGE_3;
 			ts->gf_ctrl.stage |= GHOST_STAGE_1;
 			ts->gf_ctrl.ghost_check_count = 0;
@@ -1275,20 +1312,19 @@ static int ghost_finger_solution(struct lge_touch_data *ts)
 			ts->gf_ctrl.saved_x = -1;
 			ts->gf_ctrl.saved_y = -1;
 			if (touch_device_func->ic_ctrl) {
-				if(touch_device_func->ic_ctrl(ts->client, IC_CTRL_BASELINE, BASELINE_OPEN) < 0)
+				if (touch_device_func->ic_ctrl(ts->client, IC_CTRL_BASELINE, BASELINE_OPEN) < 0)
 					return -1;
 			}
 
-			if (unlikely(touch_debug_mask & DEBUG_GHOST)){
+			if (unlikely(touch_debug_mask & DEBUG_GHOST)) {
 				TOUCH_INFO_MSG("ghost_stage_3: Not good condition. total[%d] button[%d] id[%d] palm[%d]\n",
 						ts->ts_data.total_num, ts->ts_data.curr_button.state,
 						id, ts->ts_data.palm);
 				TOUCH_INFO_MSG("ghost_stage_3: return to ghost_stage_1[0x%x]\n", ts->gf_ctrl.stage);
 			}
 		}
-	}
-	else if(ts->gf_ctrl.stage & GHOST_STAGE_4){
-		if(ts->ts_data.total_num == 0 && ts->ts_data.curr_button.state == 0 && ts->ts_data.palm == 0){
+	} else if (ts->gf_ctrl.stage & GHOST_STAGE_4) {
+		if (ts->ts_data.total_num == 0 && ts->ts_data.curr_button.state == 0 && ts->ts_data.palm == 0) {
 			ts->gf_ctrl.stage = GHOST_STAGE_CLEAR;
 			if (unlikely(touch_debug_mask & DEBUG_GHOST || touch_debug_mask & DEBUG_BASE_INFO))
 				TOUCH_INFO_MSG("ghost_stage_4: cleared[0x%x]\n", ts->gf_ctrl.stage);
@@ -1307,19 +1343,21 @@ static int ghost_finger_solution(struct lge_touch_data *ts)
 }
 
 
-static u16 check_boundary(int x, int max){
-	if(x < 0)
+static u16 check_boundary(int x, int max)
+{
+	if (x < 0)
 		return 0;
-	else if(x > max)
+	else if (x > max)
 		return (u16)max;
 	else
 		return (u16)x;
 }
 
-static int check_direction(int x){
-	if(x > 0)
+static int check_direction(int x)
+{
+	if (x > 0)
 		return 1;
-	else if(x < 0)
+	else if (x < 0)
 		return -1;
 	else
 		return 0;
@@ -1331,17 +1369,17 @@ int accuracy_filter_func(struct lge_touch_data *ts)
 	int delta_y = 0;
 	u8	id = 0;
 
-	for (id = 0; id < ts->pdata->caps->max_id; id++){
+	for (id = 0; id < ts->pdata->caps->max_id; id++) {
 		if (ts->ts_data.curr_data[id].status == FINGER_PRESSED) {
 			break;
 		}
 	}
 
-	// finish the accuracy_filter
-	if(ts->accuracy_filter.finish_filter == 1 &&
+	/* finish the accuracy_filter */
+	if (ts->accuracy_filter.finish_filter == 1 &&
 	   (ts->accuracy_filter.his_data.count > ts->accuracy_filter.touch_max_count
 	    || ts->ts_data.total_num != 1
-	    || id != 0)){
+	    || id != 0)) {
 		ts->accuracy_filter.finish_filter = 0;
 		ts->accuracy_filter.his_data.count = 0;
 	}
@@ -1349,46 +1387,46 @@ int accuracy_filter_func(struct lge_touch_data *ts)
 	delta_x = (int)ts->accuracy_filter.his_data.x - (int)ts->ts_data.curr_data[0].x_position;
 	delta_y = (int)ts->accuracy_filter.his_data.y - (int)ts->ts_data.curr_data[0].y_position;
 
-	// main algorithm
-	if (ts->accuracy_filter.finish_filter){
-		if(delta_x || delta_y){
+	/* main algorithm */
+	if (ts->accuracy_filter.finish_filter) {
+		if (delta_x || delta_y) {
 			ts->accuracy_filter.his_data.axis_x += check_direction(delta_x);
 			ts->accuracy_filter.his_data.axis_y += check_direction(delta_y);
 			ts->accuracy_filter.his_data.count++;
 		}
 
-		if(ts->accuracy_filter.his_data.count == 1
-		    ||(  (abs_sub(ts->ts_data.curr_data[0].pressure, ts->accuracy_filter.his_data.pressure) > ts->accuracy_filter.ignore_pressure_gap
-		           || ts->ts_data.curr_data[0].pressure > ts->accuracy_filter.max_pressure)
-		        && !(  (ts->accuracy_filter.his_data.count > ts->accuracy_filter.time_to_max_pressure
-		                 && (jitter_abs(ts->accuracy_filter.his_data.axis_x) == ts->accuracy_filter.his_data.count
-			             || jitter_abs(ts->accuracy_filter.his_data.axis_y) == ts->accuracy_filter.his_data.count))
-			      ||(jitter_abs(ts->accuracy_filter.his_data.axis_x) > ts->accuracy_filter.direction_count
-			         || jitter_abs(ts->accuracy_filter.his_data.axis_y) > ts->accuracy_filter.direction_count)))){
+		if (ts->accuracy_filter.his_data.count == 1
+			|| ((abs_sub(ts->ts_data.curr_data[0].pressure, ts->accuracy_filter.his_data.pressure) > ts->accuracy_filter.ignore_pressure_gap
+				|| ts->ts_data.curr_data[0].pressure > ts->accuracy_filter.max_pressure)
+				&& !((ts->accuracy_filter.his_data.count > ts->accuracy_filter.time_to_max_pressure
+					&& (jitter_abs(ts->accuracy_filter.his_data.axis_x) == ts->accuracy_filter.his_data.count
+					|| jitter_abs(ts->accuracy_filter.his_data.axis_y) == ts->accuracy_filter.his_data.count))
+					|| (jitter_abs(ts->accuracy_filter.his_data.axis_x) > ts->accuracy_filter.direction_count
+					|| jitter_abs(ts->accuracy_filter.his_data.axis_y) > ts->accuracy_filter.direction_count)))) {
 					ts->accuracy_filter.his_data.mod_x += delta_x;
 					ts->accuracy_filter.his_data.mod_y += delta_y;
 		}
 	}
 
-	// if 'delta' > delta_max or id != 0, remove the modify-value.
-	if(id != 0 ||
-	   (ts->accuracy_filter.his_data.count != 1 &&
-	    (jitter_abs(delta_x) > ts->accuracy_filter.delta_max || jitter_abs(delta_y) > ts->accuracy_filter.delta_max))){
+	/* if 'delta' > delta_max or id != 0, remove the modify-value. */
+	if (id != 0 ||
+		(ts->accuracy_filter.his_data.count != 1 &&
+			(jitter_abs(delta_x) > ts->accuracy_filter.delta_max || jitter_abs(delta_y) > ts->accuracy_filter.delta_max))) {
 		ts->accuracy_filter.his_data.mod_x = 0;
 		ts->accuracy_filter.his_data.mod_y = 0;
 	}
 
-	// start the accuracy_filter
-	if(ts->accuracy_filter.finish_filter == 0
+	/* start the accuracy_filter */
+	if (ts->accuracy_filter.finish_filter == 0
 	   && ts->accuracy_filter.his_data.count == 0
 	   && ts->ts_data.total_num == 1
 	   && ts->accuracy_filter.his_data.prev_total_num == 0
-	   && id == 0){
+	   && id == 0) {
 		ts->accuracy_filter.finish_filter = 1;
 		memset(&ts->accuracy_filter.his_data, 0, sizeof(ts->accuracy_filter.his_data));
 	}
 
-	if(unlikely(touch_debug_mask & DEBUG_ACCURACY)){
+	if (unlikely(touch_debug_mask & DEBUG_ACCURACY)) {
 		TOUCH_INFO_MSG("AccuracyFilter: <%d> pos[%4d,%4d] new[%4d,%4d] his[%4d,%4d] delta[%3d,%3d] mod[%3d,%3d] p[%d,%3d,%3d] axis[%2d,%2d] count[%2d/%2d] total_num[%d,%d] finish[%d]\n",
 				ts->ts_data.curr_data[0].id, ts->ts_data.curr_data[0].x_position, ts->ts_data.curr_data[0].y_position,
 				check_boundary((int)ts->ts_data.curr_data[0].x_position + ts->accuracy_filter.his_data.mod_x, ts->pdata->caps->x_max),
@@ -1408,7 +1446,7 @@ int accuracy_filter_func(struct lge_touch_data *ts)
 	ts->accuracy_filter.his_data.pressure = ts->ts_data.curr_data[0].pressure;
 	ts->accuracy_filter.his_data.prev_total_num = ts->ts_data.total_num;
 
-	if(ts->ts_data.total_num){
+	if (ts->ts_data.total_num) {
 		ts->ts_data.curr_data[0].x_position
 			= check_boundary((int)ts->ts_data.curr_data[0].x_position + ts->accuracy_filter.his_data.mod_x, ts->pdata->caps->x_max);
 		ts->ts_data.curr_data[0].y_position
@@ -1428,14 +1466,14 @@ int jitter_filter_func(struct lge_touch_data *ts)
 	u16 bit_id = 1;
 	int curr_ratio = ts->pdata->role->jitter_curr_ratio;
 
-	for (id = 0; id < ts->pdata->caps->max_id; id++){
+	for (id = 0; id < ts->pdata->caps->max_id; id++) {
 		if (ts->ts_data.curr_data[id].status == FINGER_PRESSED) {
 			u16 width = ts->ts_data.curr_data[id].width_major;
-			/* do not set new_id_mask at total_num =0 */
+			/*do not set new_id_mask at total_num = 0  */
 			if (ts->ts_data.total_num)
 				new_id_mask |= (1 << id);
 
-			if(ts->jitter_filter.id_mask & (1 << id)){
+			if (ts->jitter_filter.id_mask & (1 << id)) {
 				int delta_x, delta_y;
 				int f_jitter = curr_ratio*width;
 				int adjust_x = 0;
@@ -1480,16 +1518,16 @@ int jitter_filter_func(struct lge_touch_data *ts)
 				ts->jitter_filter.his_data[id].delta_y = delta_y * curr_ratio
 						+ ((ts->jitter_filter.his_data[id].delta_y * (128 - curr_ratio)) >> 7);
 
-				if(unlikely(touch_debug_mask & DEBUG_JITTER)){
-					TOUCH_INFO_MSG("JitterFilter[%s]: <%d> p[%d,%d] h_p[%d,%d] w[%d] a_r[%d] d[%d,%d] h_d[%d,%d] f_j[%d]\n",
-							adj_mode?"fast":"norm", id, ts->ts_data.curr_data[id].x_position, ts->ts_data.curr_data[id].y_position,
+				if (unlikely(touch_debug_mask & DEBUG_JITTER) && !ts->lockscreen) {
+					TOUCH_INFO_MSG("JitterFilter[%s]: <%d> p[%4d,%4d] h_p[%4d,%4d] w[%d] a_r[%d] d[%d,%d] h_d[%d,%d] f_j[%d]\n",
+							adj_mode ? "fast" : "norm", id, ts->ts_data.curr_data[id].x_position, ts->ts_data.curr_data[id].y_position,
 							ts->jitter_filter.his_data[id].x, ts->jitter_filter.his_data[id].y,
 							width, adj_ratio, delta_x, delta_y,
 							ts->jitter_filter.his_data[id].delta_x, ts->jitter_filter.his_data[id].delta_y, f_jitter);
 				}
 
-				if(jitter_abs(ts->jitter_filter.his_data[id].delta_x) <= f_jitter &&
-				   jitter_abs(ts->jitter_filter.his_data[id].delta_y) <= f_jitter)
+				if (jitter_abs(ts->jitter_filter.his_data[id].delta_x) <= f_jitter &&
+					jitter_abs(ts->jitter_filter.his_data[id].delta_y) <= f_jitter)
 					jitter_count++;
 			}
 		}
@@ -1497,29 +1535,29 @@ int jitter_filter_func(struct lge_touch_data *ts)
 
 	bit_mask = ts->jitter_filter.id_mask ^ new_id_mask;
 
-	for (id = 0, bit_id = 1; id < ts->pdata->caps->max_id; id++){
-		if ((ts->jitter_filter.id_mask & bit_id) && !(new_id_mask & bit_id)){
-			if(unlikely(touch_debug_mask & DEBUG_JITTER))
+	for (id = 0, bit_id = 1; id < ts->pdata->caps->max_id; id++) {
+		if ((ts->jitter_filter.id_mask & bit_id) && !(new_id_mask & bit_id)) {
+			if (unlikely(touch_debug_mask & DEBUG_JITTER))
 				TOUCH_INFO_MSG("JitterFilter: released - id[%d] mask[0x%x]\n", bit_id, ts->jitter_filter.id_mask);
 			memset(&ts->jitter_filter.his_data[id], 0, sizeof(ts->jitter_filter.his_data[id]));
 		}
 		bit_id = bit_id << 1;
 	}
 
-	for (id = 0; id < ts->pdata->caps->max_id; id++){
+	for (id = 0; id < ts->pdata->caps->max_id; id++) {
 		if (ts->ts_data.curr_data[id].status == FINGER_PRESSED) {
 			ts->jitter_filter.his_data[id].pressure = ts->ts_data.curr_data[id].pressure;
 		}
 	}
 
-	if (!bit_mask && ts->ts_data.total_num && ts->ts_data.total_num == jitter_count){
-		if(unlikely(touch_debug_mask & DEBUG_JITTER))
+	if (!bit_mask && ts->ts_data.total_num && ts->ts_data.total_num == jitter_count) {
+		if (unlikely(touch_debug_mask & DEBUG_JITTER))
 			TOUCH_INFO_MSG("JitterFilter: ignored - jitter_count[%d] total_num[%d] bitmask[0x%x]\n",
 					jitter_count, ts->ts_data.total_num, bit_mask);
 		return -1;
 	}
 
-	for (id = 0; id < ts->pdata->caps->max_id; id++){
+	for (id = 0; id < ts->pdata->caps->max_id; id++) {
 		if (ts->ts_data.curr_data[id].status == FINGER_PRESSED) {
 			ts->jitter_filter.his_data[id].x = ts->ts_data.curr_data[id].x_position;
 			ts->jitter_filter.his_data[id].y = ts->ts_data.curr_data[id].y_position;
@@ -1557,7 +1595,7 @@ static void touch_gesture_wakeup_func(struct work_struct *work_gesture_wakeup)
 	struct lge_touch_data *ts =
 		container_of(to_delayed_work(work_gesture_wakeup), struct lge_touch_data, work_gesture_wakeup);
 
-	if (ts->fw_info.fw_upgrade.is_downloading == UNDER_DOWNLOADING){
+	if (ts->fw_info.fw_upgrade.is_downloading == UNDER_DOWNLOADING) {
 		TOUCH_INFO_MSG("touch_gesture_wakeup is not executed\n");
 		return;
 	}
@@ -1601,16 +1639,17 @@ static void check_log_finger_changed(struct lge_touch_data *ts, u8 total_num)
 	if (ts->ts_data.prev_total_num != total_num) {
 		/* Finger added */
 		if (ts->ts_data.prev_total_num <= total_num) {
-			for(id=0; id < ts->pdata->caps->max_id; id++){
+			for (id = 0; id < ts->pdata->caps->max_id; id++) {
 				if (ts->ts_data.curr_data[id].status == FINGER_PRESSED
 						&& ts->ts_data.prev_data[id].status == FINGER_RELEASED) {
 					break;
 				}
 			}
 		}
-	} if (ts->ts_data.prev_total_num == total_num && total_num == 1) {
+	}
+	if (ts->ts_data.prev_total_num == total_num && total_num == 1) {
 		/* Finger changed at one finger status - IC bug check */
-		for (id = 0, tmp_p = 0; id < ts->pdata->caps->max_id; id++){
+		for (id = 0, tmp_p = 0; id < ts->pdata->caps->max_id; id++) {
 			/* find pressed */
 			if (ts->ts_data.curr_data[id].status == FINGER_PRESSED
 					&& ts->ts_data.prev_data[id].status == FINGER_RELEASED) {
@@ -1626,11 +1665,18 @@ static void check_log_finger_changed(struct lge_touch_data *ts, u8 total_num)
 		if (tmp_p != tmp_r
 				&& (ts->ts_data.curr_data[tmp_p].status
 						!= ts->ts_data.prev_data[tmp_p].status)) {
-			TOUCH_INFO_MSG("%d finger changed : <%d -> %d> x[%4d] y[%4d] z[%3d]\n",
-						total_num, tmp_r, tmp_p,
-						ts->ts_data.curr_data[id].x_position,
-						ts->ts_data.curr_data[id].y_position,
-						ts->ts_data.curr_data[id].pressure);
+			if (ts->lockscreen) {
+				TOUCH_INFO_MSG("%d finger changed : <%d -> %d> x[XXXX] y[XXXX] z[%3d]\n",
+							total_num, tmp_r, tmp_p,
+							ts->ts_data.curr_data[id].pressure);
+			} else {
+				TOUCH_INFO_MSG("%d finger changed : <%d -> %d> x[%4d] y[%4d] z[%3d]\n",
+							total_num, tmp_r, tmp_p,
+							ts->ts_data.curr_data[id].x_position,
+							ts->ts_data.curr_data[id].y_position,
+							ts->ts_data.curr_data[id].pressure);
+
+			}
 		}
 	}
 }
@@ -1661,7 +1707,7 @@ static int touch_work_pre_proc(struct lge_touch_data *ts)
 	ts->ts_data.total_num = 0;
 	ts->int_pin_state = 0;
 
-	if(unlikely(ts->work_sync_err_cnt >= MAX_RETRY_COUNT)){
+	if (unlikely(ts->work_sync_err_cnt >= MAX_RETRY_COUNT)) {
 		TOUCH_ERR_MSG("Work Sync Failed: Irq-pin has some unknown problems\n");
 		return -EIO;
 	}
@@ -1672,31 +1718,31 @@ static int touch_work_pre_proc(struct lge_touch_data *ts)
 
 	if (unlikely(touch_debug_mask & DEBUG_TRACE))
 		TOUCH_DEBUG_MSG("\n");
-
-	if ((ret = touch_device_func->data(ts->client, &ts->ts_data)) < 0) {
+	ret = touch_device_func->data(ts->client, &ts->ts_data);
+	if (ret < 0) {
 		TOUCH_ERR_MSG("get data fail\n");
 		return ret;
 	}
 
-	if(likely(ts->pdata->role->operation_mode == INTERRUPT_MODE))
+	if (likely(ts->pdata->role->operation_mode == INTERRUPT_MODE))
 		ts->int_pin_state = gpio_get_value(ts->pdata->int_pin);
 
 	/* Ghost finger solution */
-	if (likely(ts->pdata->role->ghost_finger_solution_enable) && unlikely(ts->gf_ctrl.stage)){
-		if(ghost_finger_solution(ts)){
+	if (likely(ts->pdata->role->ghost_finger_solution_enable) && unlikely(ts->gf_ctrl.stage)) {
+		if (ghost_finger_solution(ts)) {
 			TOUCH_ERR_MSG("ghost_finger_solution was failed\n");
 			return -EIO;
 		}
 	}
 
 	/* Accuracy Solution */
-	if (likely(ts->pdata->role->accuracy_filter_enable)){
+	if (likely(ts->pdata->role->accuracy_filter_enable)) {
 		if (accuracy_filter_func(ts) < 0)
 			return -EAGAIN;;
 	}
 
 	/* Jitter Solution */
-	if (likely(ts->pdata->role->jitter_filter_enable)){
+	if (likely(ts->pdata->role->jitter_filter_enable)) {
 		if (jitter_filter_func(ts) < 0)
 			return -EAGAIN;;
 	}
@@ -1717,10 +1763,10 @@ static void touch_work_post_proc(struct lge_touch_data *ts, int post_proc)
 
 	switch (post_proc) {
 	case WORK_POST_OUT:
-		if(likely(ts->pdata->role->operation_mode == INTERRUPT_MODE)){
+		if (likely(ts->pdata->role->operation_mode == INTERRUPT_MODE)) {
 			next_work = atomic_read(&ts->next_work);
 
-			if(unlikely(ts->int_pin_state != 1 && next_work <= 0)){
+			if (unlikely(ts->int_pin_state != 1 && next_work <= 0)) {
 				TOUCH_INFO_MSG("WARN: Interrupt pin is low - next_work: %d, try_count: %d]\n",
 						next_work, ts->work_sync_err_cnt);
 				post_proc = WORK_POST_ERR_RETRY;
@@ -1773,8 +1819,10 @@ static void touch_work_func_a(struct work_struct *work)
 	u8 report_enable = 0;
 	int ret = 0;
 
+	mutex_lock(&ts->irq_work_mutex);
+
 	if (ts->pdata->role->ghost_detection_enable) {
-		if(trigger_baseline == 2){
+		if (trigger_baseline == 2) {
 			ret = ghost_detect_solution(ts);
 			trigger_baseline = 0;
 			touch_device_func->data(ts->client, &ts->ts_data);
@@ -1787,19 +1835,21 @@ static void touch_work_func_a(struct work_struct *work)
 		goto err_out_critical;
 	else if (ret == -EAGAIN)
 		goto out;
-	else if (ret == -IGNORE_INTERRUPT)
+	else if (ret == -IGNORE_INTERRUPT) {
+		mutex_unlock(&ts->irq_work_mutex);
 		return;
+	}
 
 	/* Ghost detection solution */
 	if (ts->pdata->role->ghost_detection_enable) {
 		ret = ghost_detect_solution(ts);
-		if(ret == NEED_TO_OUT)
+		if (ret == NEED_TO_OUT)
 			goto out;
-		else if(ret == NEED_TO_INIT)
+		else if (ret == NEED_TO_INIT)
 			goto err_out_init;
 	}
 
-	if (ts->pdata->role->palm_detect_mode && (ts->ts_data.palm || ts->ts_data.prev_palm)){
+	if (ts->pdata->role->palm_detect_mode && (ts->ts_data.palm || ts->ts_data.prev_palm)) {
 		release_all_ts_event(ts);
 		cancel_delayed_work_sync(&ts->work_touch_lock);
 
@@ -1830,7 +1880,7 @@ static void touch_work_func_a(struct work_struct *work)
 				ts->ts_data.state = TOUCH_BUTTON_LOCK;
 
 			/* key button cancel */
-			if(ts->ts_data.prev_button.state == BUTTON_PRESSED && ts->ts_data.state == TOUCH_BUTTON_LOCK) {
+			if (ts->ts_data.prev_button.state == BUTTON_PRESSED && ts->ts_data.state == TOUCH_BUTTON_LOCK) {
 				input_report_key(ts->input_dev, ts->ts_data.prev_button.key_code, BUTTON_CANCLED);
 
 				if (likely(touch_debug_mask & (DEBUG_BUTTON | DEBUG_BASE_INFO)))
@@ -1891,7 +1941,7 @@ static void touch_work_func_a(struct work_struct *work)
 						sizeof(ts->ts_data.curr_button));
 
 				report_enable = 1;
-			}else if (ts->ts_data.curr_button.state == BUTTON_PRESSED
+			} else if (ts->ts_data.curr_button.state == BUTTON_PRESSED
 					&& ts->ts_data.prev_button.state == BUTTON_PRESSED
 					&& ts->ts_data.prev_button.key_code != ts->ts_data.curr_button.key_code) {
 				/* exception case - multi press button handle */
@@ -1956,7 +2006,7 @@ static u16 find_button(const struct t_data data, const struct section_info sc)
 	if (is_in_section(sc.panel, data.x_position, data.y_position))
 		return KEY_PANEL;
 
-	for(i=0; i<sc.b_num; i++){
+	for (i = 0; i < sc.b_num; i++) {
 		if (is_in_section(sc.button[i], data.x_position, data.y_position))
 			return sc.b_name[i];
 	}
@@ -1968,12 +2018,12 @@ static bool check_cancel(u16 button, u16 x, u16 y, const struct section_info sc)
 {
 	int i;
 
-	for(i=0; i<sc.b_num; i++){
+	for (i = 0; i < sc.b_num; i++) {
 		if (sc.b_name[i] == button)
 			break;
 	}
 
-	if (i < sc.b_num){
+	if (i < sc.b_num) {
 		if (is_in_section(sc.button_cancel[i], x, y))
 			return false;
 	}
@@ -2013,7 +2063,7 @@ static void touch_work_func_b(struct work_struct *work)
 	else
 		op_mode = OP_MULTI;
 
-	switch(op_mode){
+	switch (op_mode) {
 	case OP_RELEASE:
 		if (ts->ts_data.prev_button.key_code == KEY_PANEL || ts->ts_data.prev_button.key_code == KEY_BOUNDARY
 		    || ts->ts_data.prev_button.key_code == KEY_NULL)
@@ -2026,7 +2076,7 @@ static void touch_work_func_b(struct work_struct *work)
 		break;
 
 	case OP_SINGLE:
-		for (id = 0; id < ts->pdata->caps->max_id; id++){
+		for (id = 0; id < ts->pdata->caps->max_id; id++) {
 			if (ts->ts_data.curr_data[id].status == FINGER_PRESSED) {
 				break;
 			}
@@ -2036,22 +2086,20 @@ static void touch_work_func_b(struct work_struct *work)
 		if (unlikely(touch_debug_mask & DEBUG_BUTTON))
 			TOUCH_INFO_MSG("button_now [%d]\n", tmp_button);
 
-		if (ts->ts_data.prev_button.key_code != KEY_NULL && ts->ts_data.prev_button.key_code != KEY_BOUNDARY){
-			if (ts->ts_data.prev_button.key_code == KEY_PANEL){
+		if (ts->ts_data.prev_button.key_code != KEY_NULL && ts->ts_data.prev_button.key_code != KEY_BOUNDARY) {
+			if (ts->ts_data.prev_button.key_code == KEY_PANEL) {
 				if (ts->ts_data.prev_button.key_code != tmp_button)
 					ts->ts_data.state = ABS_RELEASE;
 				else
 					ts->ts_data.state = ABS_PRESS;
-			}
-			else{
+			} else {
 				if (check_cancel(ts->ts_data.prev_button.key_code, ts->ts_data.curr_data[id].x_position,
 						ts->ts_data.curr_data[id].y_position, ts->st_info))
 					ts->ts_data.state = BUTTON_CANCEL;
 				else
 					ts->ts_data.state = DO_NOT_ANYTHING;
 			}
-		}
-		else{
+		} else {
 			if (tmp_button == KEY_PANEL || tmp_button == KEY_BOUNDARY)
 				ts->ts_data.state = ABS_PRESS;
 			else
@@ -2075,9 +2123,9 @@ static void touch_work_func_b(struct work_struct *work)
 		break;
 
 	case OP_LOCK:
-		for (id = 0; id < ts->pdata->caps->max_id; id++){
+		for (id = 0; id < ts->pdata->caps->max_id; id++) {
 			if (ts->ts_data.curr_data[id].status == FINGER_PRESSED) {
-				if (ts->ts_data.curr_data[id].y_position < ts->pdata->caps->y_button_boundary){
+				if (ts->ts_data.curr_data[id].y_position < ts->pdata->caps->y_button_boundary) {
 					ts->ts_data.curr_button.key_code = KEY_PANEL;
 					ts->ts_data.state = ABS_PRESS;
 				}
@@ -2089,21 +2137,20 @@ static void touch_work_func_b(struct work_struct *work)
 		break;
 	}
 
-	if (unlikely(touch_debug_mask & (DEBUG_ABS |DEBUG_BUTTON)))
+	if (unlikely(touch_debug_mask & (DEBUG_ABS | DEBUG_BUTTON)))
 		TOUCH_INFO_MSG("op_mode[%d] state[%d]\n", op_mode, ts->ts_data.state);
 
-	switch(ts->ts_data.state){
+	switch (ts->ts_data.state) {
 	case ABS_PRESS:
 abs_report:
-		i=0;
+		i = 0;
 
 		i = touch_asb_input_report(ts, FINGER_PRESSED);
 
 		if (!i) {
 			touch_asb_input_report(ts, FINGER_RELEASED);
 			ts->ts_data.prev_total_num = 0;
-		}
-		else {
+		} else {
 			if (likely(touch_debug_mask & DEBUG_ABS))
 				check_log_finger_changed(ts, i);
 
@@ -2127,7 +2174,7 @@ abs_report:
 		input_report_key(ts->input_dev, ts->ts_data.prev_button.key_code, BUTTON_CANCLED);
 		if (unlikely(touch_debug_mask & DEBUG_BUTTON))
 			TOUCH_INFO_MSG("Touch KEY[%d] is canceled\n", ts->ts_data.prev_button.key_code);
-		if (ts->ts_data.curr_data[0].y_position < ts->pdata->caps->y_button_boundary){
+		if (ts->ts_data.curr_data[0].y_position < ts->pdata->caps->y_button_boundary) {
 			input_sync(ts->input_dev);
 			goto abs_report;
 		}
@@ -2142,10 +2189,10 @@ abs_report:
 
 	input_sync(ts->input_dev);
 
-	if (likely(touch_debug_mask & DEBUG_BASE_INFO)){
+	if (likely(touch_debug_mask & DEBUG_BASE_INFO)) {
 		if (ts->ts_data.state == ABS_RELEASE)
 			check_log_finger_released(ts);
-		if(ts->ts_data.state == BUTTON_RELEASE)
+		if (ts->ts_data.state == BUTTON_RELEASE)
 			TOUCH_INFO_MSG("touch_release : button[%d]\n", ts->ts_data.prev_button.key_code);
 	}
 
@@ -2183,6 +2230,10 @@ static void touch_work_func_c(struct work_struct *work)
 		goto err_out_critical;
 	else if (ret == -EAGAIN)
 		goto out;
+	else if (ret == -IGNORE_INTERRUPT) {
+		mutex_unlock(&ts->irq_work_mutex);
+		return;
+	}
 
 	if (!ts->ts_data.total_num) {
 		touch_asb_input_report(ts, FINGER_RELEASED);
@@ -2194,6 +2245,8 @@ static void touch_work_func_c(struct work_struct *work)
 		}
 
 		ts->ts_data.prev_total_num = 0;
+		/* Reset previous finger position data */
+		memset(&ts->ts_data.prev_data, 0x0, sizeof(ts->ts_data.prev_data));
 	} else if (ts->ts_data.total_num <= ts->pdata->caps->max_id) {
 		if (likely(touch_debug_mask & (DEBUG_BASE_INFO | DEBUG_ABS)))
 			check_log_finger_changed(ts, ts->ts_data.total_num);
@@ -2237,11 +2290,11 @@ static void touch_fw_upgrade_func(struct work_struct *work_fw_upgrade)
     /*Disable IRQ before touch firmware upgrade */
     old_irq_mask = touch_irq_mask;
 
-    if (likely(touch_debug_mask & DEBUG_FW_UPGRADE))
-        TOUCH_INFO_MSG("START fw_upgrade_func, old_irq_mask = %s, touch_irq_maask = %s",old_irq_mask?"TRUE":"FALSE",touch_irq_mask?"TRUE":"FALSE");
+	if (likely(touch_debug_mask & DEBUG_FW_UPGRADE))
+		TOUCH_INFO_MSG("START fw_upgrade_func, old_irq_mask = %s, touch_irq_maask = %s", old_irq_mask ? "TRUE" : "FALSE", touch_irq_mask ? "TRUE" : "FALSE");
 
-    touch_disable_irq(ts->client->irq);
-    
+	touch_disable_irq(ts->client->irq);
+
 	if (unlikely(touch_debug_mask & DEBUG_TRACE))
 		TOUCH_DEBUG_MSG("\n");
 
@@ -2299,11 +2352,11 @@ static void touch_fw_upgrade_func(struct work_struct *work_fw_upgrade)
 
 		touch_ic_init(ts);
 
-		if(saved_state == POWER_WAKE || saved_state == POWER_SLEEP)
+		if (saved_state == POWER_WAKE || saved_state == POWER_SLEEP)
 			touch_power_cntl(ts, saved_state);
 	}
 
-	if (likely(touch_debug_mask & (DEBUG_FW_UPGRADE |DEBUG_BASE_INFO)))
+	if (likely(touch_debug_mask & (DEBUG_FW_UPGRADE | DEBUG_BASE_INFO)))
 		TOUCH_INFO_MSG("F/W upgrade - Finish\n");
 
 #ifdef LGE_TOUCH_TIME_DEBUG
@@ -2329,9 +2382,9 @@ out:
 
 	memset(&ts->fw_info.fw_upgrade, 0, sizeof(ts->fw_info.fw_upgrade));
 	/*Enable IRQ after touch firmware upgrade if IRQ has been enabled. */
-    if(old_irq_mask){
-        touch_enable_irq(ts->client->irq);
-        TOUCH_INFO_MSG("FW Upgrade finish and enable irq again\n");
+    if (old_irq_mask) {
+		touch_enable_irq(ts->client->irq);
+		TOUCH_INFO_MSG("FW Upgrade finish and enable irq again\n");
     }
 
 	return;
@@ -2349,8 +2402,8 @@ static irqreturn_t touch_irq_handler(int irq, void *dev_id)
 {
 	struct lge_touch_data *ts = (struct lge_touch_data *)dev_id;
 
-        if (unlikely(atomic_read(&ts->device_init) != 1))
-		return IRQ_HANDLED;
+	if (unlikely(atomic_read(&ts->device_init) != 1))
+	return IRQ_HANDLED;
 
 #ifdef LGE_TOUCH_TIME_DEBUG
 	do_gettimeofday(&t_debug[TIME_ISR_START]);
@@ -2373,10 +2426,10 @@ static irqreturn_t touch_thread_irq_handler(int irq, void *dev_id)
 	do_gettimeofday(&t_debug[TIME_THREAD_ISR_START]);
 #endif
 
-	if(ts_suspend && touch_gesture_enable){
+	if (ts_suspend && touch_gesture_enable) {
 		TOUCH_INFO_MSG("touch_thread_irq_handler : %d %d\n", ts_suspend, touch_gesture_enable);
 		TOUCH_INFO_MSG("gesture wakeup\n");
-		queue_delayed_work(touch_wq, &ts->work_gesture_wakeup,msecs_to_jiffies(0));
+		queue_delayed_work(touch_wq, &ts->work_gesture_wakeup, msecs_to_jiffies(0));
 		return IRQ_HANDLED;
 	}
 	queue_work(touch_wq, &ts->work);
@@ -2454,13 +2507,12 @@ static int check_platform_data(struct touch_platform_data *pdata)
 		}
 	}
 
-	if (pdata->role->suspend_pwr == POWER_OFF || pdata->role->suspend_pwr == POWER_SLEEP){
+	if (pdata->role->suspend_pwr == POWER_OFF || pdata->role->suspend_pwr == POWER_SLEEP) {
 		if (pdata->role->suspend_pwr == POWER_OFF)
 			pdata->role->resume_pwr = POWER_ON;
 		else
 			pdata->role->resume_pwr = POWER_WAKE;
-	}
-	else {
+	} else {
 		TOUCH_ERR_MSG("suspend_pwr = POWER_OFF or POWER_SLEEP\n");
 	}
 
@@ -2469,8 +2521,7 @@ static int check_platform_data(struct touch_platform_data *pdata)
 			TOUCH_ERR_MSG("you should assign the name of vdd and vio\n");
 			return -1;
 		}
-	}
-	else{
+	} else {
 		if (!pdata->pwr->power) {
 			TOUCH_ERR_MSG("you should assign the power-control-function\n");
 			return -1;
@@ -2486,13 +2537,11 @@ static int check_platform_data(struct touch_platform_data *pdata)
 	return 0;
 }
 
-
-
 /* get_section
  *
  * it calculates the area of touch-key, automatically.
  */
-void get_section(struct section_info* sc, struct touch_platform_data *pdata)
+void get_section(struct section_info *sc, struct touch_platform_data *pdata)
 {
 	int i;
 
@@ -2501,13 +2550,17 @@ void get_section(struct section_info* sc, struct touch_platform_data *pdata)
 	sc->panel.top = 0;
 	sc->panel.bottom = pdata->caps->y_button_boundary;
 
-	sc->b_width  = pdata->caps->x_max / pdata->caps->number_of_button;
+	if (pdata->caps->number_of_button != 0)
+		sc->b_width  = pdata->caps->x_max / pdata->caps->number_of_button;
+	else
+		sc->b_width  = 0; /* No button! */
+
 	sc->b_margin = sc->b_width * pdata->caps->button_margin / 100;
 	sc->b_inner_width = sc->b_width - (2*sc->b_margin);
 	sc->b_height = pdata->caps->y_max - pdata->caps->y_button_boundary;
 	sc->b_num = pdata->caps->number_of_button;
 
-	for(i=0; i<sc->b_num; i++){
+	for (i = 0; i < sc->b_num; i++) {
 		sc->button[i].left = i * (pdata->caps->x_max / pdata->caps->number_of_button) + sc->b_margin;
 		sc->button[i].right = sc->button[i].left + sc->b_inner_width;
 		sc->button[i].top = pdata->caps->y_button_boundary + 1;
@@ -2607,22 +2660,24 @@ static ssize_t store_fw_upgrade(struct lge_touch_data *ts, const char *buf, size
 {
 	int value = 0;
 	int repeat = 0;
-	char path[256] = {0};
+	static char path[256] = {0};
 
+	memset(path, 0, 256);
 	sscanf(buf, "%d %s", &value, path);
 
 	TOUCH_INFO_MSG("Firmware image path: %s\n", path[0] != 0 ? path : "Internal");
 
 	if (value) {
-		for(repeat = 0; repeat < value; repeat++) {
+		for (repeat = 0; repeat < value; repeat++) {
 			/* sync for n-th repeat test */
-			while(ts->fw_info.fw_upgrade.is_downloading);
+			while (ts->fw_info.fw_upgrade.is_downloading)
+			;
 
 			msleep(ts->pdata->role->booting_delay * 2);
 			TOUCH_INFO_MSG("Firmware image upgrade: No.%d\n", repeat+1);
 
 			/* for n-th repeat test - because ts->fw_info.fw_upgrade is setted 0 after FW upgrade */
-			if(path[0] == 0)
+			if (path[0] == 0)
 				ts->fw_info.fw_upgrade.fw_path = ts->pdata->inbuilt_fw_name;
 			else
 				ts->fw_info.fw_upgrade.fw_path = (char *) path;
@@ -2637,7 +2692,8 @@ static ssize_t store_fw_upgrade(struct lge_touch_data *ts, const char *buf, size
 		}
 
 		/* sync for fw_upgrade test */
-		while(ts->fw_info.fw_upgrade.is_downloading);
+		while (ts->fw_info.fw_upgrade.is_downloading)
+		;
 	}
 
 	return count;
@@ -2671,12 +2727,12 @@ static ssize_t show_section_info(struct lge_touch_data *ts, char *buf)
 			ts->st_info.panel.right, ts->st_info.panel.top, ts->st_info.panel.bottom);
 
 	if (ts->pdata->role->key_type == TOUCH_SOFT_KEY) {
-		for(i=0; i<ts->st_info.b_num; i++){
+		for (i = 0; i < ts->st_info.b_num; i++) {
 			ret += sprintf(buf+ret, "Button[%4d] = [%4d,%4d,%4d,%4d]\n",
 					ts->st_info.b_name[i], ts->st_info.button[i].left,
 					ts->st_info.button[i].right, ts->st_info.button[i].top, ts->st_info.button[i].bottom);
 		}
-		for(i=0; i<ts->st_info.b_num; i++){
+		for (i = 0; i < ts->st_info.b_num; i++) {
 			ret += sprintf(buf+ret, "Button_cancel[%4d] = [%4d,%4d,%4d,%4d]\n",
 					ts->st_info.b_name[i], ts->st_info.button_cancel[i].left,
 					ts->st_info.button_cancel[i].right, ts->st_info.button_cancel[i].top,
@@ -2725,8 +2781,7 @@ static ssize_t store_ts_reset(struct lge_touch_data *ts, const char *buf, size_t
 			if (touch_device_func->ic_ctrl) {
 				TOUCH_INFO_MSG("SOFT RESET");
 				touch_device_func->ic_ctrl(ts->client, IC_CTRL_RESET_CMD, 0);
-			}
-			else {
+			} else {
 				TOUCH_INFO_MSG("There is no specific IC control function\n");
 			}
 		} else if (!strncmp(string, "pin", 3)) {
@@ -2741,8 +2796,7 @@ static ssize_t store_ts_reset(struct lge_touch_data *ts, const char *buf, size_t
 			TOUCH_INFO_MSG("VDD RESET");
 			touch_power_cntl(ts, POWER_OFF);
 			touch_power_cntl(ts, POWER_ON);
-		}
-		else {
+		} else {
 			TOUCH_INFO_MSG("Usage: echo [soft | pin | vdd] > ts_reset\n");
 			TOUCH_INFO_MSG(" - soft : reset using IC register setting\n");
 			TOUCH_INFO_MSG(" - soft : reset using reset pin\n");
@@ -2751,7 +2805,7 @@ static ssize_t store_ts_reset(struct lge_touch_data *ts, const char *buf, size_t
 
 		if (ret < 0) {
 			TOUCH_ERR_MSG("reset fail\n");
-		}else {
+		} else {
 			atomic_set(&ts->device_init, 0);
 		}
 
@@ -2789,13 +2843,13 @@ static ssize_t ic_register_ctrl(struct lge_touch_data *ts, const char *buf, size
 
 	sscanf(buf, "%s %d %d %d %d", string, &page, &reg, &value, &offset);
 
-	if(touch_device_func->ic_ctrl) {
-		if(ts->curr_pwr_state == POWER_ON || ts->curr_pwr_state == POWER_WAKE){
+	if (touch_device_func->ic_ctrl) {
+		if (ts->curr_pwr_state == POWER_ON || ts->curr_pwr_state == POWER_WAKE) {
 			if (!strncmp(string, "read", 4)) {
 				write_data = ((0xFF & page) << 8) | (0xFF & reg);
 				do {
 					ret = touch_device_func->ic_ctrl(ts->client, IC_CTRL_READ, write_data);
-					if(ret >= 0) {
+					if (ret >= 0) {
 						TOUCH_INFO_MSG("register[0x%04X] = 0x%02X\n", write_data, ret);
 					} else {
 						TOUCH_INFO_MSG("cannot read register[0x%02X%02X]\n", page, reg);
@@ -2805,12 +2859,12 @@ static ssize_t ic_register_ctrl(struct lge_touch_data *ts, const char *buf, size
 			} else if (!strncmp(string, "write", 4)) {
 				write_data = ((0xFF & page) << 16) | ((0xFF & reg) << 8) | (0xFF & value);
 				ret = touch_device_func->ic_ctrl(ts->client, IC_CTRL_WRITE, write_data);
-				if(ret >= 0) {
+				if (ret >= 0) {
 					TOUCH_INFO_MSG("register[0x%02X%02X] is set to 0x%02X\n", page, reg, value);
 				} else {
 					TOUCH_INFO_MSG("cannot write register[0x%02X%02X]\n", page, reg);
 				}
-			} else if(!strncmp(string, "rall", 4)) {
+			} else if (!strncmp(string, "rall", 4)) {
 				r_mem = kzalloc(sizeof(char) * value, GFP_KERNEL);
 				if (r_mem == NULL) {
 					TOUCH_ERR_MSG("%d bytes allocation fail!", value);
@@ -2823,20 +2877,21 @@ static ssize_t ic_register_ctrl(struct lge_touch_data *ts, const char *buf, size
 							i++;
 						} while (--value > 0);
 					}
-					if(r_mem != NULL) kfree(r_mem);
+					if (r_mem != NULL)
+						kfree(r_mem);
 				}
 			} else if (!strncmp(string, "wall", 4)) {
-				r_mem = kzalloc(sizeof(char) * (offset+1), GFP_KERNEL);
+				r_mem = kzalloc(sizeof(char) * (offset + 1), GFP_KERNEL);
 
 				if (r_mem == NULL) {
-					TOUCH_ERR_MSG("%d bytes allocation fail!", (offset+1));
+					TOUCH_ERR_MSG("%d bytes allocation fail!", (offset + 1));
 				} else {
-					if (touch_i2c_read(ts->client, reg, (offset+1), r_mem) < 0) {
-						TOUCH_ERR_MSG("%d bytes read fail!", (offset+1));
+					if (touch_i2c_read(ts->client, reg, (offset + 1), r_mem) < 0) {
+						TOUCH_ERR_MSG("%d bytes read fail!", (offset + 1));
 					} else {
-						*(r_mem+offset) = value;
-						ret = touch_i2c_write(ts->client, reg, (offset+1), r_mem);
-						if(ret >= 0) {
+						*(r_mem + offset) = value;
+						ret = touch_i2c_write(ts->client, reg, (offset + 1), r_mem);
+						if (ret >= 0) {
 							do {
 								TOUCH_INFO_MSG("register[0x%x+%d] is set to 0x%x\n", reg, i, *(r_mem+i));
 								i++;
@@ -2844,7 +2899,8 @@ static ssize_t ic_register_ctrl(struct lge_touch_data *ts, const char *buf, size
 						} else {
 							TOUCH_INFO_MSG("cannot write register[0x%x] ~ [0x%x+%d]\n", reg, reg, offset);
 						}
-						if(r_mem != NULL) kfree(r_mem);
+						if (r_mem != NULL)
+							kfree(r_mem);
 					}
 				}
 			} else{
@@ -2856,8 +2912,7 @@ static ssize_t ic_register_ctrl(struct lge_touch_data *ts, const char *buf, size
 				TOUCH_INFO_MSG("Usage: echo [read | rall | write | wall] reg_num value offset > ic_rw\n");
 				TOUCH_INFO_MSG(" - value [rall] : number of register starting form reg_num\n");
 			}
-		}
-		else
+		} else
 			TOUCH_INFO_MSG("state=[suspend]. we cannot use I2C, now\n");
 	} else
 		TOUCH_INFO_MSG("There is no specific IC control function\n");
@@ -2876,19 +2931,31 @@ static ssize_t store_keyguard_info(struct lge_touch_data *ts, const char *buf, s
 	int value;
 	sscanf(buf, "%d", &value);
 
-	if(value == KEYGUARD_ENABLE)
+	TOUCH_INFO_MSG("%s \n", __func__);
+
+	if (value == KEYGUARD_ENABLE)
 		ts->gf_ctrl.stage = GHOST_STAGE_1 | GHOST_STAGE_2 | GHOST_STAGE_4;
-	else if(value == KEYGUARD_RESERVED)
+	else if (value == KEYGUARD_RESERVED)
 		ts->gf_ctrl.stage &= ~GHOST_STAGE_2;
 
-	if (touch_debug_mask & DEBUG_GHOST || touch_debug_mask & DEBUG_BASE_INFO){
+	if (touch_debug_mask & DEBUG_GHOST || touch_debug_mask & DEBUG_BASE_INFO) {
 		TOUCH_INFO_MSG("ghost_stage [0x%x]\n", ts->gf_ctrl.stage);
-		if(value == KEYGUARD_RESERVED)
+		if (value == KEYGUARD_RESERVED)
 			TOUCH_INFO_MSG("ghost_stage2 : cleared[0x%x]\n", ts->gf_ctrl.stage);
 	}
 
 	return count;
 }
+
+static ssize_t store_lockscreen_info(struct lge_touch_data *ts, const char *buf, size_t count)
+{
+	sscanf(buf, "%d", &ts->lockscreen);
+
+	TOUCH_INFO_MSG("%s : %d \n", __func__, ts->lockscreen);
+
+	return count;
+}
+
 
 /* show_virtual_key
  *
@@ -2900,21 +2967,33 @@ static ssize_t store_keyguard_info(struct lge_touch_data *ts, const char *buf, s
  */
 static ssize_t show_virtual_key(struct lge_touch_data *ts, char *buf)
 {
-	int i=0;
+	int i = 0;
 	int ret = 0;
 
-	u32 center_x = (ts->pdata->caps->x_max / (ts->pdata->caps->number_of_button * 2));
-	u32 center_y = (ts->pdata->caps->y_button_boundary + (ts->st_info.b_height / 2));
+	u32 center_x = 0;
+	u32 center_y = 0;
+
+#if defined(CONFIG_MACH_MSM8926_JAGN_KR) || defined(CONFIG_MACH_MSM8226_JAG3GDS_GLOBAL_COM) || defined(CONFIG_MACH_MSM8226_JAG3GSS_GLOBAL_COM) \
+	|| defined(CONFIG_MACH_MSM8926_VFP_KR) || defined(CONFIG_MACH_MSM8926_JAGNM_GLOBAL_COM) \
+	|| defined(CONFIG_MACH_MSM8926_JAGDSNM_CN)/* to avoid division by zero in kernel */
+
+	if (ts->pdata->caps->number_of_button != 0) {
+		center_x = (ts->pdata->caps->x_max / (ts->pdata->caps->number_of_button * 2));
+	}
+#else
+	center_x = (ts->pdata->caps->x_max / (ts->pdata->caps->number_of_button * 2));
+#endif
+	center_y = (ts->pdata->caps->y_button_boundary + (ts->st_info.b_height / 2));
 
 	/* Register sysfs for virtualkeys*/
 	if (ts->pdata->caps->button_support && ts->pdata->role->key_type == VIRTUAL_KEY) {
 
-		for(i=0; i<ts->pdata->caps->number_of_button; i++) {
+		for (i = 0; i < ts->pdata->caps->number_of_button; i++) {
 			if (i)
 				ret += sprintf(buf+ret, ":");
 
 			ret += sprintf(buf+ret, "0x01:%d:%d:%d:%d:%d", ts->pdata->caps->button_name[i],
-						center_x * (i*2 + 1), center_y,
+						center_x * (i * 2 + 1), center_y,
 						ts->st_info.b_inner_width, ts->st_info.b_height);
 		}
 		ret += sprintf(buf+ret, "\n");
@@ -2981,7 +3060,7 @@ static ssize_t power_control_store(struct lge_touch_data *ts, const char *buf, s
 	if (sscanf(buf, "%d", &cmd) != 1)
 		return -EINVAL;
 
-	switch (cmd){
+	switch (cmd) {
 	case 1:
 		if (ts->curr_pwr_state == POWER_OFF) {
 			touch_power_cntl(ts, POWER_ON);
@@ -2995,7 +3074,7 @@ static ssize_t power_control_store(struct lge_touch_data *ts, const char *buf, s
 		break;
 
 	case 0:
-		if (ts->curr_pwr_state == POWER_ON){
+		if (ts->curr_pwr_state == POWER_ON) {
 			if (ts->pdata->role->operation_mode)
 				mutex_lock(&ts->irq_work_mutex);
 			else
@@ -3113,10 +3192,10 @@ static ssize_t show_chstatus(struct lge_touch_data *ts, char *buf)
  * It will be used to send u-event to Android-framework.
  */
 static struct sys_device lge_touch_sys_device;
-void send_uevent(char* string[2])
+void send_uevent(char *string[2])
 {
     kobject_uevent_env(&lge_touch_sys_device.kobj, KOBJ_CHANGE, string);
-    TOUCH_DEBUG_MSG( "uevent[%s]\n", string[0]);
+    TOUCH_DEBUG_MSG("uevent[%s]\n", string[0]);
 }
 
 /* send_uevent_lpwg
@@ -3125,18 +3204,19 @@ void send_uevent(char* string[2])
  * during recognition or verification.
  */
 #define VALID_LPWG_UEVENT_SIZE 2
-static char *lpwg_uevent[VALID_LPWG_UEVENT_SIZE][2] =
-{{"TOUCH_GESTURE_WAKEUP=WAKEUP", NULL},
- {"TOUCH_GESTURE_WAKEUP=PASSWORD", NULL}};
+static char *lpwg_uevent[VALID_LPWG_UEVENT_SIZE][2] = {
+														{"TOUCH_GESTURE_WAKEUP=WAKEUP", NULL},
+														{"TOUCH_GESTURE_WAKEUP=PASSWORD", NULL}
+													};
 
-void send_uevent_lpwg(struct i2c_client* client, int type)
+void send_uevent_lpwg(struct i2c_client *client, int type)
 {
     struct lge_touch_data *ts = i2c_get_clientdata(client);
 
     if (type > 0 && type <= VALID_LPWG_UEVENT_SIZE
-            && atomic_read(&ts->state.uevent_state) == UEVENT_IDLE) {
-        atomic_set(&ts->state.uevent_state, UEVENT_BUSY);
-        send_uevent(lpwg_uevent[type-1]);
+		&& atomic_read(&ts->state.uevent_state) == UEVENT_IDLE) {
+			atomic_set(&ts->state.uevent_state, UEVENT_BUSY);
+			send_uevent(lpwg_uevent[type - 1]);
     }
 }
 
@@ -3145,21 +3225,20 @@ void send_uevent_lpwg(struct i2c_client* client, int type)
  * Other drivers can notify their status to touch driver.
  * Do not use 'i2c_client' in other function.
  */
-struct state_info*  state;
-struct i2c_client*  client_only_for_update_status;
+struct state_info *state;
+struct i2c_client *client_only_for_update_status;
 void update_status(int code, int value)
 {
+	if (code == NOTIFY_TA_CONNECTION)
+		atomic_set(&state->ta_state, value ? TA_CONNECTED : TA_DISCONNECTED);
+	else if (code == NOTIFY_TEMPERATURE_CHANGE)
+		atomic_set(&state->temperature_state, value);
+	else if (code == NOTIFY_PROXIMITY)
+		atomic_set(&state->proximity_state, value ? PROXIMITY_NEAR : PROXIMITY_FAR);
+	else if (code == NOTIFY_HALL_IC)
+		atomic_set(&state->hallic_state, value ? HALL_COVERED : HALL_NONE);
 
-    if (code == NOTIFY_TA_CONNECTION)
-        atomic_set(&state->ta_state, value ? TA_CONNECTED : TA_DISCONNECTED);
-    else if (code == NOTIFY_TEMPERATURE_CHANGE)
-        atomic_set(&state->temperature_state, value);
-    else if (code == NOTIFY_PROXIMITY)
-        atomic_set(&state->proximity_state, value ? PROXIMITY_NEAR : PROXIMITY_FAR);
-    else if (code == NOTIFY_HALL_IC)
-        atomic_set(&state->hallic_state, value ? HALL_COVERED : HALL_NONE);
-
-    TOUCH_DEBUG_MSG("code[%d] value[%d]\n", code, value);
+	TOUCH_DEBUG_MSG("code[%d] value[%d]\n", code, value);
 }
 EXPORT_SYMBOL(update_status);
 
@@ -3198,7 +3277,7 @@ static ssize_t store_lpwg_data(struct lge_touch_data *ts, const char *buf, size_
     TOUCH_INFO_MSG("LPWG RESULT = %d ", reply);
 
     if (touch_device_func->lpwg) {
-        touch_device_func->lpwg(ts->client, LPWG_REPLY, reply, NULL);
+		touch_device_func->lpwg(ts->client, LPWG_REPLY, reply, NULL);
     }
 
     atomic_set(&ts->state.uevent_state, UEVENT_IDLE);
@@ -3219,42 +3298,59 @@ static ssize_t store_lpwg_notify(struct lge_touch_data *ts, const char *buf, siz
     int value[4] = {0};
 
     sscanf(buf, "%d %d %d %d %d", &type, &value[0], &value[1], &value[2], &value[3]);
-    TOUCH_INFO_MSG("touch notify type = %d , value[0] = %d, value[1] = %d, valeu[2] = %d, value[3] = %d ",type, value[0], value[1], value[2], value[3]);
+    TOUCH_INFO_MSG("touch notify type = %d , value[0] = %d, value[1] = %d, valeu[2] = %d, value[3] = %d ", type, value[0], value[1], value[2], value[3]);
 
-    if (touch_device_func->lpwg) {
-        switch(type){
-        case 1 :
+	if (touch_device_func->lpwg) {
+		switch (type) {
+		case 1:
 			touch_device_func->lpwg(ts->client, LPWG_ENABLE, value[0], NULL);
 			mutex_lock(&ts->irq_work_mutex);
-			if(value[0]) touch_gesture_enable = 1;
-			else touch_gesture_enable = 0;
+			if (value[0])
+				touch_gesture_enable = 1;
+			else
+				touch_gesture_enable = 0;
+			atomic_set(&ts->device_init, 1);
 			mutex_unlock(&ts->irq_work_mutex);
-            break;
-        case 2 :
+			break;
+		case 2:
 			touch_device_func->lpwg(ts->client, LPWG_LCD_X, value[0], NULL);
 			touch_device_func->lpwg(ts->client, LPWG_LCD_Y, value[1], NULL);
 			break;
-        case 3 :
+		case 3:
 			touch_device_func->lpwg(ts->client, LPWG_ACTIVE_AREA_X1, value[0], NULL);
 			touch_device_func->lpwg(ts->client, LPWG_ACTIVE_AREA_X2, value[1], NULL);
 			touch_device_func->lpwg(ts->client, LPWG_ACTIVE_AREA_Y1, value[2], NULL);
 			touch_device_func->lpwg(ts->client, LPWG_ACTIVE_AREA_Y2, value[3], NULL);
 			break;
-        case 4 :
+		case 4:
+			mutex_lock(&ts->irq_work_mutex);
 			touch_device_func->lpwg(ts->client, LPWG_TAP_COUNT, value[0], NULL);
+			mutex_unlock(&ts->irq_work_mutex);
 			break;
-        case 6 :
+		case 6:
 #if defined(CONFIG_FB)
-			if(value[0] == 0)
-				touch_fb_suspend(&ts->client->dev);
-			else if(value[0] == 1)
+			if (value[0] == 0) {
+				if (touch_gesture_enable)
+					touch_fb_suspend(&ts->client->dev);
+				else if (!touch_gesture_enable)
+					touch_device_func->suspend(ts->client);
+			} else if (value[0] == 1) {
+				touch_device_func->lpwg(ts->client, LPWG_MODE_CHANGE, value[0], NULL);
 				touch_fb_resume(&ts->client->dev);
+			}
 #endif
-            break;
-        default:
-            break;
-        }
-    }
+			break;
+		case 7:
+			touch_device_func->lpwg(ts->client, LPWG_STATUS_BY_PROXI, value[0], NULL);
+			mutex_lock(&ts->irq_work_mutex);
+			touch_gesture_enable = 1;
+			atomic_set(&ts->device_init, 1);
+			mutex_unlock(&ts->irq_work_mutex);
+			break;
+		default:
+			break;
+		}
+	}
     return count;
 }
 
@@ -3264,13 +3360,13 @@ static ssize_t store_global_access_pixel(struct lge_touch_data *ts, const char *
 	int pixel = 0;
 
 	ret = sscanf(buf, "%d", &pixel);
-	if(ret < 0){
+	if (ret < 0) {
 		TOUCH_ERR_MSG("Error to write pixel data.....\n");
 	}
 
 	ts->pdata->global_access_pixel = pixel;
 
-	TOUCH_INFO_MSG("SET global_access_pixel = %d\n",ts->pdata->global_access_pixel);
+	TOUCH_INFO_MSG("SET global_access_pixel = %d\n", ts->pdata->global_access_pixel);
 	return count;
 }
 
@@ -3293,6 +3389,7 @@ static LGE_TOUCH_ATTR(section, S_IRUGO | S_IWUSR, show_section_info, NULL);
 static LGE_TOUCH_ATTR(reset, S_IRUGO | S_IWUSR, NULL, store_ts_reset);
 static LGE_TOUCH_ATTR(ic_rw, S_IRUGO | S_IWUSR, NULL, ic_register_ctrl);
 static LGE_TOUCH_ATTR(keyguard, S_IRUGO | S_IWUSR, NULL, store_keyguard_info);
+static LGE_TOUCH_ATTR(lockscreen, S_IRUGO | S_IWUSR, NULL, store_lockscreen_info);
 static LGE_TOUCH_ATTR(virtualkeys, S_IRUGO | S_IWUSR, show_virtual_key, NULL);
 static LGE_TOUCH_ATTR(touch_gesture, S_IRUGO | S_IWUSR, NULL, store_touch_gesture);
 static LGE_TOUCH_ATTR(jitter, S_IRUGO | S_IWUSR, NULL, store_jitter_solution);
@@ -3321,6 +3418,7 @@ static struct attribute *lge_touch_attribute_list[] = {
 	&lge_touch_attr_reset.attr,
 	&lge_touch_attr_ic_rw.attr,
 	&lge_touch_attr_keyguard.attr,
+	&lge_touch_attr_lockscreen.attr,
 	&lge_touch_attr_touch_gesture.attr,
 	&lge_touch_attr_virtualkeys.attr,
 	&lge_touch_attr_jitter.attr,
@@ -3398,10 +3496,10 @@ static struct sys_device lge_touch_sys_device = {
 int synaptics_power_on(int on)
 {
 	int rc = 0;
-		
+
 	static struct regulator *vreg_l28;
 	static struct regulator *vreg_lvs1;
-	
+
 	struct i2c_client *client = touch_test_dev->client;
 
 		/* 3.3V_TOUCH_VDD, VREG_L28: 2.75 ~ 3.3 */
@@ -3465,7 +3563,7 @@ static int synaptics_parse_dt(struct device *dev, struct touch_platform_data *pd
 	const char *temp_string = node->name;
 	const char *reg_string = node->name;
 	u32 temp_val;
-	u32 temp_array[10];
+	u32 temp_array[16];
 
 	/* reset, irq gpio info */
 	if (node == NULL)
@@ -3476,41 +3574,55 @@ static int synaptics_parse_dt(struct device *dev, struct touch_platform_data *pd
 
 	rc = of_property_read_string(node, "synaptics,maker", &temp_string);
 	if (rc) {
-		TOUCH_DEBUG_MSG( "Looking up %s property in node %s failed",
+		TOUCH_DEBUG_MSG("Looking up %s property in node %s failed",
 			"synaptics,maker",
 			temp_string);
 		return -ENODEV;
 	}
 	len = strlen(temp_string);
 	memcpy(pdata->maker, temp_string, len);
-	rc = of_property_read_u32_array(node, "synaptics,fw_version_info", pdata->fw_version, FW_VER_INFO_NUM-1);
-	if(rc){
-		TOUCH_DEBUG_MSG( "Looking up %s property in node %02X %02X %02X failed",
-			"synaptics,fw_version",
-			pdata->fw_version[0], pdata->fw_version[1], pdata->fw_version[2]);
-		return -ENODEV;
-	}
-	else
-		TOUCH_INFO_MSG("fw_ver_info : 0x%02X 0x%02X 0x%02X \n",
-			pdata->fw_version[0], pdata->fw_version[1], pdata->fw_version[2]);
-
-	rc = of_property_read_string(node, "synaptics,fw_image",  &pdata->inbuilt_fw_name);
+	rc = of_property_read_u32_array(node, "synaptics,fw_version_info", temp_array, FW_VER_INFO_NUM-1);
 	if (rc) {
-		TOUCH_DEBUG_MSG( "Looking up %s property in node %s failed",
-			"synaptics,fw_image", pdata->inbuilt_fw_name);
+		TOUCH_DEBUG_MSG("Looking up %s property in node %02X %02X %02X failed",
+			"synaptics,fw_version",
+			temp_array[0], temp_array[1], temp_array[2]);
 		return -ENODEV;
+	} else {
+		for (i = 0; i < FW_VER_INFO_NUM-1; i++) {
+			pdata->fw_version[i] = temp_array[i];
+		}
+		TOUCH_DEBUG_MSG("fw_ver_info : 0x%02X 0x%02X 0x%02X \n",
+			pdata->fw_version[0], pdata->fw_version[1], pdata->fw_version[2]);
 	}
-	else
-		TOUCH_DEBUG_MSG("fw_image: %s",pdata->inbuilt_fw_name);
+
+	rc = of_property_count_strings(node, "synaptics,fw_image");
+	TOUCH_INFO_MSG("firmware path, rc = %d ", rc);
+	if (rc > 1) {
+		TOUCH_DEBUG_MSG("Get latter inbuilt firmware path ..., due to different type of panel");
+		for (i = 0; i < rc; i++) {
+			of_property_read_string_index(node, "synaptics,fw_image", i, &pdata->inbuilt_fw_name_id[i]);
+			TOUCH_INFO_MSG("fw_image [%d]: %s", i, pdata->inbuilt_fw_name_id[i]);
+		}
+	} else {
+		rc = of_property_read_string_index(node, "synaptics,fw_image", 0, &pdata->inbuilt_fw_name_id[0]);
+		if (rc) {
+			TOUCH_DEBUG_MSG("Looking up %s property in node %s failed",
+				"synaptics,fw_image", pdata->inbuilt_fw_name);
+			return -ENODEV;
+		} else {
+			pdata->inbuilt_fw_name = pdata->inbuilt_fw_name_id[0];
+			TOUCH_DEBUG_MSG("fw_image: %s", pdata->inbuilt_fw_name);
+		}
+	}
 
 	rc = of_property_read_u32(node, "lge,knock_on_type",  &temp_val);
 	if (rc) {
-		TOUCH_DEBUG_MSG( "Unable to read knock_on_type - set as 0\n" );
+		TOUCH_DEBUG_MSG("Unable to read knock_on_type - set as 0\n");
 		pdata->knock_on_type = 0;
 	} else {
 		pdata->knock_on_type = temp_val;
 	}
-	TOUCH_DEBUG_MSG("knock_on_type: %d",pdata->knock_on_type);
+	TOUCH_DEBUG_MSG("knock_on_type: %d", pdata->knock_on_type);
 
 	/* Caps */
 	pdata->num_caps = 0;
@@ -3525,162 +3637,179 @@ static int synaptics_parse_dt(struct device *dev, struct touch_platform_data *pd
 	if (!caps_info)
 		return -ENOMEM;
 
-	rc = of_property_read_string(node, "synaptics,panel_spec",  &pdata->panel_spec);
+	rc = of_property_count_strings(node, "synaptics,panel_spec");
+	TOUCH_INFO_MSG("panel_spec, rc = %d ", rc);
+	if (rc > 1) {
+		TOUCH_DEBUG_MSG("Get latter panel spec ..., due to different type of panel");
+		for (i = 0; i < rc; i++) {
+			of_property_read_string_index(node, "synaptics,panel_spec", i, &pdata->panel_spec_id[i]);
+			TOUCH_INFO_MSG("panel_spec [%d]: %s", i, pdata->panel_spec_id[i]);
+		}
+	} else {
+		rc = of_property_read_string_index(node, "synaptics,panel_spec", 0, &pdata->panel_spec_id[0]);
 		if (rc) {
-			TOUCH_DEBUG_MSG( "Looking up %s property in node %s failed",
+			TOUCH_DEBUG_MSG("Looking up %s property in node %s failed",
 				"synaptics,panel_spec", pdata->panel_spec);
+		} else {
+			pdata->panel_spec = pdata->panel_spec_id[0];
+			TOUCH_DEBUG_MSG("panel_spec: %s", pdata->panel_spec);
 		}
-		else {
-			TOUCH_DEBUG_MSG("panel_spec: %s",pdata->panel_spec);
-		}
+	}
 
 	/*global_access_pixel parsing*/
 	rc = of_property_read_u32(node, "synaptics,global_access_pixel", &pdata->global_access_pixel);
 	if (rc) {
-		TOUCH_DEBUG_MSG( "Looking up %s property in node %d failed",
+		TOUCH_DEBUG_MSG("Looking up %s property in node %d failed",
 			"synaptics,global_access_pixel", pdata->global_access_pixel);
-	}
-	else {
-		TOUCH_DEBUG_MSG("global_access_pixel: %d",pdata->global_access_pixel);
+	} else {
+		TOUCH_DEBUG_MSG("global_access_pixel: %d", pdata->global_access_pixel);
 	}
 
-	pdata->caps = caps_info;	
+	pdata->caps = caps_info;
 	for_each_child_of_node(node, pp) {
 		rc = of_property_read_u32(pp, "panel_type", &temp_val);
 		if (rc && (rc != -EINVAL)) {
-			TOUCH_DEBUG_MSG( "Unable to read panel_type\n");
+			TOUCH_DEBUG_MSG("Unable to read panel_type\n");
 			pdata->panel_type = 0;
 		} else
 			pdata->panel_type =  temp_val;
 
 		rc = of_property_read_u32(pp, "button_support", &temp_val);
 		if (rc && (rc != -EINVAL)) {
-			TOUCH_DEBUG_MSG( "Unable to read button_support\n");
+			TOUCH_DEBUG_MSG("Unable to read button_support\n");
 			return rc;
 		} else
 			caps_info->button_support =  temp_val;
 
 		rc = of_property_read_u32(pp, "y_button_boundary", &temp_val);
 		if (rc && (rc != -EINVAL)) {
-			TOUCH_DEBUG_MSG( "Unable to read y_button_boundary\n");
+			TOUCH_DEBUG_MSG("Unable to read y_button_boundary\n");
 			return rc;
 		} else
 			caps_info->y_button_boundary =	temp_val;
 
 		rc = of_property_read_u32(pp, "button_margin", &temp_val);
 		if (rc && (rc != -EINVAL)) {
-			TOUCH_DEBUG_MSG( "Unable to read button_margin\n");
+			TOUCH_DEBUG_MSG("Unable to read button_margin\n");
 			return rc;
 		} else
 			caps_info->button_margin =	temp_val;
 
 		rc = of_property_read_u32(pp, "number_of_button", &temp_val);
 		if (rc && (rc != -EINVAL)) {
-			TOUCH_DEBUG_MSG( "Unable to read number_of_button\n");
+			TOUCH_DEBUG_MSG("Unable to read number_of_button\n");
 			return rc;
 		} else
 			caps_info->number_of_button =  temp_val;
 
 		prop = of_find_property(pp, "button_name", NULL);
-		if(prop && (prop->length == caps_info->number_of_button)){
+		if (prop && (prop->length == caps_info->number_of_button)) {
 				const u8 *iprop = prop->value;
-				for (i =0; i < prop->length; i++)
+				for (i = 0; i < prop->length; i++)
 					caps_info->button_name[i] = iprop[i];
 		}
 
 		rc = of_property_read_u32(pp, "is_width_supported", &temp_val);
 		if (rc && (rc != -EINVAL)) {
-			TOUCH_DEBUG_MSG( "Unable to read is_width_supported\n");
+			TOUCH_DEBUG_MSG("Unable to read is_width_supported\n");
 			return rc;
 		} else
 			caps_info->is_width_supported =  temp_val;
 
 		rc = of_property_read_u32(pp, "is_pressure_supported", &temp_val);
 		if (rc && (rc != -EINVAL)) {
-			TOUCH_DEBUG_MSG( "Unable to read is_pressure_supported\n");
+			TOUCH_DEBUG_MSG("Unable to read is_pressure_supported\n");
 			return rc;
 		} else
 			caps_info->is_pressure_supported =	temp_val;
 
 		rc = of_property_read_u32(pp, "is_id_supported", &temp_val);
 		if (rc && (rc != -EINVAL)) {
-			TOUCH_DEBUG_MSG( "Unable to read is_id_supported\n");
+			TOUCH_DEBUG_MSG("Unable to read is_id_supported\n");
 			return rc;
 		} else
 			caps_info->is_id_supported =  temp_val;
 
 		rc = of_property_read_u32(pp, "max_width", &temp_val);
 		if (rc && (rc != -EINVAL)) {
-			TOUCH_DEBUG_MSG( "Unable to read max_width\n");
+			TOUCH_DEBUG_MSG("Unable to read max_width\n");
 			return rc;
 		} else
 			caps_info->max_width =	temp_val;
 
 		rc = of_property_read_u32(pp, "max_pressure", &temp_val);
 		if (rc && (rc != -EINVAL)) {
-			TOUCH_DEBUG_MSG( "Unable to read max_pressure\n");
+			TOUCH_DEBUG_MSG("Unable to read max_pressure\n");
 			return rc;
 		} else
 			caps_info->max_pressure = temp_val;
 
 		rc = of_property_read_u32(pp, "max_id", &temp_val);
 		if (rc && (rc != -EINVAL)) {
-			TOUCH_DEBUG_MSG( "Unable to read max_id\n");
+			TOUCH_DEBUG_MSG("Unable to read max_id\n");
 			return rc;
 		} else
 			caps_info->max_id = temp_val;
 
 		rc = of_property_read_u32(pp, "x_max", &temp_val);
 		if (rc && (rc != -EINVAL)) {
-			TOUCH_DEBUG_MSG( "Unable to read x_max\n");
+			TOUCH_DEBUG_MSG("Unable to read x_max\n");
 			return rc;
 		} else
 			caps_info->x_max = temp_val;
 
 		rc = of_property_read_u32(pp, "y_max", &temp_val);
 		if (rc && (rc != -EINVAL)) {
-			TOUCH_DEBUG_MSG( "Unable to read y_max\n");
+			TOUCH_DEBUG_MSG("Unable to read y_max\n");
 			return rc;
 		} else
 			caps_info->y_max = temp_val;
 
 		rc = of_property_read_u32(pp, "lcd_x", &temp_val);
 		if (rc && (rc != -EINVAL)) {
-			TOUCH_DEBUG_MSG( "Unable to read lcd_x\n");
+			TOUCH_DEBUG_MSG("Unable to read lcd_x\n");
 			return rc;
 		} else
 			caps_info->lcd_x = temp_val;
 
 		rc = of_property_read_u32(pp, "lcd_y", &temp_val);
 		if (rc && (rc != -EINVAL)) {
-			TOUCH_DEBUG_MSG( "Unable to read lcd_y\n");
+			TOUCH_DEBUG_MSG("Unable to read lcd_y\n");
 			return rc;
 		} else
 			caps_info->lcd_y = temp_val;
 
 		/*Calculation LCD : TOUCH Ratio*/
 		caps_info->lcd_touch_ratio_x = caps_info->x_max / caps_info->lcd_x;
-		if(caps_info->lcd_touch_ratio_x < 1)
+		if (caps_info->lcd_touch_ratio_x < 1)
 			caps_info->lcd_touch_ratio_x = 1;
 		caps_info->lcd_touch_ratio_y = caps_info->y_max / caps_info->lcd_y;
-		if(caps_info->lcd_touch_ratio_y < 1)
+		if (caps_info->lcd_touch_ratio_y < 1)
 			caps_info->lcd_touch_ratio_y = 1;
 
-		TOUCH_INFO_MSG("Calculated LCD_TOUCH_RATIO x = %d , y = %d ",caps_info->lcd_touch_ratio_x, caps_info->lcd_touch_ratio_y);
+		TOUCH_INFO_MSG("Calculated LCD_TOUCH_RATIO x = %d , y = %d \n", caps_info->lcd_touch_ratio_x, caps_info->lcd_touch_ratio_y);
 
 		rc = of_property_read_u32(pp, "maker_id", &temp_val);
 		if (rc && (rc != -EINVAL)) {
-			TOUCH_DEBUG_MSG( "Unable to read maker_id\n");
+			TOUCH_DEBUG_MSG("Unable to read maker_id\n");
 			caps_info->maker_id = 0;
 		} else
 			caps_info->maker_id =  temp_val;
 
 		rc = of_property_read_u32(pp, "maker_id_gpio", &temp_val);
 		if (rc && (rc != -EINVAL)) {
-			TOUCH_DEBUG_MSG( "Unable to read maker_id_gpio\n");
+			TOUCH_DEBUG_MSG("Unable to read maker_id_gpio\n");
 			caps_info->maker_id_gpio =  0;
 		} else
 			caps_info->maker_id_gpio =  temp_val;
+
+		rc = of_property_read_u32(pp, "maker_id2_gpio", &temp_val);
+		if (rc && (rc != -EINVAL)) {
+			TOUCH_DEBUG_MSG("Unable to read maker_id2_gpio\n");
+			caps_info->maker_id2_gpio =  0;
+		} else{
+			caps_info->maker_id2_gpio =  temp_val;
+		}
 
 		prop = of_find_property(pp, "ghost_detection_value", NULL);
 		if (prop) {
@@ -3691,7 +3820,7 @@ static int synaptics_parse_dt(struct device *dev, struct touch_platform_data *pd
 				if (rc) {
 					TOUCH_INFO_MSG("DT : Unable to read ghost_detection_value\n");
 				}
-				for(i=0; i<temp_val; i++)
+				for (i = 0; i < temp_val; i++)
 					caps_info->ghost_detection_value[i] = temp_array[i];
 			}
 		}
@@ -3716,111 +3845,111 @@ static int synaptics_parse_dt(struct device *dev, struct touch_platform_data *pd
 		for_each_child_of_node(node, pp) {
 			rc = of_property_read_u32(pp, "palm_detect_mode", &temp_val);
 			if (rc && (rc != -EINVAL)) {
-				TOUCH_DEBUG_MSG( "Unable to read palm_detect_mode\n");
+				TOUCH_DEBUG_MSG("Unable to read palm_detect_mode\n");
 				role_info->palm_detect_mode =  0;
 			} else
 				role_info->palm_detect_mode =  temp_val;
 
 			rc = of_property_read_u32(pp, "operation_mode", &temp_val);
 			if (rc && (rc != -EINVAL)) {
-				TOUCH_DEBUG_MSG( "Unable to read operation_mode\n");
+				TOUCH_DEBUG_MSG("Unable to read operation_mode\n");
 				return rc;
 			} else
 				role_info->operation_mode =  temp_val;
 
 			rc = of_property_read_u32(pp, "key_type", &temp_val);
 			if (rc && (rc != -EINVAL)) {
-				TOUCH_DEBUG_MSG( "Unable to read key_type\n");
+				TOUCH_DEBUG_MSG("Unable to read key_type\n");
 				return rc;
 			} else
 				role_info->key_type =  temp_val;
 
 			rc = of_property_read_u32(pp, "report_mode", &temp_val);
 			if (rc && (rc != -EINVAL)) {
-				TOUCH_DEBUG_MSG( "Unable to read report_mode\n");
+				TOUCH_DEBUG_MSG("Unable to read report_mode\n");
 				return rc;
 			} else
 				role_info->report_mode =  temp_val;
 
 			rc = of_property_read_u32(pp, "delta_pos_threshold", &temp_val);
 			if (rc && (rc != -EINVAL)) {
-				TOUCH_DEBUG_MSG( "Unable to read delta_pos_threshold\n");
+				TOUCH_DEBUG_MSG("Unable to read delta_pos_threshold\n");
 				return rc;
 			} else
 				role_info->delta_pos_threshold =  temp_val;
 
 			rc = of_property_read_u32(pp, "orientation", &temp_val);
 			if (rc && (rc != -EINVAL)) {
-				TOUCH_DEBUG_MSG( "Unable to read orientation\n");
+				TOUCH_DEBUG_MSG("Unable to read orientation\n");
 				return rc;
 			} else
 				role_info->orientation =  temp_val;
 
 			rc = of_property_read_u32(pp, "report_period", &temp_val);
 			if (rc && (rc != -EINVAL)) {
-				TOUCH_DEBUG_MSG( "Unable to read report_period\n");
+				TOUCH_DEBUG_MSG("Unable to read report_period\n");
 				return rc;
 			} else
 				role_info->report_period =	temp_val;
 
 			rc = of_property_read_u32(pp, "booting_delay", &temp_val);
 			if (rc && (rc != -EINVAL)) {
-				TOUCH_DEBUG_MSG( "Unable to read booting_delay\n");
+				TOUCH_DEBUG_MSG("Unable to read booting_delay\n");
 				return rc;
 			} else
 				role_info->booting_delay =	temp_val;
 
 			rc = of_property_read_u32(pp, "reset_delay", &temp_val);
 			if (rc && (rc != -EINVAL)) {
-				TOUCH_DEBUG_MSG( "Unable to read reset_delay\n");
+				TOUCH_DEBUG_MSG("Unable to read reset_delay\n");
 				return rc;
 			} else
 				role_info->reset_delay =  temp_val;
 
 			rc = of_property_read_u32(pp, "suspend_pwr", &temp_val);
 			if (rc && (rc != -EINVAL)) {
-				TOUCH_DEBUG_MSG( "Unable to read suspend_pwr\n");
+				TOUCH_DEBUG_MSG("Unable to read suspend_pwr\n");
 				return rc;
 			} else
 				role_info->suspend_pwr =  temp_val;
 
 			rc = of_property_read_u32(pp, "resume_pwr", &temp_val);
 			if (rc && (rc != -EINVAL)) {
-				TOUCH_DEBUG_MSG( "Unable to read resume_pwr\n");
+				TOUCH_DEBUG_MSG("Unable to read resume_pwr\n");
 				return rc;
 			} else
 				role_info->resume_pwr =  temp_val;
 
 			rc = of_property_read_u32(pp, "jitter_filter_enable", &temp_val);
 			if (rc && (rc != -EINVAL)) {
-				TOUCH_DEBUG_MSG( "Unable to read jitter_filter_enable\n");
+				TOUCH_DEBUG_MSG("Unable to read jitter_filter_enable\n");
 				return rc;
 			} else
 				role_info->jitter_filter_enable =  temp_val;
 
 			rc = of_property_read_u32(pp, "jitter_curr_ratio", &temp_val);
 			if (rc && (rc != -EINVAL)) {
-				TOUCH_DEBUG_MSG( "Unable to read jitter_curr_ratio\n");
+				TOUCH_DEBUG_MSG("Unable to read jitter_curr_ratio\n");
 				return rc;
 			} else
 				role_info->jitter_curr_ratio =	temp_val;
 
 			rc = of_property_read_u32(pp, "accuracy_filter_enable", &temp_val);
 			if (rc && (rc != -EINVAL)) {
-				TOUCH_DEBUG_MSG( "Unable to read accuracy_filter_enable\n");
+				TOUCH_DEBUG_MSG("Unable to read accuracy_filter_enable\n");
 				return rc;
 			} else
 				role_info->accuracy_filter_enable =  temp_val;
 
 			rc = of_property_read_u32(pp, "ghost_finger_solution_enable", &temp_val);
 			if (rc && (rc != -EINVAL)) {
-				TOUCH_DEBUG_MSG( "Unable to read ghost_finger_solution_enable\n");
+				TOUCH_DEBUG_MSG("Unable to read ghost_finger_solution_enable\n");
 				return rc;
 			} else
 				role_info->ghost_finger_solution_enable =  temp_val;
 			rc = of_property_read_u32(pp, "ghost_detection_enable", &temp_val);
 			if (rc && (rc != -EINVAL)) {
-				TOUCH_DEBUG_MSG( "Unable to read ghost_detection_enable\n");
+				TOUCH_DEBUG_MSG("Unable to read ghost_detection_enable\n");
 				return rc;
 			} else
 				role_info->ghost_detection_enable =  temp_val;
@@ -3828,7 +3957,7 @@ static int synaptics_parse_dt(struct device *dev, struct touch_platform_data *pd
 
 			rc = of_property_read_u32(pp, "ghost_detection_button_enable", &temp_val);
 			if (rc && (rc != -EINVAL)) {
-				TOUCH_DEBUG_MSG( "Unable to read ghost_detection_button_enable\n");
+				TOUCH_DEBUG_MSG("Unable to read ghost_detection_button_enable\n");
 				return rc;
 			} else
 				role_info->ghost_detection_button_enable =  temp_val;
@@ -3855,21 +3984,21 @@ static int synaptics_parse_dt(struct device *dev, struct touch_platform_data *pd
 
 			rc = of_property_read_u32(pp, "use_regulator", &temp_val);
 			if (rc) {
-				TOUCH_DEBUG_MSG( "Unable to read operation_mode\n");
+				TOUCH_DEBUG_MSG("Unable to read operation_mode\n");
 				return rc;
 			} else
 				pwr_info->use_regulator =  temp_val;
 
 			rc = of_property_read_u32(pp, "use_vio_regulator", &temp_val);
 			if (rc) {
-				TOUCH_DEBUG_MSG( "Unable to read operation_mode\n");
+				TOUCH_DEBUG_MSG("Unable to read operation_mode\n");
 				return rc;
 			} else
 				pwr_info->use_vio_regulator =  temp_val;
 
 			rc = of_property_read_string(pp, "vdd", &reg_string);
 			if (rc && (rc != -EINVAL)) {
-				TOUCH_DEBUG_MSG( "Looking up %s property in node %s failed",
+				TOUCH_DEBUG_MSG("Looking up %s property in node %s failed",
 					"vdd",
 					reg_string);
 				return -ENODEV;
@@ -3879,14 +4008,14 @@ static int synaptics_parse_dt(struct device *dev, struct touch_platform_data *pd
 
 			rc = of_property_read_u32(pp, "vdd_voltage", &temp_val);
 			if (rc && (rc != -EINVAL)) {
-				TOUCH_DEBUG_MSG( "Unable to read vdd_voltage\n");
+				TOUCH_DEBUG_MSG("Unable to read vdd_voltage\n");
 				return rc;
 			} else
 				pwr_info->vdd_voltage =  temp_val;
 
 			rc = of_property_read_string(pp, "vio", &reg_string);
 			if (rc && (rc != -EINVAL)) {
-				TOUCH_DEBUG_MSG( "Looking up %s property in node %s failed",
+				TOUCH_DEBUG_MSG("Looking up %s property in node %s failed",
 					"vio",
 					reg_string);
 				return -ENODEV;
@@ -3896,7 +4025,7 @@ static int synaptics_parse_dt(struct device *dev, struct touch_platform_data *pd
 
 			rc = of_property_read_u32(pp, "vio_voltage", &temp_val);
 			if (rc && (rc != -EINVAL)) {
-				TOUCH_DEBUG_MSG( "Unable to read vio_voltage\n");
+				TOUCH_DEBUG_MSG("Unable to read vio_voltage\n");
 				return rc;
 			} else
 				pwr_info->vio_voltage =  temp_val;
@@ -3904,7 +4033,7 @@ static int synaptics_parse_dt(struct device *dev, struct touch_platform_data *pd
 
 			rc = of_property_read_u32(pp, "gpio_vdd_en", &temp_val);
 			if (rc && (rc != -EINVAL)) {
-				TOUCH_DEBUG_MSG( "Unable to read gpio_vdd_en\n");
+				TOUCH_DEBUG_MSG("Unable to read gpio_vdd_en\n");
 				pwr_info->gpio_vdd_en = 0;
 			} else
 				pwr_info->gpio_vdd_en = temp_val;
@@ -3926,13 +4055,13 @@ static int touch_fb_suspend(struct device *device)
 	if (unlikely(touch_debug_mask & DEBUG_TRACE))
 		TOUCH_DEBUG_MSG("\n");
 
-	if(!ts_suspend) {
-		if (ts->fw_info.fw_upgrade.is_downloading == UNDER_DOWNLOADING){
+	if (!ts_suspend) {
+		if (ts->fw_info.fw_upgrade.is_downloading == UNDER_DOWNLOADING) {
 			TOUCH_INFO_MSG("touch_suspend is not executed\n");
 			return 0;
 		}
 
-		if(power_block){
+		if (power_block) {
 			TOUCH_INFO_MSG("touch_suspend is not executed\n");
 			return 0;
 		}
@@ -3955,7 +4084,7 @@ static int touch_fb_suspend(struct device *device)
 
 		mutex_lock(&ts->irq_work_mutex);
 
-		if(touch_gesture_enable) {
+		if (touch_gesture_enable) {
 			touch_double_tap_wakeup_enable(ts);
 		} else {
 			touch_power_cntl(ts, ts->pdata->role->suspend_pwr);
@@ -3979,21 +4108,21 @@ static int touch_fb_resume(struct device *device)
 		TOUCH_DEBUG_MSG("\n");
 	mutex_lock(&ts->irq_work_mutex);
 
-	if(ts_suspend) {
-		if (ts->fw_info.fw_upgrade.is_downloading == UNDER_DOWNLOADING){
+	if (ts_suspend) {
+		if (ts->fw_info.fw_upgrade.is_downloading == UNDER_DOWNLOADING) {
 			TOUCH_INFO_MSG("touch_resume is not executed\n");
 			ret = 1;
 			goto failed_out;
 		}
 
-		if(power_block){
+		if (power_block) {
 			TOUCH_INFO_MSG("touch_resume is not executed\n");
 			return 0;
 		}
 
 		ts_suspend = 0;
 
-		if (touch_disable_irq_wake(ts) != 0){
+		if (touch_disable_irq_wake(ts) != 0) {
 			TOUCH_INFO_MSG("disable_irq_wake failed\n");
 		}
 
@@ -4004,7 +4133,7 @@ static int touch_fb_resume(struct device *device)
 			touch_power_cntl(ts, ts->pdata->role->suspend_pwr);
 		}
 		touch_power_cntl(ts, ts->pdata->role->resume_pwr);
-                msleep(100);
+		msleep(100);
 
 		touch_enable_irq(ts->client->irq);
 		TOUCH_INFO_MSG("%s : enable_irq !!\n", __func__);
@@ -4047,8 +4176,8 @@ static void touch_double_tap_wakeup_enable(struct lge_touch_data *ts)
 
 	TOUCH_INFO_MSG("called touch_double_tap_wakeup_enable\n");
 
-        double_tap_enabled = 1;
-	if (touch_enable_irq_wake(ts) != 0){
+	double_tap_enabled = 1;
+	if (touch_enable_irq_wake(ts) != 0) {
 
 		TOUCH_INFO_MSG("enable_irq_wake failed\n");
 	}
@@ -4140,7 +4269,7 @@ static int touch_probe(struct i2c_client *client, const struct i2c_device_id *id
 
 	/* Specific device probe */
 	if (touch_device_func->probe) {
-		ret = touch_device_func->probe(ts);//(client);
+		ret = touch_device_func->probe(ts);/*(client); */
 		if (ret < 0) {
 			TOUCH_ERR_MSG("specific device probe fail\n");
 			goto err_assign_platform_data;
@@ -4150,7 +4279,7 @@ static int touch_probe(struct i2c_client *client, const struct i2c_device_id *id
 	synaptics_probe = 1;
 
 	/* reset pin setting */
-	if (gpio_is_valid(ts->pdata->reset_pin)){
+	if (gpio_is_valid(ts->pdata->reset_pin)) {
 		ret = gpio_request(ts->pdata->reset_pin, "touch_reset");
 		if (ret < 0) {
 			TOUCH_ERR_MSG("FAIL: touch_reset gpio_request\n");
@@ -4161,7 +4290,7 @@ static int touch_probe(struct i2c_client *client, const struct i2c_device_id *id
 
 
 	/* vdd_en setting */
-	if (gpio_is_valid(ts->pdata->pwr->gpio_vdd_en)){
+	if (gpio_is_valid(ts->pdata->pwr->gpio_vdd_en)) {
 		ret = gpio_request(ts->pdata->pwr->gpio_vdd_en, "touch_vdd_en");
 		if (ret < 0) {
 			TOUCH_ERR_MSG("FAIL: gpio_vdd_en gpio_request\n");
@@ -4182,8 +4311,7 @@ static int touch_probe(struct i2c_client *client, const struct i2c_device_id *id
 	if (ts->pdata->role->key_type == TOUCH_HARD_KEY) {
 		INIT_WORK(&ts->work, touch_work_func_a);
 		INIT_DELAYED_WORK(&ts->work_touch_lock, touch_lock_func);
-	}
-	else if (ts->pdata->role->key_type == TOUCH_SOFT_KEY)
+	} else if (ts->pdata->role->key_type == TOUCH_SOFT_KEY)
 		INIT_WORK(&ts->work, touch_work_func_b);
 	else
 		INIT_WORK(&ts->work, touch_work_func_c);
@@ -4214,7 +4342,7 @@ static int touch_probe(struct i2c_client *client, const struct i2c_device_id *id
 
 	if (ts->pdata->caps->button_support && ts->pdata->role->key_type != VIRTUAL_KEY) {
 		set_bit(EV_KEY, ts->input_dev->evbit);
-		for(ret = 0; ret < ts->pdata->caps->number_of_button; ret++) {
+		for (ret = 0; ret < ts->pdata->caps->number_of_button; ret++) {
 			set_bit(ts->pdata->caps->button_name[ret], ts->input_dev->keybit);
 		}
 	}
@@ -4290,12 +4418,12 @@ static int touch_probe(struct i2c_client *client, const struct i2c_device_id *id
 	}
 
 	/* jitter solution */
-	if (ts->pdata->role->jitter_filter_enable){
+	if (ts->pdata->role->jitter_filter_enable) {
 		ts->jitter_filter.adjust_margin = 50;
 	}
 
 	/* accuracy solution */
-	if (ts->pdata->role->accuracy_filter_enable){
+	if (ts->pdata->role->accuracy_filter_enable) {
 		ts->accuracy_filter.ignore_pressure_gap = 5;
 		ts->accuracy_filter.delta_max = 30;
 		ts->accuracy_filter.max_pressure = 255;
@@ -4306,7 +4434,8 @@ static int touch_probe(struct i2c_client *client, const struct i2c_device_id *id
 
 #if defined(CONFIG_FB)
 	ts->fb_notifier_block.notifier_call = touch_notifier_callback;
-	if ((ret = fb_register_client(&ts->fb_notifier_block))) {
+	ret = fb_register_client(&ts->fb_notifier_block);
+	if (ret) {
 		TOUCH_ERR_MSG("unable to register fb_notifier callback: %d\n", ret);
 		goto err_lge_touch_fb_register;
 	}
@@ -4430,7 +4559,7 @@ static void touch_early_suspend(struct early_suspend *h)
 	if (unlikely(touch_debug_mask & DEBUG_TRACE))
 		TOUCH_DEBUG_MSG("\n");
 
-	if (ts->fw_info.fw_upgrade.is_downloading == UNDER_DOWNLOADING){
+	if (ts->fw_info.fw_upgrade.is_downloading == UNDER_DOWNLOADING) {
 		TOUCH_INFO_MSG("early_suspend is not executed\n");
 		return;
 	}
@@ -4467,7 +4596,7 @@ static void touch_late_resume(struct early_suspend *h)
 	if (unlikely(touch_debug_mask & DEBUG_TRACE))
 		TOUCH_DEBUG_MSG("\n");
 
-	if (ts->fw_info.fw_upgrade.is_downloading == UNDER_DOWNLOADING){
+	if (ts->fw_info.fw_upgrade.is_downloading == UNDER_DOWNLOADING) {
 		TOUCH_INFO_MSG("late_resume is not executed\n");
 		return;
 	}
@@ -4536,12 +4665,12 @@ static struct i2c_driver lge_touch_driver = {
 	},
 };
 
-int touch_driver_register(struct touch_device_driver* driver)
+int touch_driver_register(struct touch_device_driver *driver)
 {
 	int ret = 0;
 
 #ifdef CONFIG_LGE_PM_CHARGING_CHARGERLOGO
-	if (lge_boot_mode_for_touch == 2) { // Chargerlogo mode
+	if (lge_boot_mode_for_touch == 2) {/* Chargerlogo mode */
 		TOUCH_INFO_MSG("Chargerlogo mode. Skip probe \n");
 		ret = -EMLINK;
 		goto err_touch_driver_register;
@@ -4585,7 +4714,7 @@ void touch_driver_unregister(void)
 {
 
 #ifdef CONFIG_LGE_PM_CHARGING_CHARGERLOGO
-	if (lge_boot_mode_for_touch == 2) { // Chargerlogo mode
+	if (lge_boot_mode_for_touch == 2) {/* Chargerlogo mode */
 		TOUCH_INFO_MSG("Chargerlogo mode. Skip probe \n");
 		return;
 	}

@@ -627,7 +627,7 @@ static struct msm_gpiomux_config usb_otg_sw_configs[] __initdata = {
 #endif
 
 /*  LGE_CHANGE_S, [NFC][garam.kim@lge.com], NFC Bring up*/
-#ifdef CONFIG_LGE_NFC_PN547
+#ifdef CONFIG_LGE_NFC_PN547_C2
 static struct gpiomux_setting nfc_pn547_sda_cfg = {
 	.func = GPIOMUX_FUNC_3,
 	.drv = GPIOMUX_DRV_8MA,
@@ -723,10 +723,64 @@ static struct msm_gpiomux_config msm_hall_ic_configs[] __initdata = {
 #endif
 };
 #endif /* CONFIG_BU52061NVX */
+
+#ifdef CONFIG_MACH_LGE
+// GPIO related function <<0.Resreved Pin>>
+#define MSM8x26_GPIO_END 121
+static int gpio_reserved_pin_rev_B[] = {
+	0, 1, 2, 3, 5, 13, 14, 15, 34, 35, 49, 50, 51, 52, 56, 63, 64, 65, 67, 78, 82, 88, 91, 92, 93, 94, 97, 98, 103, 104, 111, 115, 116, 117, 118,
+	MSM8x26_GPIO_END // This is included to notify the end of reserved GPIO configuration.
+	};
+
+static int gpio_reserved_pin_rev_C[] = {
+	0, 1, 2, 3, 5, 13, 14, 35, 49, 50, 51, 52, 56, 63, 64, 65, 67, 78, 82, 88, 91, 92, 93, 94, 97, 98, 103, 104, 111, 115, 116, 117, 118,
+	MSM8x26_GPIO_END // This is included to notify the end of reserved GPIO configuration.
+	};
+
+static struct gpiomux_setting reserved_pin_cfg = {
+	.func = GPIOMUX_FUNC_GPIO,
+	.drv = GPIOMUX_DRV_2MA,
+	.pull = GPIOMUX_PULL_DOWN,
+	.dir  = GPIOMUX_IN,
+};
+
+static struct msm_gpiomux_config gpio_func_reserved_pin_config __initdata = {
+	.gpio = 0,
+	.settings = {
+		[GPIOMUX_SUSPENDED] = &reserved_pin_cfg,
+		[GPIOMUX_ACTIVE] = &reserved_pin_cfg,
+	},
+};
+
+static struct gpiomux_setting main_cam_id_gpio_act_config = {
+	.func = GPIOMUX_FUNC_GPIO,
+	.drv = GPIOMUX_DRV_2MA,
+	.pull = GPIOMUX_PULL_UP,
+	.dir = GPIOMUX_IN
+};
+static struct gpiomux_setting main_cam_id_gpio_sus_config = {
+	.func = GPIOMUX_FUNC_GPIO,
+	.drv = GPIOMUX_DRV_2MA,
+	.pull = GPIOMUX_PULL_NONE,
+	.dir = GPIOMUX_IN
+};
+
+static struct msm_gpiomux_config main_cam_id_gpio[] __initdata = {
+	{
+		.gpio = 112,
+		.settings = {
+			[GPIOMUX_ACTIVE] = &main_cam_id_gpio_act_config,
+			[GPIOMUX_SUSPENDED] = &main_cam_id_gpio_sus_config,
+		}
+	}
+};
+#endif /* CONFIG_MACH_LGE */
+
 void __init msm8226_init_gpiomux(void)
 {
 	int rc;
 #ifdef CONFIG_MACH_LGE
+	int gpio_index = 0;
 	hw_rev_type hw_rev;
 	hw_rev = lge_get_board_revno();
 #endif /* CONFIG_MACH_LGE */
@@ -748,6 +802,36 @@ void __init msm8226_init_gpiomux(void)
 
 	msm_gpiomux_install(&sd_card_det, 1);
 #ifdef CONFIG_MACH_LGE
+	switch ( hw_rev ){
+		case HW_REV_0 :
+		case HW_REV_A :
+		case HW_REV_A2 :
+		case HW_REV_B :		
+		    for ( gpio_index = 0 ; gpio_reserved_pin_rev_B[gpio_index] < MSM8x26_GPIO_END ; gpio_index++ ){
+				gpio_func_reserved_pin_config.gpio = gpio_reserved_pin_rev_B[gpio_index];
+				msm_gpiomux_install(&gpio_func_reserved_pin_config, 1);
+				msm_gpiomux_install(main_cam_id_gpio, ARRAY_SIZE(main_cam_id_gpio));	/* MAIN_CAM_ID */
+				}
+			break;
+		case HW_REV_B2 :
+		case HW_REV_C :
+		    for ( gpio_index = 0 ; gpio_reserved_pin_rev_C[gpio_index] < MSM8x26_GPIO_END ; gpio_index++ ){
+				gpio_func_reserved_pin_config.gpio = gpio_reserved_pin_rev_C[gpio_index];
+				msm_gpiomux_install(&gpio_func_reserved_pin_config, 1);
+				msm_gpiomux_install(main_cam_id_gpio, ARRAY_SIZE(main_cam_id_gpio));	/* MAIN_CAM_ID */
+				}
+			break;
+		case HW_REV_1_0 :
+		case HW_REV_1_1 :
+		default :
+			for ( gpio_index = 0 ; gpio_reserved_pin_rev_C[gpio_index] < MSM8x26_GPIO_END ; gpio_index++ ){
+				gpio_func_reserved_pin_config.gpio = gpio_reserved_pin_rev_C[gpio_index];
+				msm_gpiomux_install(&gpio_func_reserved_pin_config, 1);
+				msm_gpiomux_install(main_cam_id_gpio, ARRAY_SIZE(main_cam_id_gpio));	/* MAIN_CAM_ID */
+				}
+			break;
+	}
+	
 	if(hw_rev < HW_REV_A2) {
 		msm_gpiomux_install(msm_touch_configs, ARRAY_SIZE(msm_touch_configs));
 		printk(KERN_ERR "[Touch] HW_REV_A configs \n");
@@ -759,7 +843,11 @@ void __init msm8226_init_gpiomux(void)
 	} else if(hw_rev >= HW_REV_B) {
 #if defined (CONFIG_LGE_TOUCHSCREEN_SYNAPTIC) || defined(CONFIG_TOUCHSCREEN_SYNAPTICS_I2C_RMI4)
 		msm_gpiomux_install(msm_touch_configs_rev_b, ARRAY_SIZE(msm_touch_configs_rev_b));
-		printk(KERN_ERR "[Touch] over HW_REV_B configs \n");
+		if(hw_rev == HW_REV_B) {
+			printk(KERN_ERR "[Touch] HW_REV_B configs \n");
+		} else if (hw_rev >= HW_REV_B2) {
+			printk(KERN_ERR "[Touch] over HW_REV_B2 configs \n");
+		} else {}
 #endif /* CONFIG_LGE_TOUCHSCREEN_SYNAPTIC || CONFIG_TOUCHSCREEN_SYNAPTICS_I2C_RMI4 */
 	} else {}
 #endif /* CONFIG_MACH_LGE */
@@ -779,7 +867,7 @@ void __init msm8226_init_gpiomux(void)
 #endif
 
 /*  LGE_CHANGE_S, [NFC][garam.kim@lge.com], NFC Bring up */
-#ifdef CONFIG_LGE_NFC_PN547
+#ifdef CONFIG_LGE_NFC_PN547_C2
 	msm_gpiomux_install(msm_nfc_configs, ARRAY_SIZE(msm_nfc_configs));
 #endif
 /*  LGE_CHANGE_E, [NFC][garam.kim@lge.com], NFC Bring up */

@@ -33,6 +33,7 @@ unsigned char F54_TxToTxReport(void)
    unsigned char ImageArray[CFG_F54_TXCOUNT];
    unsigned char Result = 0; 
    //unsigned char Result[CFG_F54_TXCOUNT];
+   int read_count = 0;
    
    int i, k;
    int shift;
@@ -67,6 +68,10 @@ unsigned char F54_TxToTxReport(void)
 
    // Wait until the command is completed
    do {
+   		if(++read_count > 10) {
+			TOUCH_INFO_MSG("%s[%d], command = %d\n", __func__, __LINE__, command);
+			return 0;
+		}
    	delayMS(1); //wait 1ms
       readRMI(F54_Command_Base, &command, 1);
    } while (command != 0x00);

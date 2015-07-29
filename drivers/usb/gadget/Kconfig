@@ -1167,4 +1167,47 @@ config USB_G_LGE_ANDROID_CDROM_MAC_SUPPORT
 
 	default y
 
+#B2-BSP-USB@lge.com
+config USB_G_LGE_MULTIPLE_CONFIGURATION
+	boolean "LGE Multiple Configuration"
+	help
+	  Support multiple mtp functions in multiple configuration.
+	  Add another descriptor for 2nd mtp function.
+
+	  Say y if this must be needed.
+
+	default n
+
+config USB_G_LGE_MULTICONFIG_ATF_WA
+	boolean "LGE Multiple Configuration"
+	depends on USB_G_LGE_MULTIPLE_CONFIGURATION
+	help
+	  If USB multiple configuration applied, AFT can't recognize device.
+	  Thus, change ACM interfaceclass by OS type.
+	  You need to change host driver if this config enabled.
+	  Just workaround until AFT update.
+
+	  Say y if this must be needed.
+
+	default y
+
+config USB_G_LGE_MULTIPLE_CONFIGURATION_VZW
+	boolean "LGE Multiple Configuration for VZW"
+	help
+	  Support multiple mtp functions in multiple configuration.
+	  Add another descriptor for 2nd mtp function.
+
+	  Say y if this must be needed.
+
+	default n
+
+config LGE_DIAG_USB_ACCESS_LOCK
+	boolean "feature for usb diag access lock"
+	help
+	  this feature should be applied to meet usb diag lock requirement
+
+	  Say y if this must be needed.
+
+	default n
+
 endif # USB_GADGET

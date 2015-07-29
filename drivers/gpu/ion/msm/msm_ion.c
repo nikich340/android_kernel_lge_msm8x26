@@ -843,8 +843,12 @@ static struct ion_platform_data *msm_ion_parse_dt(struct platform_device *pdev)
 	uint32_t num_heaps = 0;
 	int idx = 0;
 
-	for_each_child_of_node(dt_node, node)
-		num_heaps++;
+	for_each_child_of_node(dt_node, node){
+#ifdef CONFIG_MACH_LGE
+		if (of_device_is_available(node))
+#endif
+			num_heaps++;
+	}
 
 	if (!num_heaps)
 		return ERR_PTR(-EINVAL);
@@ -863,6 +867,10 @@ static struct ion_platform_data *msm_ion_parse_dt(struct platform_device *pdev)
 	pdata->nr = num_heaps;
 
 	for_each_child_of_node(dt_node, node) {
+#ifdef CONFIG_MACH_LGE
+		if (!of_device_is_available(node))
+			continue;
+#endif
 		new_dev = of_platform_device_create(node, NULL, &pdev->dev);
 		if (!new_dev) {
 			pr_err("Failed to create device %s\n", node->name);
@@ -973,11 +981,18 @@ static long msm_ion_custom_ioctl(struct ion_client *client,
 					sizeof(struct ion_flush_data)))
 			return -EFAULT;
 
-		if (!data.handle) {
+		if (data.handle > 0) {
+			handle = ion_handle_get_by_id(client, (int)data.handle);
+			if (IS_ERR(handle)) {
+				pr_info("%s: Could not find handle: %d\n",
+					__func__, (int)data.handle);
+				return PTR_ERR(handle);
+			}
+		} else {
 			handle = ion_import_dma_buf(client, data.fd);
 			if (IS_ERR(handle)) {
-				pr_info("%s: Could not import handle: %d\n",
-					__func__, (int)handle);
+				pr_info("%s: Could not import handle: %p\n",
+					__func__, handle);
 				return -EINVAL;
 			}
 		}
@@ -988,28 +1003,20 @@ static long msm_ion_custom_ioctl(struct ion_client *client,
 		end = (unsigned long) data.vaddr + data.length;
 
 		if (start && check_vaddr_bounds(start, end)) {
-			up_read(&mm->mmap_sem);
 			pr_err("%s: virtual address %p is out of bounds\n",
 				__func__, data.vaddr);
-			if (!data.handle)
-				ion_free(client, handle);
-			return -EINVAL;
+			ret = -EINVAL;
+		} else {
+			ret = ion_do_cache_op(client, handle, data.vaddr,
+					data.offset, data.length, cmd);
 		}
-
-		ret = ion_do_cache_op(client,
-				data.handle ? data.handle : handle,
-				data.vaddr, data.offset, data.length,
-				cmd);
-
 		up_read(&mm->mmap_sem);
 
-		if (!data.handle)
-			ion_free(client, handle);
+		ion_free(client, handle);
 
 		if (ret < 0)
 			return ret;
 		break;
-
 	}
 	case ION_IOC_PREFETCH:
 	{

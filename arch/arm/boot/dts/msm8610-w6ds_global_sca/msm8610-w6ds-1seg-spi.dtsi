@@ -91,11 +91,8 @@ soc {
 		interrupts = <82 0>; //GPIO # and flags
 
 		fci_spi_fc8150,irq-gpio = <&msmgpio 82 0x00>; //Pass a GPIO
-		fci_spi_fc8150_con_after_rev_a {
-			fci_spi_fc8150,en-gpio = <&msmgpio 100 0x00>; //Pass a GPIO
-			fci_spi_fc8150,reset-gpio = <&msmgpio 92 0x00>; //Pass a GPIO
-			revision = "rev_a...";
-		};
+		fci_spi_fc8150,en-gpio = <&msmgpio 100 0x00>; //Pass a GPIO
+		fci_spi_fc8150,reset-gpio = <&msmgpio 92 0x00>; //Pass a GPIO
 	};
 };
 

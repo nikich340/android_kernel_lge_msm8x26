@@ -21,30 +21,48 @@
 #ifdef DEBUG_LCS
 /* For fake battery temp' debug */
 #ifdef DEBUG_LCS_DUMMY_TEMP
-static int dummy_temp = 25;
+static int dummy_temp = 250;
 static int time_order = 1;
 #endif
 #endif
 
 #define CHG_MAXIDX	6
 
-#ifdef CONFIG_MACH_MSM8926_X5_SPR
+#if defined(CONFIG_MACH_MSM8926_X5_SPR)
 static struct batt_temp_table chg_temp_table[CHG_MAXIDX] = {
-	{INT_MIN,       -7,    CHG_BATTEMP_BL_M7},
-	{    -6,        -5,    CHG_BATTEMP_M6_M5},
-	{     -4,        43,    CHG_BATTEMP_M4_43},
-	{     44,        45,    CHG_BATTEMP_44_45},
-	{     46,        55,    CHG_BATTEMP_46_OT},
-	{     56,   INT_MAX,    CHG_BATTEMP_AB_OT},
+	{INT_MIN,        -71,    CHG_BATTEMP_BL_M7},	// batt_temp < -7
+	{    -70,        -50,    CHG_BATTEMP_M6_M5},	// -7 <= batt_temp <= -5
+	{    -49,        439,    CHG_BATTEMP_M4_43},	// -5 < batt_temp < 44
+	{    440,        459,    CHG_BATTEMP_44_45},	// 44 <= batt_temp < 46
+	{    460,        559,    CHG_BATTEMP_46_OT},	// 46 < batt_temp < 56
+	{    560,    INT_MAX,    CHG_BATTEMP_AB_OT},	// 56 <= batt_temp
+};
+#elif defined(CONFIG_MACH_MSM8X10_W5C_SPR_US)
+static struct batt_temp_table chg_temp_table[CHG_MAXIDX] = {
+     {INT_MIN,        -71,    CHG_BATTEMP_BL_M7},    // batt_temp < -7
+	 {    -70,        -50,    CHG_BATTEMP_M6_M5},    // -7 <= batt_temp <= -5
+	 {    -49,        439,    CHG_BATTEMP_M4_43},    // -5 < batt_temp < 44
+	 {    440,        459,    CHG_BATTEMP_44_45},    // 44 <= batt_temp < 46
+	 {    460,        559,    CHG_BATTEMP_46_OT},    // 46 < batt_temp < 56
+	 {    560,    INT_MAX,    CHG_BATTEMP_AB_OT},    // 56 <= batt_temp
+};
+#elif defined(CONFIG_MACH_MSM8926_JAGC_SPR)
+static struct batt_temp_table chg_temp_table[CHG_MAXIDX] = {
+	{INT_MIN,        -71,    CHG_BATTEMP_BL_M7},	// batt_temp < -7
+	{    -70,        -50,    CHG_BATTEMP_M6_M5},	// -7 <= batt_temp <= -5
+	{    -49,        439,    CHG_BATTEMP_M4_43},	// -5 < batt_temp < 44
+	{    440,        459,    CHG_BATTEMP_44_45},	// 44 <= batt_temp < 46
+	{    460,        559,    CHG_BATTEMP_46_OT},	// 46 < batt_temp < 56
+	{    560,    INT_MAX,    CHG_BATTEMP_AB_OT},	// 56 <= batt_temp
 };
 #else
 static struct batt_temp_table chg_temp_table[CHG_MAXIDX] = {
-	{INT_MIN,       -11,    CHG_BATTEMP_BL_M11},
-	{    -10,        -5,    CHG_BATTEMP_M10_M5},
-	{     -4,        41,    CHG_BATTEMP_M4_41},
-	{     42,        45,    CHG_BATTEMP_42_45},
-	{     46,        55,    CHG_BATTEMP_46_OT},
-	{     56,   INT_MAX,    CHG_BATTEMP_AB_OT},
+	{INT_MIN,       -101,    CHG_BATTEMP_BL_M11},	// batt_temp < -10
+	{    -100,       -50,    CHG_BATTEMP_M10_M5},	// -10 <= batt_temp <= -5
+	{     -49,       419,    CHG_BATTEMP_M4_41},	// -5 < batt_temp < 42
+	{     420,       450,    CHG_BATTEMP_42_45},	// 42 <= batt_temp <= 45
+	{     451,       550,    CHG_BATTEMP_46_OT},	// 45 < batt_temp <= 55
+	{     551,   INT_MAX,    CHG_BATTEMP_AB_OT},	// 55 < batt_temp
 };
 #endif
 
@@ -52,6 +70,7 @@ static enum lge_charging_states charging_state = 0;
 static enum lge_states_changes states_change;
 static int change_charger;
 static int pseudo_chg_ui;
+static int last_pseudo_chg_ui;
 
 #ifdef CONFIG_LGE_PM_THERMAL
 static int last_thermal_current;
@@ -157,11 +176,11 @@ void lge_monitor_batt_temp(struct charging_info req, struct charging_rsp *res)
 #ifdef DEBUG_LCS_DUMMY_TEMP
 	if (time_order == 1) {
 		dummy_temp++;
-		if (dummy_temp > 65)
+		if (dummy_temp > 650)
 			time_order = 0;
 	} else {
 		dummy_temp--;
-		if (dummy_temp < -15)
+		if (dummy_temp < -150)
 			time_order = 1;
 	}
 
@@ -223,10 +242,11 @@ void lge_monitor_batt_temp(struct charging_info req, struct charging_rsp *res)
 	else
 		res->btm_state = BTM_HEALTH_GOOD;
 
-	if (res->pseudo_chg_ui ^ pseudo_chg_ui){
+	res->pseudo_chg_ui = pseudo_chg_ui;
+	if (last_pseudo_chg_ui ^ pseudo_chg_ui){
+		last_pseudo_chg_ui = pseudo_chg_ui;
 		res->force_update = true;
 	}
-	res->pseudo_chg_ui = pseudo_chg_ui;
 
 #ifdef DEBUG_LCS
 	pr_err("DLCS ==============================================\n");

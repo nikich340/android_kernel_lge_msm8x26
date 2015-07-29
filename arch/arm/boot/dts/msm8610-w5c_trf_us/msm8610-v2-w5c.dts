@@ -16,8 +16,8 @@
 
 
 / {
-	model = "Qualcomm MSM 8610v2 w5cacgus";
-	compatible = "qcom,msm8610-w5cacgus", "qcom,msm8610";
+	model = "Qualcomm MSM 8610v2 w5ctrfus";
+	compatible = "qcom,msm8610-w5ctrfus", "qcom,msm8610";
 	/* 
 		MSM8610   = 147,
 		MSM8110   = 161,

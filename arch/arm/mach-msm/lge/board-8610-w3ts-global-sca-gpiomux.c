@@ -930,6 +930,30 @@ static struct msm_gpiomux_config fmr_intenna_det[] __initdata = {
 };
 #endif
 
+#ifdef CONFIG_MACH_LGE
+static struct gpiomux_setting main_cam_id_gpio_act_config = {
+	.func = GPIOMUX_FUNC_GPIO,
+	.drv = GPIOMUX_DRV_2MA,
+	.pull = GPIOMUX_PULL_UP,
+	.dir = GPIOMUX_IN
+};
+static struct gpiomux_setting main_cam_id_gpio_sus_config = {
+	.func = GPIOMUX_FUNC_GPIO,
+	.drv = GPIOMUX_DRV_2MA,
+	.pull = GPIOMUX_PULL_NONE,
+	.dir = GPIOMUX_IN
+};
+
+static struct msm_gpiomux_config main_cam_id_gpio[] __initdata = {
+	{
+		.gpio = 71,
+		.settings = {
+			[GPIOMUX_ACTIVE] = &main_cam_id_gpio_act_config,
+			[GPIOMUX_SUSPENDED] = &main_cam_id_gpio_sus_config,
+		}
+	}
+};
+#endif /* CONFIG_MACH_LGE */
 void __init msm8610_init_gpiomux(void)
 {
 	int rc;
@@ -989,21 +1013,16 @@ void __init msm8610_init_gpiomux(void)
             msm_gpiomux_install(msm_sensor_configs_revB, ARRAY_SIZE(msm_sensor_configs_revB)); // LGE_CHANGE, Code modifying by revision, youngwook.song@lge.com 2013-09-21
             break;
 		case HW_REV_D :
-            msm_gpiomux_install(msm_sensor_configs_revB, ARRAY_SIZE(msm_sensor_configs_revB)); // LGE_CHANGE, Code modifying by revision, youngwook.song@lge.com 2013-09-21
-			break;
 		case HW_REV_E :
-            msm_gpiomux_install(msm_sensor_configs_revB, ARRAY_SIZE(msm_sensor_configs_revB)); // LGE_CHANGE, Code modifying by revision, youngwook.song@lge.com 2013-09-21
-			break;
 		case HW_REV_1_0 :
-            msm_gpiomux_install(msm_sensor_configs_revB, ARRAY_SIZE(msm_sensor_configs_revB)); // LGE_CHANGE, Code modifying by revision, youngwook.song@lge.com 2013-09-21
-			break;
 		case HW_REV_1_1 :
 		default :
-			msm_gpiomux_install(msm_sensor_configs_revB, ARRAY_SIZE(msm_sensor_configs_revB)); // LGE_CHANGE, Code modifying by revision, youngwook.song@lge.com 2013-09-21
 			for ( gpio_index = 0 ; gpio_reserved_pin_rev_A[gpio_index] < MSM8x10_GPIO_END ; gpio_index++ ){
 				gpio_func_reserved_pin_config.gpio = gpio_reserved_pin_rev_A[gpio_index];
 				msm_gpiomux_install(&gpio_func_reserved_pin_config, 1);
 				}
+			msm_gpiomux_install(msm_sensor_configs_revB, ARRAY_SIZE(msm_sensor_configs_revB)); // LGE_CHANGE, Code modifying by revision, youngwook.song@lge.com 2013-09-21
+			msm_gpiomux_install(main_cam_id_gpio, ARRAY_SIZE(main_cam_id_gpio));	/* MAIN_CAM_ID */
 			break;
 	}
 #endif

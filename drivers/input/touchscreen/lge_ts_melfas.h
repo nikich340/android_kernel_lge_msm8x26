@@ -37,6 +37,9 @@
 #ifndef LGE_TS_MELFAS_H
 #define LGE_TS_MELFAS_H
 
+#define FW_BLOCK_SIZE		256
+#define FW_MAX_SIZE		(64 * 1024)
+
 enum melfas_ic_type {
 	MMS100S = 0,
 	MMS128S = MMS100S,
@@ -45,6 +48,7 @@ enum melfas_ic_type {
 	MMS136 = MMS100A,
 	MMS144 = MMS100A,
 	MMS152 = MMS100A,
+	MIT200 = 2,
 };
 
 enum {
@@ -71,6 +75,8 @@ enum {
 #define GPIO_TOUCH_SDA (info->pdata->sda_pin)
 
 #define FINGER_EVENT_SZ		6
+#define MIT_FINGER_EVENT_SZ		8
+#define MIT_LPWG_EVENT_SZ		5
 #define MAX_WIDTH		30
 #define MAX_PRESSURE		255
 #define MAX_LOG_LENGTH		128
@@ -81,7 +87,30 @@ enum {
 #define PAGE_CRC		2
 #define PACKET_SIZE		(PAGE_HEADER + PAGE_DATA + PAGE_CRC)
 
-/* Registers */
+#define MAX_COL	15
+#define MAX_ROW	25
+
+#define OPENSHORT_MAX	550
+#define OPENSHORT_MIN	10
+
+/* MIT 200 Registers */
+
+#define MIT_REGH_CMD				0x10
+
+#define MIT_REGL_MODE_CONTROL			0x01
+#define MIT_REGL_ROW_NUM			0x0B
+#define MIT_REGL_COL_NUM			0x0C
+#define MIT_REGL_RAW_TRACK			0x0E
+#define MIT_REGL_EVENT_PKT_SZ			0x0F
+#define MIT_REGL_INPUT_EVENT			0x10
+#define MIT_REGL_UCMD				0xA0
+#define MIT_REGL_UCMD_RESULT_LENGTH		0xAE
+#define MIT_REGL_UCMD_RESULT			0xAF
+#define MIT_FW_VERSION				0xC2
+#define MIT_FW_PRODUCT		0xE0
+
+/*MMS Registers */
+
 #define MMS_MODE_CONTROL	0x01
 #define MMS_XY_RESOLUTION_HIGH	0x02
 #define MMS_TX_NUM		0x0B
@@ -134,6 +163,13 @@ enum {
 #define MMS_STATUS_WRITING_DONE 0x03
 
 /* Universal commands */
+#define MIT_UNIV_ENTER_TESTMODE			0x40
+#define MIT_UNIV_TESTA_START			0x41
+#define MIT_UNIV_GET_RAWDATA			0x44
+#define MIT_UNIV_TESTB_START			0x48
+#define MIT_UNIV_GET_OPENSHORT_TEST		0x50
+#define MIT_UNIV_EXIT_TESTMODE			0x6F
+
 #define MMS_CMD_SET_LOG_MODE	0x20
 
 /* Event types */
@@ -141,6 +177,7 @@ enum {
 #define MMS_NOTIFY_EVENT	0xE
 #define MMS_ERROR_EVENT		0xF
 #define MMS_TOUCH_KEY_EVENT	0x40
+#define MMS_LPWG_EVENT	0xE
 
 enum {
 	LOG_TYPE_U08	= 2,
@@ -149,6 +186,12 @@ enum {
 	LOG_TYPE_S16,
 	LOG_TYPE_U32	= 8,
 	LOG_TYPE_S32,
+};
+
+enum {
+	NONE = 0,
+	RAW_DATA,
+	OPENSHORT,
 };
 
 struct mms_dev {
@@ -160,6 +203,8 @@ struct mms_dev {
 	u8 operation_mode;
 	u8 tx_ch_num;
 	u8 rx_ch_num;
+	u8 row_num;
+	u8 col_num;
 	u8 key_num;
 };
 
@@ -177,7 +222,8 @@ const static char *section_name[SECTION_NUM] = {
 };
 
 struct mms_module {
-	u8 product_code[9];
+	u8 product_code[16];
+	u8 version[2];
 };
 
 struct mms_log {
@@ -222,10 +268,14 @@ struct mms_data {
 	bool need_update[SECTION_NUM];
 	struct mms_section ts_section[SECTION_NUM];
 	struct mms_bin_hdr *fw_hdr;
-	struct mms_fw_img* fw_img[SECTION_NUM];
+	struct mms_fw_img *fw_img[SECTION_NUM];
 	struct mms_module module;
 	char buf[PACKET_SIZE];
 	struct mms_log log;
+	u8 *get_data;
+	int *raw_data_max;
+	int *raw_data_min;
+	u8 test_mode;
 };
 
 struct mms_log_pkt {
@@ -241,7 +291,14 @@ struct mms_log_pkt {
 int mms_i2c_read(struct i2c_client *client, u8 reg, char *buf, int len);
 int mms_100s_isc(struct mms_data *ts, struct touch_fw_info *info);
 int mms_100a_fw_upgrade(struct mms_data *ts, struct touch_fw_info *info);
+int mit_isc_fwupdate(struct mms_data *ts, struct touch_fw_info *info);
 int mms_set_gpio_mode(struct touch_platform_data *pdata, int mode);
-int mms_power_ctrl(struct i2c_client* client, int power_ctrl);
-#endif // LGE_TS_MELFAS_H
+int mms_power_ctrl(struct i2c_client *client, int power_ctrl);
+int mms_power_reset(struct mms_data *ts);
+ssize_t mit_delta_show(struct i2c_client *client, char *buf);
+ssize_t mit_rawdata_show(struct i2c_client *client, char *buf);
+ssize_t mit_openshort_show(struct i2c_client *client, char *buf);
+int mit_isc_page_read(struct mms_data *ts, u8 *rdata, int addr);
+int mit_isc_exit(struct mms_data *ts);
+#endif /*LGE_TS_MELFAS_H */
 

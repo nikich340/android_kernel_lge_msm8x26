@@ -3,26 +3,26 @@
 ** File:
 **     ImmVibeSPI.c
 **
-** Description: 
+** Description:
 **     Device-dependent functions called by Immersion TSP API
 **     to control PWM duty cycle, amp enable/disable, save IVT file, etc...
 **
-** Portions Copyright (c) 2008-2010 Immersion Corporation. All Rights Reserved. 
+** Portions Copyright (c) 2008-2010 Immersion Corporation. All Rights Reserved.
 **
-** This file contains Original Code and/or Modifications of Original Code 
-** as defined in and that are subject to the GNU Public License v2 - 
-** (the 'License'). You may not use this file except in compliance with the 
-** License. You should have received a copy of the GNU General Public License 
+** This file contains Original Code and/or Modifications of Original Code
+** as defined in and that are subject to the GNU Public License v2 -
+** (the 'License'). You may not use this file except in compliance with the
+** License. You should have received a copy of the GNU General Public License
 ** along with this program; if not, write to the Free Software Foundation, Inc.,
-** 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA or contact 
+** 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA or contact
 ** TouchSenseSales@immersion.com.
 **
-** The Original Code and all software distributed under the License are 
-** distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
-** EXPRESS OR IMPLIED, AND IMMERSION HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
-** INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
-** FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. Please see 
-** the License for the specific language governing rights and limitations 
+** The Original Code and all software distributed under the License are
+** distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+** EXPRESS OR IMPLIED, AND IMMERSION HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+** INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+** FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. Please see
+** the License for the specific language governing rights and limitations
 ** under the License.
 ** =========================================================================
 */
@@ -67,7 +67,7 @@
 #include <linux/qpnp/vibrator.h>
 #include "../../staging/android/timed_output.h"
 
-extern struct qpnp_vib *vib_dev; 
+extern struct qpnp_vib *vib_dev;
 extern int qpnp_vib_set_with_vtglevel(struct qpnp_vib *vib, int vtglevel, int on);
 /*USE THE QPNP-VIBRATOR END*/
 
@@ -106,11 +106,27 @@ static void __iomem *virt_bases_v = NULL;
 #define REG_WRITEL(value, reg)		writel(value, reg)
 #define REG_READL(reg)			readl(reg)
 
+#ifdef IMMVIBESPIAPI
+#undef IMMVIBESPIAPI
+#endif
+#define IMMVIBESPIAPI static
+
+/*
+** This SPI supports only one actuator.
+*/
+#define NUM_ACTUATORS 1
+
+#define PWM_DUTY_MAX    579 /* 13MHz / (579 + 1) = 22.4kHz */
+
+static bool g_bAmpEnabled = false;
+
 static struct clk *cam_gp1_clk;
 
 static int mmss_cc_n_default;
 static int mmss_cc_d_max;
 static int mmss_cc_d_half;
+
+IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_AmpDisable(VibeUInt8 nActuatorIndex);
 
 struct timed_vibrator_data {
 	atomic_t gp1_clk_flag;
@@ -119,7 +135,7 @@ struct timed_vibrator_data {
 	int motor_pwm_gpio;
 	int vpwr_on;
 	struct regulator *vreg_l21;
-	
+
 	int vibe_n_value;
     unsigned int clk_rate;
 
@@ -253,7 +269,7 @@ static int sm100_probe(struct platform_device *pdev)
 	mmss_cc_n_default = vib.vibe_n_value;
 	mmss_cc_d_max = mmss_cc_n_default;
 	mmss_cc_d_half = (mmss_cc_n_default >> 1);
-	
+
 	pdev->dev.init_name = "vibrator";
 	INFO_MSG("dev->init_name : %s, dev->kobj : %s\n", pdev->dev.init_name, pdev->dev.kobj.name);
 	cam_gp1_clk = clk_get(&pdev->dev, "cam_gp1_clk");
@@ -277,6 +293,8 @@ static void sm100_shutdown(struct platform_device *pdev)
 
 static int sm100_suspend(struct platform_device *pdev, pm_message_t state)
 {
+	if (g_bAmpEnabled)
+		ImmVibeSPI_ForceOut_AmpDisable(0);
 	return 0;
 }
 
@@ -301,19 +319,6 @@ static struct platform_driver sm100_driver = {
 /*USE THE SM100 END*/
 
 
-#ifdef IMMVIBESPIAPI
-#undef IMMVIBESPIAPI
-#endif
-#define IMMVIBESPIAPI static
-
-/*
-** This SPI supports only one actuator.
-*/
-#define NUM_ACTUATORS 1
-
-#define PWM_DUTY_MAX    579 /* 13MHz / (579 + 1) = 22.4kHz */
-
-static bool g_bAmpEnabled = false;
 
 /*
 ** Called to disable amp (disable output force)
@@ -356,7 +361,7 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_AmpEnable(VibeUInt8 nActuatorIndex,
 				clk_prepare_enable(cam_gp1_clk);
 				atomic_set(&vib.gp1_clk_flag, 1);
 			}
-			
+
 			sm100_power_set(1, &vib);
 			//sm100_pwm_set(1, 0); //MSM GP CLK update bit issue.
 			sm100_ic_enable_set(1, &vib);
@@ -378,11 +383,11 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_Initialize(void)
 	int rc;
 	rc = platform_driver_register(&sm100_driver);
 
-    INFO_MSG("\n"); 
+    INFO_MSG("\n");
 
     g_bAmpEnabled = true;   /* to force ImmVibeSPI_ForceOut_AmpDisable disabling the amp */
 
-    /* 
+    /*
     ** Disable amp.
     ** If multiple actuators are supported, please make sure to call
     ** ImmVibeSPI_ForceOut_AmpDisable for each actuator (provide the actuator index as
@@ -398,9 +403,9 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_Initialize(void)
 */
 IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_Terminate(void)
 {
-    INFO_MSG("\n"); 
+    INFO_MSG("\n");
 
-    /* 
+    /*
     ** Disable amp.
     ** If multiple actuators are supported, please make sure to call
     ** ImmVibeSPI_ForceOut_AmpDisable for each actuator (provide the actuator index as
@@ -442,7 +447,7 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_SetSamples(VibeUInt8 nActuatorIndex
     }
 	// nForce range: SM100: -127~127,  PMIC:0~127
     if (nForce <= 0)
-    {      
+    {
 		if(sm100_flag && nForce < 0)
 		{
 			sm100_pwm_set(1, nForce); //MSM GP CLK update bit issue.
@@ -456,8 +461,17 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_SetSamples(VibeUInt8 nActuatorIndex
 		if(sm100_flag) {
 	        sm100_pwm_set(1, nForce); //MSM GP CLK update bit issue.
 		} else {
-			if(vib_dev != NULL)
+			if(vib_dev != NULL) {
+#if defined CONFIG_TSPDRV_3_0V_VIBRATOR
+				qpnp_vib_set_with_vtglevel(vib_dev, (nForce * 31) / 128 + 1, true);
+#elif defined CONFIG_TSPDRV_2_9V_VIBRATOR
+				qpnp_vib_set_with_vtglevel(vib_dev, (nForce * 31) / 128 + 0, true);
+#elif defined CONFIG_TSPDRV_IMM_TUNE
+				qpnp_vib_set_with_vtglevel(vib_dev, (nForce * 31) / 128 + 0, true);
+#else
 				qpnp_vib_set_with_vtglevel(vib_dev, (nForce * 31) / 128 + 3, true);
+#endif
+			}
 		}
     }
     return VIBE_S_SUCCESS;
@@ -481,12 +495,12 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_SetFrequency(VibeUInt8 nActuatorInd
 IMMVIBESPIAPI VibeStatus ImmVibeSPI_Device_GetName(VibeUInt8 nActuatorIndex, char *szDevName, int nSize)
 {
 #if 0   /* The following code is provided as a sample. Please modify as required. */
-	INFO_MSG("\n"); 
+	INFO_MSG("\n");
     if ((!szDevName) || (nSize < 1)) return VIBE_E_FAIL;
 
     strncpy(szDevName, "W7", nSize-1);
     szDevName[nSize - 1] = '\0';    /* make sure the string is NULL terminated */
-#endif	
+#endif
 
     return VIBE_S_SUCCESS;
-} 
+}

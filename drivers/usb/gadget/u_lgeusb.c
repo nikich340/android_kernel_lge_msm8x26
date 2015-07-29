@@ -69,6 +69,10 @@ static char swver_string[32];
 static char subver_string[32];
 static char phoneid_string[32];
 
+#ifdef CONFIG_USB_G_LGE_MULTIPLE_CONFIGURATION
+static bool is_mac_os;
+#endif
+
 static struct lgeusb_dev *_lgeusb_dev;
 
 /* Belows are borrowed from android gadget's ATTR macros ;) */
@@ -348,6 +352,27 @@ static struct platform_driver lge_android_usb_platform_driver = {
 		.name = "lge_android_usb",
 	},
 };
+
+#ifdef CONFIG_USB_G_LGE_MULTIPLE_CONFIGURATION
+void lgeusb_set_host_os(u16 w_length)
+{
+	switch (w_length) {
+	case MAC_OS_TYPE:
+		is_mac_os = true;
+		break;
+	case WIN_LINUX_TYPE:
+		is_mac_os = false;
+		break;
+	default:
+		break;
+	}
+}
+
+bool lgeusb_get_host_os(void)
+{
+	return is_mac_os;
+}
+#endif
 
 static int __init lgeusb_probe(struct platform_device *pdev)
 {

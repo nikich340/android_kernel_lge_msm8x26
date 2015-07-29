@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -13,8 +13,8 @@
 #define __WCD9XXX_MBHC_H__
 
 #include "wcd9xxx-resmgr.h"
-
-#ifdef CONFIG_MACH_LGE // hj74.kim : add switch dev
+#include "wcdcal-hwdep.h"
+#ifdef CONFIG_MACH_LGE
 #include <linux/switch.h>
 #endif
 
@@ -82,6 +82,15 @@ enum wcd9xxx_mbhc_plug_type {
 	PLUG_TYPE_HEADPHONE,
 	PLUG_TYPE_HIGH_HPH,
 	PLUG_TYPE_GND_MIC_SWAP,
+	PLUG_TYPE_ANC_HEADPHONE,
+#if CONFIG_MACH_LGE
+	PLUG_TYPE_LGE_AUX,
+#endif
+};
+
+enum wcd9xxx_mbhc_micbias_type {
+	MBHC_PRIMARY_MIC_MB,
+	MBHC_ANC_MIC_MB,
 };
 
 enum wcd9xxx_micbias_num {
@@ -90,6 +99,12 @@ enum wcd9xxx_micbias_num {
 	MBHC_MICBIAS2,
 	MBHC_MICBIAS3,
 	MBHC_MICBIAS4,
+};
+
+enum hw_jack_type {
+	FOUR_POLE_JACK = 0,
+	FIVE_POLE_JACK,
+	SIX_POLE_JACK,
 };
 
 enum wcd9xx_mbhc_micbias_enable_bits {
@@ -101,6 +116,7 @@ enum wcd9xx_mbhc_cs_enable_bits {
 	MBHC_CS_ENABLE_POLLING,
 	MBHC_CS_ENABLE_INSERTION,
 	MBHC_CS_ENABLE_REMOVAL,
+	MBHC_CS_ENABLE_DET_ANC,
 };
 
 enum wcd9xxx_mbhc_state {
@@ -127,8 +143,8 @@ enum wcd9xxx_mbhc_clk_freq {
 enum wcd9xxx_mbhc_event_state {
 	MBHC_EVENT_PA_HPHL,
 	MBHC_EVENT_PA_HPHR,
-	MBHC_EVENT_PRE_TX_3_ON,
-	MBHC_EVENT_POST_TX_3_OFF,
+	MBHC_EVENT_PRE_TX_1_3_ON,
+	MBHC_EVENT_POST_TX_1_3_OFF,
 };
 
 struct wcd9xxx_mbhc_general_cfg {
@@ -221,6 +237,7 @@ struct wcd9xxx_mbhc_config {
 	 */
 	void *calibration;
 	enum wcd9xxx_micbias_num micbias;
+	enum wcd9xxx_micbias_num anc_micbias;
 	int (*mclk_cb_fn) (struct snd_soc_codec*, int, bool);
 	unsigned int mclk_rate;
 	unsigned int gpio;
@@ -236,6 +253,8 @@ struct wcd9xxx_mbhc_config {
 	bool use_int_rbias;
 	bool do_recalibration;
 	bool use_vddio_meas;
+	bool enable_anc_mic_detect;
+	enum hw_jack_type hw_jack_type;
 };
 
 struct wcd9xxx_cfilt_mode {
@@ -273,6 +292,9 @@ struct wcd9xxx_mbhc_cb {
 	int (*enable_mb_source) (struct snd_soc_codec *, bool, bool);
 	void (*setup_int_rbias) (struct snd_soc_codec *, bool);
 	void (*pull_mb_to_vddio) (struct snd_soc_codec *, bool);
+	struct firmware_cal * (*get_hwdep_fw_cal) (struct snd_soc_codec *,
+				enum wcd_cal_type);
+
 };
 
 struct wcd9xxx_mbhc {
@@ -287,6 +309,8 @@ struct wcd9xxx_mbhc {
 	struct mbhc_internal_cal_data mbhc_data;
 
 	struct mbhc_micbias_regs mbhc_bias_regs;
+	struct mbhc_micbias_regs mbhc_anc_bias_regs;
+
 	bool mbhc_micbias_switched;
 
 	u32 hph_status; /* track headhpone status */
@@ -298,6 +322,7 @@ struct wcd9xxx_mbhc {
 	const struct firmware *mbhc_fw;
 
 	struct delayed_work mbhc_insert_dwork;
+	struct firmware_cal *mbhc_cal;
 
 	u8 current_plug;
 	struct work_struct correct_plug_swch;
@@ -335,7 +360,8 @@ struct wcd9xxx_mbhc {
 	struct notifier_block nblock;
 
 	bool micbias_enable;
-	int (*micbias_enable_cb) (struct snd_soc_codec*,  bool);
+	int (*micbias_enable_cb) (struct snd_soc_codec*,  bool,
+				  enum wcd9xxx_micbias_num);
 
 	bool impedance_detect;
 	/* impedance of hphl and hphr */
@@ -344,16 +370,19 @@ struct wcd9xxx_mbhc {
 	u32 rco_clk_rate;
 
 	bool update_z;
+
+	u8   scaling_mux_in;
 	/* Holds codec specific interrupt mapping */
 	const struct wcd9xxx_mbhc_intr *intr_ids;
-	
-#ifdef CONFIG_MACH_LGE // hj74.kim : add switch dev
-	struct switch_dev sdev;
-#endif
 
 #ifdef CONFIG_DEBUG_FS
 	struct dentry *debugfs_poke;
 	struct dentry *debugfs_mbhc;
+#endif
+
+	struct mutex mbhc_lock;
+#ifdef CONFIG_MACH_LGE
+	struct switch_dev sdev;
 #endif
 };
 
@@ -417,7 +446,8 @@ int wcd9xxx_mbhc_start(struct wcd9xxx_mbhc *mbhc,
 void wcd9xxx_mbhc_stop(struct wcd9xxx_mbhc *mbhc);
 int wcd9xxx_mbhc_init(struct wcd9xxx_mbhc *mbhc, struct wcd9xxx_resmgr *resmgr,
 		      struct snd_soc_codec *codec,
-		      int (*micbias_enable_cb) (struct snd_soc_codec*,  bool),
+		      int (*micbias_enable_cb) (struct snd_soc_codec*,  bool,
+						enum wcd9xxx_micbias_num),
 		      const struct wcd9xxx_mbhc_cb *mbhc_cb,
 		      const struct wcd9xxx_mbhc_intr *mbhc_cdc_intr_ids,
 		      int rco_clk_rate,

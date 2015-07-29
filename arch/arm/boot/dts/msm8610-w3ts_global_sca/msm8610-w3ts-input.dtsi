@@ -60,19 +60,22 @@
 			status = "ok";
 			revision = "rev_e...";
 			synaptics,fw_version_info = <0x24 0x03 0x51>;
-			synaptics,fw_image = "synaptics/w3ts_global_sca/PLG312_V1.04_PR1585854_DS4.3.5.1.16_24035184.img";
-			synaptics,panel_spec = "synaptics/w3ts_global_sca/w3ts_global_sca_limit.txt";
+			synaptics,fw_image = "synaptics/w3ts_global_sca/PLG312_V1.13_PR1599307_DS4.3.5.16_2403518D.img";
+			synaptics,panel_spec = "synaptics/w3ts_global_sca/w3ts_Tovis_limit.txt",/*dummy*/
+						"synaptics/w3ts_global_sca/w3ts_Tovis_limit.txt",/*01*/
+						"synaptics/w3ts_global_sca/w3ts_ELK_limit.txt";/*10*/
 			lge,knock_on_type = <1>;
 			synaptics,platform_data	{
 			    /* firmware image depends on this value, temporarily used */
 			    /* 0: No image(default), 1: W3DS(TIM BR)(PLG312_T001), 2: W3S(VDF)(PLG311_T001), ... */
 				panel_type = <1>;
 				/*maker_id  disable(0), enable(1)*/
-				maker_id = <0>;
-				maker_id_gpio = <0>;
+				maker_id = <1>;
+				maker_id_gpio = <76>;
+				maker_id2_gpio = <77>;
 				palm_detect_mode = <1>;
 				ghost_detection_enable = <1>;
-				ghost_detection_jitter_value = <8>;
+				ghost_detection_value = <200 50 8 6 11 5 10 500 100 6 5>;
 			};
 		};
 	};

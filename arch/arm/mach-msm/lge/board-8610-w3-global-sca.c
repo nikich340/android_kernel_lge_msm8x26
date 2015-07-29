@@ -130,6 +130,10 @@ void __init msm8610_add_drivers(void)
     lge_android_usb_init();
 #endif
 
+#ifdef CONFIG_LGE_QFPROM_INTERFACE
+	lge_add_qfprom_devices();
+#endif
+
 #ifdef CONFIG_LGE_ENABLE_MMC_STRENGTH_CONTROL
     lge_add_mmc_strength_devices();
 #endif

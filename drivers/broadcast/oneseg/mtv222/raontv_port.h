@@ -223,13 +223,12 @@ typedef volatile U32		VU32;
 /*============================================================================
 * Defines the HRM ON setting Enable.
 * In order to reject GSM/CDMA blocker, HRM ON must be defined.
-* This feature used for module company in the JAPAN.
 *===========================================================================*/
-//#if defined(RTV_ISDBT_ENABLE)  //Do not use
-//	#ifdef RAONTV_CHIP_PKG_WLCSP
-	//	#define RAONTV_CHIP_PKG_WLCSP_HRM_ON
-//	#endif
-//#endif
+#if defined(RTV_ISDBT_ENABLE)
+	#ifdef RAONTV_CHIP_PKG_WLCSP
+		#define RAONTV_CHIP_PKG_WLCSP_HRM_ON
+	#endif
+#endif
 
 /*============================================================================
 * Defines the polarity of interrupt if necessary.

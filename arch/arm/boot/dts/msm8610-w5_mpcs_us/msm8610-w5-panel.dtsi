@@ -15,7 +15,7 @@
 };
 
 &mdss_dsi0 {
-    qcom,dsi-pref-prim-pan = <&dsi_v2_lgd_incell_wvga_video>;
+    qcom,dsi-pref-prim-pan = <&dsi_lgd_lg4577_wvga_video>;
     qcom,dsi-pref-secondary-pan = <&dsi_tovis_shrink_wvga_video>;
 	qcom,platform-supply-entry3 {
 		qcom,supply-name = "vdda";
@@ -36,7 +36,7 @@
     revision = "rev_b...";
 };
 
-&dsi_v2_lgd_incell_wvga_video {
+&dsi_lgd_lg4577_wvga_video {
     qcom,cont-splash-enabled;
     status = "disable";
     revision = "rev_a";

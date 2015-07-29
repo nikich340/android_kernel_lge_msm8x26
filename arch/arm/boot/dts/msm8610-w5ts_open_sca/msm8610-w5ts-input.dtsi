@@ -47,7 +47,7 @@
 			status = "ok";
 			revision = "rev_d...";
 			synaptics,fw_version_info = <0x34 0x04 0x51>;
-			synaptics,fw_image = "synaptics/w5ts_open_sca/PLG316-T013-PR1592889-DS4.3.5.1.16-3404510D.img";
+			synaptics,fw_image = "synaptics/w5ts_open_sca/PLG316-V1.13-PR1600582-DS4.3.5.1.16_3404518D.img";
                         synaptics,panel_spec = "synaptics/w5ts_open_sca/w5ts_open_sca_limit.txt";
                         synaptics,global_access_pixel = <10>;
 			lge,knock_on_type = <1>;
@@ -61,15 +61,12 @@
 				lcd_y = <800>;
 				use_vio_regulator = <1>;
 				gpio_vdd_en = <82>;
-			    /* firmware image depends on this value, temporarily used */
-			    /* 0: No image(default), 1: W3DS(TIM BR)(PLG312_T001), 2: W3S(VDF)(PLG311_T001), 3:X3, 4:W5TS, 5:W5S ... */
-				panel_type = <4>;
-				/*maker_id  disable(0), enable(1)*/
-				maker_id = <1>;
+			    	/*maker_id  disable(0), enable(1)*/
+				maker_id = <0>;
 				maker_id_gpio = <76>;
 				palm_detect_mode = <1>;
-				ghost_detection_enable = <1>;
-				ghost_detection_jitter_value = <8>;
+				ghost_detection_enable = <0>;
+				ghost_detection_value = <200 5 4 6 5 5 10 500 100 6 5>;
 			};				
 		};
 	};

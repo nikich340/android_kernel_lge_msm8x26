@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2013, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2014, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -9,6 +9,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+
 #define pr_fmt(fmt)	"BMS: %s: " fmt, __func__
 
 #include <linux/module.h>
@@ -27,7 +28,7 @@
 #include <linux/qpnp/power-on.h>
 #include <linux/of_batterydata.h>
 
-#ifdef CONFIG_LGE_PM_BATTERY_ID_CHECKER
+#if defined (CONFIG_LGE_PM_BATTERY_ID_CHECKER) || defined (CONFIG_LGE_PM_BMS_FACTORY_TEST)
 #include <mach/board_lge.h>
 #endif
 
@@ -131,8 +132,9 @@ struct fcc_sample {
 };
 
 struct bms_irq {
-	int		irq;
+	unsigned int	irq;
 	unsigned long	disabled;
+	bool		ready;
 };
 
 struct bms_wakeup_source {
@@ -182,7 +184,11 @@ struct qpnp_bms_chip {
 	int				default_rbatt_mohm;
 	int				rbatt_capacitive_mohm;
 	int				rbatt_mohm;
-
+#if defined (CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E8WIFI) || \
+    defined (CONFIG_MACH_MSM8926_E8LTE) || defined (CONFIG_MACH_MSM8226_E9WIFI) || \
+    defined (CONFIG_MACH_MSM8226_E9WIFIN) || defined (CONFIG_MACH_MSM8926_E9LTE)
+	int				vbat_uv;
+#endif
 	struct delayed_work		calculate_soc_delayed_work;
 	struct work_struct		recalc_work;
 	struct work_struct		batfet_open_work;
@@ -283,6 +289,7 @@ struct qpnp_bms_chip {
 	u8				charge_increase;
 	int				fcc_resolution;
 	bool				battery_removed;
+	bool				in_taper_charge;
 	struct bms_irq			sw_cc_thr_irq;
 	struct bms_irq			ocv_thr_irq;
 	struct qpnp_vadc_chip		*vadc_dev;
@@ -295,6 +302,10 @@ struct qpnp_bms_chip {
 #ifdef CONFIG_LGE_PM_BMS_MIN_IAVG_CAL_TIME
 	unsigned long			last_iavg_cal_time;
 	int				last_uuc_uah;
+#endif
+#ifdef CONFIG_MAX17048_FUELGAUGE
+	/* bool use_external_fuelgauge; */
+	struct power_supply *maxim17048;
 #endif
 };
 
@@ -318,12 +329,23 @@ static enum power_supply_property msm_bms_power_props[] = {
 	POWER_SUPPLY_PROP_CHARGE_COUNTER,
 	POWER_SUPPLY_PROP_CHARGE_COUNTER_SHADOW,
 	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
+#if defined (CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E9WIFI) || \
+    defined (CONFIG_MACH_MSM8226_E9WIFIN) || defined (CONFIG_MACH_MSM8926_E9LTE)
+	POWER_SUPPLY_PROP_BATTERY_DUALIZATION,
+#endif
 #ifdef CONFIG_LGE_PM_FACTORY_TESTMODE
 	POWER_SUPPLY_PROP_CHCOMP,
 	POWER_SUPPLY_PROP_CHARGE,
 #endif
 	POWER_SUPPLY_PROP_CHARGE_FULL,
 	POWER_SUPPLY_PROP_CYCLE_COUNT,
+#ifdef CONFIG_MAX17048_FUELGAUGE
+	POWER_SUPPLY_PROP_USE_FUELGAUGE,
+#endif
+#ifdef CONFIG_LGE_PM_FIX_CEC_FAIL
+	POWER_SUPPLY_PROP_RELEASE_CV_LOCK,
+#endif
+
 };
 
 static int discard_backup_fcc_data(struct qpnp_bms_chip *chip);
@@ -332,8 +354,39 @@ static void backup_charge_cycle(struct qpnp_bms_chip *chip);
 #ifdef CONFIG_LGE_PM_VZW_LLK
 extern bool external_qpnp_chg_is_usb_chg_plugged_in(void);
 extern int32_t vzw_llk_enable_charging(bool enable);
+extern bool store_demo_enabled;
+extern bool llk_monitor_soc_flag;
+extern bool llk_stop_chg_flag;
 #endif
 
+#ifdef CONFIG_MAX17048_FUELGAUGE
+static int check_use_external_fuelgauge(struct qpnp_bms_chip *chip)
+{
+	int ret = 0;
+	if (chip->bms_psy_registered) {
+		ret = chip->bms_psy.use_external_fuelgauge;
+		/* pr_err("[LGE] use_external_fuelgauge is %d!!!\n",chip->bms_psy.use_external_fuelgauge); */
+	} else {
+		pr_err("[LGE] There is no bms_psy!!!\n");
+	}
+	return ret;
+}
+static int set_use_external_fuelgauge(struct qpnp_bms_chip *chip, int val)
+{
+	int ret = -1;
+	if (chip->bms_psy_registered) {
+		chip->bms_psy.use_external_fuelgauge = val;
+		/* pr_err("[LGE] use_external_fuelgauge is %d\n!!!\n",chip->bms_psy.use_external_fuelgauge); */
+		ret = 0;
+	} else {
+		pr_err("[LGE] There is no bms_psy!!!\n");
+		ret = -1;
+	}
+	return ret;
+}
+#endif
+
+static struct qpnp_bms_chip *dummy_chip;
 static bool bms_reset;
 #ifdef CONFIG_LGE_PM_BATTERY_SOC_RESCALING
 static int cntSOC = 0;
@@ -423,7 +476,7 @@ static void bms_relax(struct bms_wakeup_source *source)
 
 static void enable_bms_irq(struct bms_irq *irq)
 {
-	if (__test_and_clear_bit(0, &irq->disabled)) {
+	if (irq->ready && __test_and_clear_bit(0, &irq->disabled)) {
 		enable_irq(irq->irq);
 		pr_debug("enabled irq %d\n", irq->irq);
 	}
@@ -431,7 +484,7 @@ static void enable_bms_irq(struct bms_irq *irq)
 
 static void disable_bms_irq(struct bms_irq *irq)
 {
-	if (!__test_and_set_bit(0, &irq->disabled)) {
+	if (irq->ready && !__test_and_set_bit(0, &irq->disabled)) {
 		disable_irq(irq->irq);
 		pr_debug("disabled irq %d\n", irq->irq);
 	}
@@ -439,7 +492,7 @@ static void disable_bms_irq(struct bms_irq *irq)
 
 static void disable_bms_irq_nosync(struct bms_irq *irq)
 {
-	if (!__test_and_set_bit(0, &irq->disabled)) {
+	if (irq->ready && !__test_and_set_bit(0, &irq->disabled)) {
 		disable_irq_nosync(irq->irq);
 		pr_debug("disabled irq %d\n", irq->irq);
 	}
@@ -456,6 +509,12 @@ static int lock_output_data(struct qpnp_bms_chip *chip)
 		pr_err("couldnt lock bms output rc = %d\n", rc);
 		return rc;
 	}
+	/*
+	 * Sleep for at least 60 microseconds here to make sure there has
+	 * been at least two cycles of the sleep clock so that the registers
+	 * are correctly locked.
+	 */
+	usleep_range(60, 2000);
 	return 0;
 }
 
@@ -520,7 +579,7 @@ static int convert_vbatt_uv_to_raw(struct qpnp_bms_chip *chip,
 }
 
 static inline int convert_vbatt_raw_to_uv(struct qpnp_bms_chip *chip,
-					uint16_t reading)
+					uint16_t reading, bool is_pon_ocv)
 {
 	int64_t uv;
 	int rc;
@@ -529,7 +588,7 @@ static inline int convert_vbatt_raw_to_uv(struct qpnp_bms_chip *chip,
 	pr_debug("%u raw converted into %lld uv\n", reading, uv);
 	uv = adjust_vbatt_reading(chip, uv);
 	pr_debug("adjusted into %lld uv\n", uv);
-	rc = qpnp_vbat_sns_comp_result(chip->vadc_dev, &uv);
+	rc = qpnp_vbat_sns_comp_result(chip->vadc_dev, &uv, is_pon_ocv);
 	if (rc)
 		pr_debug("could not compensate vbatt\n");
 	pr_debug("compensated into %lld uv\n", uv);
@@ -635,17 +694,55 @@ static int get_battery_current(struct qpnp_bms_chip *chip, int *result_ua)
 	temp_current = div_s64((vsense_uv * 1000000LL),
 				(int)chip->r_sense_uohm);
 
+	*result_ua = temp_current;
 	rc = qpnp_iadc_comp_result(chip->iadc_dev, &temp_current);
 	if (rc)
 		pr_debug("error compensation failed: %d\n", rc);
 
+	pr_debug("%d uA err compensated ibat=%llduA\n",
+			*result_ua, temp_current);
 	*result_ua = temp_current;
-	pr_debug("err compensated ibat=%duA\n", *result_ua);
 	return 0;
 }
 
+#if defined(CONFIG_MACH_MSM8926_JAGNM_ATT) || defined(CONFIG_MACH_MSM8926_JAGNM_RGS) || defined(CONFIG_MACH_MSM8926_JAGNM_TLS) \
+	|| defined(CONFIG_MACH_MSM8926_JAGNM_VTR) || defined(CONFIG_MACH_MSM8926_JAGNM_BELL) || defined(CONFIG_MACH_MSM8926_JAGC_SPR)
+static int report_state_of_voltage(struct qpnp_bms_chip *chip)
+{
+	int rc;
+	int vbat_now = 0;
+
+	struct qpnp_vadc_result adc_result;
+	union power_supply_propval ret = {0,};
+
+	if (chip->maxim17048 == NULL)
+		chip->maxim17048 = power_supply_get_by_name("max17048");
+
+	if ((check_use_external_fuelgauge(chip)) && (chip->maxim17048 != NULL)) {
+		/* if battery has been registered, use the present property */
+		chip->maxim17048->get_property(chip->maxim17048,
+				POWER_SUPPLY_PROP_VOLTAGE_NOW, &ret);
+			vbat_now = ret.intval;
+		return vbat_now;
+	} else {
+		rc = qpnp_vadc_read(chip->vadc_dev, VBAT_SNS, &adc_result);
+		if (rc) {
+			pr_err("error reading adc channel = %d, rc = %d\n",
+					VBAT_SNS, rc);
+			return rc;
+		}
+		vbat_now = (int)adc_result.physical;
+		return vbat_now;
+	}
+}
+#endif
+
 static int get_battery_voltage(struct qpnp_bms_chip *chip, int *result_uv)
 {
+#if defined(CONFIG_MACH_MSM8926_JAGNM_ATT) || defined(CONFIG_MACH_MSM8926_JAGNM_RGS) || defined(CONFIG_MACH_MSM8926_JAGNM_TLS) \
+	|| defined(CONFIG_MACH_MSM8926_JAGNM_VTR) || defined(CONFIG_MACH_MSM8926_JAGNM_BELL) || defined(CONFIG_MACH_MSM8926_JAGC_SPR)
+	*result_uv = report_state_of_voltage(chip);
+#else
 	int rc;
 	struct qpnp_vadc_result adc_result;
 
@@ -658,6 +755,7 @@ static int get_battery_voltage(struct qpnp_bms_chip *chip, int *result_uv)
 	pr_debug("mvolts phy = %lld meas = 0x%llx\n", adc_result.physical,
 						adc_result.measurement);
 	*result_uv = (int)adc_result.physical;
+#endif
 	return 0;
 }
 
@@ -726,7 +824,7 @@ static int calib_vadc(struct qpnp_bms_chip *chip)
 
 static void convert_and_store_ocv(struct qpnp_bms_chip *chip,
 				struct raw_soc_params *raw,
-				int batt_temp)
+				int batt_temp, bool is_pon_ocv)
 {
 	int rc;
 
@@ -738,7 +836,7 @@ static void convert_and_store_ocv(struct qpnp_bms_chip *chip,
 		pr_err("Vadc reference voltage read failed, rc = %d\n", rc);
 	chip->prev_last_good_ocv_raw = raw->last_good_ocv_raw;
 	raw->last_good_ocv_uv = convert_vbatt_raw_to_uv(chip,
-					raw->last_good_ocv_raw);
+					raw->last_good_ocv_raw, is_pon_ocv);
 	chip->last_ocv_uv = raw->last_good_ocv_uv;
 	chip->last_ocv_temp = batt_temp;
 	chip->software_cc_uah = 0;
@@ -778,13 +876,25 @@ static void reset_cc(struct qpnp_bms_chip *chip, u8 flags)
 static int get_battery_status(struct qpnp_bms_chip *chip)
 {
 	union power_supply_propval ret = {0,};
+	int rc;
 
 	if (chip->batt_psy == NULL)
 		chip->batt_psy = power_supply_get_by_name("battery");
 	if (chip->batt_psy) {
 		/* if battery has been registered, use the status property */
-		chip->batt_psy->get_property(chip->batt_psy,
+#ifdef CONFIG_LGE_PM
+		/*  batt_psy 's POWER_SUPPLY_PROP_STATUS node is modified by LGE
+		to report FULL status at 100 SOC, even if actually phone is charging */
+		rc = chip->batt_psy->get_property(chip->batt_psy,
+					POWER_SUPPLY_PROP_STATUS_ORIGINAL, &ret);
+#else
+		rc = chip->batt_psy->get_property(chip->batt_psy,
 					POWER_SUPPLY_PROP_STATUS, &ret);
+#endif
+		if (rc) {
+			pr_debug("Battery does not export status: %d\n", rc);
+			return POWER_SUPPLY_STATUS_UNKNOWN;
+		}
 		return ret.intval;
 	}
 
@@ -793,10 +903,35 @@ static int get_battery_status(struct qpnp_bms_chip *chip)
 	return POWER_SUPPLY_STATUS_UNKNOWN;
 }
 
+static int get_battery_charge_type(struct qpnp_bms_chip *chip)
+{
+	union power_supply_propval ret = {0,};
+	int rc;
+
+	if (chip->batt_psy == NULL)
+		chip->batt_psy = power_supply_get_by_name("battery");
+	if (chip->batt_psy) {
+		/* if battery has been registered, use the type property */
+		rc = chip->batt_psy->get_property(chip->batt_psy,
+				POWER_SUPPLY_PROP_CHARGE_TYPE, &ret);
+		if (rc) {
+			pr_debug("Battery does not export charge type: %d\n"
+									, rc);
+			return POWER_SUPPLY_CHARGE_TYPE_NONE;
+		}
+		return ret.intval;
+	}
+
+	/* Default to false if the battery power supply is not registered. */
+	pr_debug("battery power supply is not registered\n");
+	return POWER_SUPPLY_CHARGE_TYPE_NONE;
+}
+
 static bool is_battery_charging(struct qpnp_bms_chip *chip)
 {
 	return get_battery_status(chip) == POWER_SUPPLY_STATUS_CHARGING;
 }
+
 
 static bool is_battery_full(struct qpnp_bms_chip *chip)
 {
@@ -823,8 +958,12 @@ static bool is_battery_present(struct qpnp_bms_chip *chip)
 		chip->batt_psy = power_supply_get_by_name("battery");
 	if (chip->batt_psy) {
 		/* if battery has been registered, use the present property */
-		chip->batt_psy->get_property(chip->batt_psy,
+		rc = chip->batt_psy->get_property(chip->batt_psy,
 					POWER_SUPPLY_PROP_PRESENT, &ret);
+		if (rc) {
+			pr_debug("battery does not export present: %d\n", rc);
+			return true;
+		}
 		return ret.intval;
 	}
 
@@ -865,13 +1004,18 @@ static int get_battery_insertion_ocv_uv(struct qpnp_bms_chip *chip)
 static bool is_batfet_closed(struct qpnp_bms_chip *chip)
 {
 	union power_supply_propval ret = {0,};
+	int rc;
 
 	if (chip->batt_psy == NULL)
 		chip->batt_psy = power_supply_get_by_name("battery");
 	if (chip->batt_psy) {
 		/* if battery has been registered, use the online property */
-		chip->batt_psy->get_property(chip->batt_psy,
+		rc = chip->batt_psy->get_property(chip->batt_psy,
 					POWER_SUPPLY_PROP_ONLINE, &ret);
+		if (rc) {
+			pr_debug("Battery does not export online: %d\n", rc);
+			return true;
+		}
 		return !!ret.intval;
 	}
 
@@ -921,13 +1065,32 @@ static int get_simultaneous_batt_v_and_i(struct qpnp_bms_chip *chip,
 	return 0;
 }
 
-static int estimate_ocv(struct qpnp_bms_chip *chip)
+static int get_rbatt(struct qpnp_bms_chip *chip,
+					int soc_rbatt_mohm, int batt_temp)
 {
-	int ibat_ua, vbat_uv, ocv_est_uv;
-	int rc;
-	int rbatt_mohm = chip->default_rbatt_mohm + chip->r_conn_mohm
-					+ chip->rbatt_capacitive_mohm;
+	int rbatt_mohm, scalefactor;
 
+	rbatt_mohm = chip->default_rbatt_mohm;
+	if (chip->rbatt_sf_lut == NULL)  {
+		pr_debug("RBATT = %d\n", rbatt_mohm);
+		return rbatt_mohm;
+	}
+	/* Convert the batt_temp to DegC from deciDegC */
+	scalefactor = interpolate_scalingfactor(chip->rbatt_sf_lut,
+						batt_temp, soc_rbatt_mohm);
+	rbatt_mohm = (rbatt_mohm * scalefactor) / 100;
+
+	rbatt_mohm += chip->r_conn_mohm;
+	rbatt_mohm += chip->rbatt_capacitive_mohm;
+	return rbatt_mohm;
+}
+
+#define DEFAULT_RBATT_SOC	50
+static int estimate_ocv(struct qpnp_bms_chip *chip, int batt_temp)
+{
+	int ibat_ua, vbat_uv, ocv_est_uv, rbatt_mohm, rc;
+
+	rbatt_mohm = get_rbatt(chip, DEFAULT_RBATT_SOC, batt_temp);
 	rc = get_simultaneous_batt_v_and_i(chip, &ibat_ua, &vbat_uv);
 	if (rc) {
 		pr_err("simultaneous failed rc = %d\n", rc);
@@ -935,10 +1098,12 @@ static int estimate_ocv(struct qpnp_bms_chip *chip)
 	}
 
 	ocv_est_uv = vbat_uv + (ibat_ua * rbatt_mohm) / 1000;
-	pr_debug("estimated pon ocv = %d\n", ocv_est_uv);
+	pr_debug("estimated pon ocv = %d, vbat_uv = %d ibat_ua = %d rbatt_mohm = %d\n",
+			ocv_est_uv, vbat_uv, ibat_ua, rbatt_mohm);
 	return ocv_est_uv;
 }
 
+#define MIN_IAVG_MA 250
 static void reset_for_new_battery(struct qpnp_bms_chip *chip, int batt_temp)
 {
 	chip->last_ocv_uv = chip->insertion_ocv_uv;
@@ -949,7 +1114,7 @@ static void reset_for_new_battery(struct qpnp_bms_chip *chip, int batt_temp)
 	chip->soc_at_cv = -EINVAL;
 	chip->shutdown_soc_invalid = true;
 	chip->shutdown_soc = 0;
-	chip->shutdown_iavg_ma = 0;
+	chip->shutdown_iavg_ma = MIN_IAVG_MA;
 	chip->prev_pc_unusable = -EINVAL;
 	reset_cc(chip, CLEAR_CC | CLEAR_SHDW_CC);
 	chip->software_cc_uah = 0;
@@ -986,16 +1151,15 @@ void qpnp_goto_suspend_for_chg_logo(void);
 static int find_ocv_for_pc(struct qpnp_bms_chip *chip, int batt_temp, int pc)
 {
 	int new_pc;
-	int batt_temp_degc = batt_temp / 10;
 	int ocv_mv;
 	int delta_mv = 5;
 	int max_spin_count;
 	int count = 0;
 	int sign, new_sign;
 
-	ocv_mv = interpolate_ocv(chip->pc_temp_ocv_lut, batt_temp_degc, pc);
+	ocv_mv = interpolate_ocv(chip->pc_temp_ocv_lut, batt_temp, pc);
 
-	new_pc = interpolate_pc(chip->pc_temp_ocv_lut, batt_temp_degc, ocv_mv);
+	new_pc = interpolate_pc(chip->pc_temp_ocv_lut, batt_temp, ocv_mv);
 	pr_debug("test revlookup pc = %d for ocv = %d\n", new_pc, ocv_mv);
 	max_spin_count = 1 + (chip->max_voltage_uv - chip->v_cutoff_uv)
 						/ UV_PER_SPIN;
@@ -1026,7 +1190,7 @@ static int find_ocv_for_pc(struct qpnp_bms_chip *chip, int batt_temp, int pc)
 
 		ocv_mv = ocv_mv + delta_mv * sign;
 		new_pc = interpolate_pc(chip->pc_temp_ocv_lut,
-				batt_temp_degc, ocv_mv);
+				batt_temp, ocv_mv);
 		pr_debug("test revlookup pc = %d for ocv = %d\n",
 			new_pc, ocv_mv);
 		count++;
@@ -1063,48 +1227,46 @@ static int read_soc_params_raw(struct qpnp_bms_chip *chip,
 			chip->base + BMS1_OCV_FOR_SOC_DATA0, 2);
 	if (rc) {
 		pr_err("Error reading ocv: rc = %d\n", rc);
-		return -ENXIO;
+		goto param_err;
 	}
 
 	rc = read_cc_raw(chip, &raw->cc, CC);
-	rc = read_cc_raw(chip, &raw->shdw_cc, SHDW_CC);
+	rc |= read_cc_raw(chip, &raw->shdw_cc, SHDW_CC);
 	if (rc) {
 		pr_err("Failed to read raw cc data, rc = %d\n", rc);
-		return rc;
+		goto param_err;
 	}
 
 	unlock_output_data(chip);
 	mutex_unlock(&chip->bms_output_lock);
 
 	if (chip->prev_last_good_ocv_raw == OCV_RAW_UNINITIALIZED) {
-		convert_and_store_ocv(chip, raw, batt_temp);
+		convert_and_store_ocv(chip, raw, batt_temp, true);
 		pr_debug("PON_OCV_UV = %d, cc = %llx\n",
 				chip->last_ocv_uv, raw->cc);
-        
+
 #ifdef CONFIG_LGE_PM_BMS_FACTORY_TEST
-        boot_mode = lge_get_boot_mode();
-        printk("[qpnp-bms PON_OCV] PON_OVC_UV = %d, cc = %llx, boot_mode = %d\n", 
-            chip->last_ocv_uv, raw->cc, boot_mode);
-        if( (boot_mode == LGE_BOOT_MODE_QEM_56K) || 
-             (boot_mode == LGE_BOOT_MODE_QEM_130K) ||
-              (boot_mode == LGE_BOOT_MODE_QEM_910K) ){
-            is_factory_cable = 1;
-        }
+		boot_mode = lge_get_boot_mode();
+		printk("[qpnp-bms PON_OCV] PON_OVC_UV = %d, cc = %llx, boot_mode = %d\n",
+				chip->last_ocv_uv, raw->cc, boot_mode);
+		if ((boot_mode == LGE_BOOT_MODE_QEM_56K) ||
+			(boot_mode == LGE_BOOT_MODE_QEM_130K) ||
+			(boot_mode == LGE_BOOT_MODE_QEM_910K)) {
+			is_factory_cable = 1;
+		}
 #endif
 		warm_reset = qpnp_pon_is_warm_reset();
 		if (raw->last_good_ocv_uv < MIN_OCV_UV
 				|| warm_reset > 0
 #ifdef CONFIG_LGE_PM_BMS_FACTORY_TEST
-                    || is_factory_cable == 1
+				|| is_factory_cable == 1
 #endif
-                                            ) {
+			) {
 			pr_debug("OCV is stale or bad, estimating new OCV.\n");
-			chip->last_ocv_uv = estimate_ocv(chip);
+			chip->last_ocv_uv = estimate_ocv(chip, batt_temp);
 			raw->last_good_ocv_uv = chip->last_ocv_uv;
 			reset_cc(chip, CLEAR_CC | CLEAR_SHDW_CC);
 			pr_debug("New PON_OCV_UV = %d, cc = %llx\n",
-					chip->last_ocv_uv, raw->cc);
-            pr_info("New PON_OCV_UV = %d, cc = %llx\n",
 					chip->last_ocv_uv, raw->cc);
 		}
 	} else if (chip->new_battery) {
@@ -1114,7 +1276,7 @@ static int read_soc_params_raw(struct qpnp_bms_chip *chip,
 		raw->shdw_cc = 0;
 		raw->last_good_ocv_uv = chip->last_ocv_uv;
 		chip->new_battery = false;
-    } else if (chip->done_charging) {
+	} else if (chip->done_charging) {
 		chip->done_charging = false;
 		/* if we just finished charging, reset CC and fake 100% */
 		chip->ocv_reading_at_100 = raw->last_good_ocv_raw;
@@ -1130,7 +1292,7 @@ static int read_soc_params_raw(struct qpnp_bms_chip *chip,
 		pr_debug("EOC Battery full ocv_reading = 0x%x\n",
 				chip->ocv_reading_at_100);
 	} else if (chip->prev_last_good_ocv_raw != raw->last_good_ocv_raw) {
-		convert_and_store_ocv(chip, raw, batt_temp);
+		convert_and_store_ocv(chip, raw, batt_temp, false);
 		/* forget the old cc value upon ocv */
 		chip->last_cc_uah = INT_MIN;
 	} else {
@@ -1145,13 +1307,13 @@ static int read_soc_params_raw(struct qpnp_bms_chip *chip,
 	}
 
     pr_debug("[qpnp-bms CC Accuracy] vbat_uv = %d, is_battery_full = %d, factor = %d\n",
-                        vbat_uv, is_battery_full(chip), CC_ACCURACY_LOW_SOC_THRESHOLD);
-    if(is_battery_full(chip) && 
-        (chip->calculated_soc <= CC_ACCURACY_LOW_SOC_THRESHOLD + 2 ) &&
-        (chip->calculated_soc >= CC_ACCURACY_LOW_SOC_THRESHOLD) &&
-            (vbat_uv >= chip->max_voltage_uv - VBATDET_DELTA_UV)){
+				vbat_uv, is_battery_full(chip), CC_ACCURACY_LOW_SOC_THRESHOLD);
+    if (is_battery_full(chip) &&
+		(chip->calculated_soc <= CC_ACCURACY_LOW_SOC_THRESHOLD + 2) &&
+		(chip->calculated_soc >= CC_ACCURACY_LOW_SOC_THRESHOLD) &&
+		(vbat_uv >= chip->max_voltage_uv - VBATDET_DELTA_UV)) {
 
-		chip->last_ocv_uv = estimate_ocv(chip);
+		chip->last_ocv_uv = estimate_ocv(chip, batt_temp);
 		raw->last_good_ocv_uv = chip->last_ocv_uv;
 		raw->cc = 0;
 		raw->shdw_cc = 0;
@@ -1160,8 +1322,8 @@ static int read_soc_params_raw(struct qpnp_bms_chip *chip,
 		chip->software_cc_uah = 0;
 		chip->software_shdw_cc_uah = 0;
 		chip->last_cc_uah = INT_MIN;
-        printk("[qpnp-bms CC Accuracy] update new estimated ocv : chip->last_ocv_uv = %d\n", chip->last_ocv_uv);
-    }
+		printk("[qpnp-bms CC Accuracy] update new estimated ocv : chip->last_ocv_uv = %d\n", chip->last_ocv_uv);
+	}
 #endif
 	/* stop faking a high OCV if we get a new OCV */
 	if (chip->ocv_reading_at_100 != raw->last_good_ocv_raw)
@@ -1171,6 +1333,11 @@ static int read_soc_params_raw(struct qpnp_bms_chip *chip,
 			raw->last_good_ocv_raw, raw->last_good_ocv_uv);
 	pr_debug("cc_raw= 0x%llx\n", raw->cc);
 	return 0;
+
+param_err:
+	unlock_output_data(chip);
+	mutex_unlock(&chip->bms_output_lock);
+	return rc;
 }
 
 static int calculate_pc(struct qpnp_bms_chip *chip, int ocv_uv,
@@ -1179,7 +1346,7 @@ static int calculate_pc(struct qpnp_bms_chip *chip, int ocv_uv,
 	int pc;
 
 	pc = interpolate_pc(chip->pc_temp_ocv_lut,
-			batt_temp / 10, ocv_uv / 1000);
+			batt_temp, ocv_uv / 1000);
 	pr_debug("pc = %u %% for ocv = %d uv batt_temp = %d\n",
 					pc, ocv_uv, batt_temp);
 	/* Multiply the initial FCC value by the scale factor. */
@@ -1291,27 +1458,6 @@ static int calculate_cc(struct qpnp_bms_chip *chip, int64_t cc,
 	}
 }
 
-static int get_rbatt(struct qpnp_bms_chip *chip,
-					int soc_rbatt_mohm, int batt_temp)
-{
-	int rbatt_mohm, scalefactor;
-
-	rbatt_mohm = chip->default_rbatt_mohm;
-	if (chip->rbatt_sf_lut == NULL)  {
-		pr_debug("RBATT = %d\n", rbatt_mohm);
-		return rbatt_mohm;
-	}
-	/* Convert the batt_temp to DegC from deciDegC */
-	batt_temp = batt_temp / 10;
-	scalefactor = interpolate_scalingfactor(chip->rbatt_sf_lut,
-						batt_temp, soc_rbatt_mohm);
-	rbatt_mohm = (rbatt_mohm * scalefactor) / 100;
-
-	rbatt_mohm += chip->r_conn_mohm;
-	rbatt_mohm += chip->rbatt_capacitive_mohm;
-	return rbatt_mohm;
-}
-
 #define IAVG_MINIMAL_TIME	2
 static void calculate_iavg(struct qpnp_bms_chip *chip, int cc_uah,
 				int *iavg_ua, int delta_time_s)
@@ -1346,7 +1492,6 @@ static int calculate_termination_uuc(struct qpnp_bms_chip *chip,
 	int unusable_uv, pc_unusable, uuc_uah;
 	int i = 0;
 	int ocv_mv;
-	int batt_temp_degc = batt_temp / 10;
 	int rbatt_mohm;
 	int delta_uv;
 	int prev_delta_uv = 0;
@@ -1355,7 +1500,7 @@ static int calculate_termination_uuc(struct qpnp_bms_chip *chip,
 
 	for (i = 0; i <= 100; i++) {
 		ocv_mv = interpolate_ocv(chip->pc_temp_ocv_lut,
-				batt_temp_degc, i);
+				batt_temp, i);
 		rbatt_mohm = get_rbatt(chip, i, batt_temp);
 		unusable_uv = (rbatt_mohm * uuc_iavg_ma)
 							+ (chip->v_cutoff_uv);
@@ -1392,13 +1537,12 @@ static int adjust_uuc(struct qpnp_bms_chip *chip,
 			int batt_temp)
 {
 	int new_unusable_mv, new_iavg_ma;
-	int batt_temp_degc = batt_temp / 10;
 	int max_percent_change;
 
 	max_percent_change = max(params->delta_time_s
 				/ TIME_PER_PERCENT_UUC, 1);
 
-	if (chip->prev_pc_unusable == -EINVAL
+	if (chip->first_time_calc_uuc || chip->prev_pc_unusable == -EINVAL
 		|| abs(chip->prev_pc_unusable - new_pc_unusable)
 			<= max_percent_change) {
 		chip->prev_pc_unusable = new_pc_unusable;
@@ -1415,7 +1559,7 @@ static int adjust_uuc(struct qpnp_bms_chip *chip,
 
 	/* also find update the iavg_ma accordingly */
 	new_unusable_mv = interpolate_ocv(chip->pc_temp_ocv_lut,
-			batt_temp_degc, chip->prev_pc_unusable);
+			batt_temp, chip->prev_pc_unusable);
 	if (new_unusable_mv < chip->v_cutoff_uv/1000)
 		new_unusable_mv = chip->v_cutoff_uv/1000;
 
@@ -1431,7 +1575,6 @@ static int adjust_uuc(struct qpnp_bms_chip *chip,
 	return new_uuc_uah;
 }
 
-#define MIN_IAVG_MA 250
 #ifdef CONFIG_LGE_PM_BMS_MIN_IAVG_CAL_TIME
 #define MIN_IAVG_CAL_TIME 20
 #endif
@@ -1466,7 +1609,7 @@ static int calculate_unusable_charge_uah(struct qpnp_bms_chip *chip,
 	time_since_last_iavg_cal = now_tm_sec - chip->last_iavg_cal_time;
 	pr_debug("[BMS_DEBUG] chip->last_iavg_cal_time = %ld, time_since_last_iavg_cal = %d\n",
 		 chip->last_iavg_cal_time, time_since_last_iavg_cal);
-	if( (time_since_last_iavg_cal < MIN_IAVG_CAL_TIME) && !chip->first_time_calc_uuc){
+	if ((time_since_last_iavg_cal < MIN_IAVG_CAL_TIME) && !chip->first_time_calc_uuc) {
 		goto out;
 	}
 	get_current_time(&chip->last_iavg_cal_time);
@@ -1605,7 +1748,7 @@ static int get_prop_bms_charge_counter(struct qpnp_bms_chip *chip)
 
 	mutex_lock(&chip->bms_output_lock);
 	lock_output_data(chip);
-	read_cc_raw(chip, &cc_raw, false);
+	read_cc_raw(chip, &cc_raw, CC);
 	unlock_output_data(chip);
 	mutex_unlock(&chip->bms_output_lock);
 
@@ -1619,7 +1762,7 @@ static int get_prop_bms_charge_counter_shadow(struct qpnp_bms_chip *chip)
 
 	mutex_lock(&chip->bms_output_lock);
 	lock_output_data(chip);
-	read_cc_raw(chip, &cc_raw, true);
+	read_cc_raw(chip, &cc_raw, SHDW_CC);
 	unlock_output_data(chip);
 	mutex_unlock(&chip->bms_output_lock);
 
@@ -1664,6 +1807,25 @@ static int calculate_delta_time(unsigned long *time_stamp, int *delta_time_s)
 	/* remember this time */
 	*time_stamp = now_tm_sec;
 	return 0;
+}
+
+static int64_t read_battery_id(struct qpnp_bms_chip *chip)
+{
+#ifdef CONFIG_LGE_PM_BATTERY_ID_CHECKER
+	return read_lge_battery_id();
+#else
+	int rc;
+	struct qpnp_vadc_result result;
+
+	rc = qpnp_vadc_read(chip->vadc_dev, LR_MUX2_BAT_ID, &result);
+	if (rc) {
+		pr_err("error reading batt id channel = %d, rc = %d\n",
+					LR_MUX2_BAT_ID, rc);
+		return rc;
+	}
+
+	return result.physical;
+#endif
 }
 
 static void calculate_soc_params(struct qpnp_bms_chip *chip,
@@ -1873,15 +2035,21 @@ int cal_rnd_avg(int *soc_value, int unit_num)
 	 int avr = 0;
 	 int i;
 
-	 for(i = 0; i < unit_num; i++){
+	 for (i = 0; i < unit_num; i++) {
 		sum += soc_value[i];
-        pr_debug("average soc[%d] = %d\n", i, soc_value[i]);
+		pr_debug("average soc[%d] = %d\n", i, soc_value[i]);
 	 }
 
 	 avr = ((sum/unit_num)*10+5)/10;
 
 	 return avr;
 }
+#endif
+#if defined (CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E8WIFI) || \
+    defined (CONFIG_MACH_MSM8926_E8LTE) || defined (CONFIG_MACH_MSM8226_E9WIFI) || \
+    defined (CONFIG_MACH_MSM8226_E9WIFIN) || defined (CONFIG_MACH_MSM8926_E9LTE)
+extern int lge_boot_mode_for_touch;
+static bool battery_voltage_status_flag = false;
 #endif
 
 #define SOC_CATCHUP_SEC_MAX		600
@@ -1890,7 +2058,12 @@ int cal_rnd_avg(int *soc_value, int unit_num)
 #define SOC_CHANGE_PER_SEC		5
 
 #ifdef CONFIG_LGE_PM_BATTERY_SOC_RESCALING
+#if defined (CONFIG_MACH_MSM8226_E8WIFI) || defined (CONFIG_MACH_MSM8926_E8LTE) || \
+    defined (CONFIG_MACH_MSM8926_T8LTE)
+#define SOC_RESCALING_FACTOR	100/96
+#else
 #define SOC_RESCALING_FACTOR	100/94
+#endif
 #define I_MAX 10 /*numner of SOC averaging unit*/
 #define MAX_SLEEP_AVG_CAL_TIME  120
 #endif
@@ -1906,7 +2079,7 @@ static int report_cc_based_soc(struct qpnp_bms_chip *chip)
 	int rc;
 	bool charging, charging_since_last_report;
 #ifdef CONFIG_LGE_PM_BATTERY_SOC_RESCALING
-    static int  soc_buf[I_MAX]={0,};
+    static int  soc_buf[I_MAX] = {0,};
     static int  idxBuf = 0;
     int         idxsoc = 0;
     int         avgSOC = 0;
@@ -1942,7 +2115,7 @@ static int report_cc_based_soc(struct qpnp_bms_chip *chip)
 	last_change_sec = chip->last_soc_change_sec;
 	calculate_delta_time(&last_change_sec, &time_since_last_change_sec);
 
-	charging = is_battery_charging(chip);
+	charging = chip->battery_status == POWER_SUPPLY_STATUS_CHARGING;
 	charging_since_last_report = charging || (chip->last_soc_unbound
 			&& chip->was_charging_at_sleep);
 	/*
@@ -2026,39 +2199,39 @@ static int report_cc_based_soc(struct qpnp_bms_chip *chip)
 
 #ifdef CONFIG_LGE_PM_BATTERY_SOC_RESCALING
     chip->rescale_soc = chip->last_soc*SOC_RESCALING_FACTOR;
-	if(chip->rescale_soc > 100)
+	if (chip->rescale_soc > 100)
 		chip->rescale_soc = 100;
 
-    // average of last 10 measured comp_soc value
-	if (cntSOC == 0){//access once
-	    if(bms_long_time_sleep != 1){
-   	        for(idxsoc=0; idxsoc<I_MAX; idxsoc++){
-    			soc_buf[idxsoc] = chip->rescale_soc;
-    		}
-    		avgSOC = chip->rescale_soc;
-    		cntSOC = I_MAX;
-    		idxBuf = 1;
-            get_current_time(&chip->last_rescale_soc_time);
-            pr_debug("[first cal avg soc] get_current_time = %lu\n", chip->last_rescale_soc_time);
-	    }
-	}else{
-		if (idxBuf >= I_MAX){
+    /* average of last 10 measured comp_soc value */
+	if (cntSOC == 0) {	/* access once */
+		if (bms_long_time_sleep != 1) {
+			for (idxsoc = 0; idxsoc < I_MAX; idxsoc++) {
+				soc_buf[idxsoc] = chip->rescale_soc;
+			}
+			avgSOC = chip->rescale_soc;
+			cntSOC = I_MAX;
+			idxBuf = 1;
+			get_current_time(&chip->last_rescale_soc_time);
+			pr_debug("[first cal avg soc] get_current_time = %lu\n", chip->last_rescale_soc_time);
+		}
+	} else {
+		if (idxBuf >= I_MAX) {
 			idxBuf = 0;
 		}
-        get_current_time(&current_time);
-        time_since_last_rescale_soc_sec = current_time - chip->last_rescale_soc_time;
-        if( (abs(time_since_last_rescale_soc_sec) > 1)&&
-            (abs(time_since_last_rescale_soc_sec) < MAX_SLEEP_AVG_CAL_TIME) ){
-	        soc_buf[idxBuf] = chip->rescale_soc;
-	        idxBuf++;
-            get_current_time(&chip->last_rescale_soc_time);
-            pr_debug("[add avg soc] get_current_time = %lu, since = %d\n", chip->last_rescale_soc_time, time_since_last_rescale_soc_sec);
-        }else if(abs(time_since_last_rescale_soc_sec) >= MAX_SLEEP_AVG_CAL_TIME){
-            cntSOC = 0;
-            bms_long_time_sleep = 1;
-            schedule_work(&chip->recalc_work);
-            pr_debug("[BMS Sleep long time] time_since_last_rescale_soc_sec = %d\n", time_since_last_rescale_soc_sec);
-        }
+		get_current_time(&current_time);
+		time_since_last_rescale_soc_sec = current_time - chip->last_rescale_soc_time;
+		if ((abs(time_since_last_rescale_soc_sec) > 1) &&
+			(abs(time_since_last_rescale_soc_sec) < MAX_SLEEP_AVG_CAL_TIME)) {
+			soc_buf[idxBuf] = chip->rescale_soc;
+			idxBuf++;
+			get_current_time(&chip->last_rescale_soc_time);
+			pr_debug("[add avg soc] get_current_time = %lu, since = %d\n", chip->last_rescale_soc_time, time_since_last_rescale_soc_sec);
+		} else if (abs(time_since_last_rescale_soc_sec) >= MAX_SLEEP_AVG_CAL_TIME) {
+			cntSOC = 0;
+			bms_long_time_sleep = 1;
+			schedule_work(&chip->recalc_work);
+			pr_debug("[BMS Sleep long time] time_since_last_rescale_soc_sec = %d\n", time_since_last_rescale_soc_sec);
+		}
 	}
     avgSOC = cal_rnd_avg(soc_buf, I_MAX);
     chip->rescale_soc = avgSOC;
@@ -2067,6 +2240,19 @@ static int report_cc_based_soc(struct qpnp_bms_chip *chip)
 
 #ifdef CONFIG_LGE_PM_BATTERY_SOC_RESCALING
     pr_debug("[BMS_DEBUG] Rescale SOC = %d\n", chip->rescale_soc);
+#if defined (CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E8WIFI) || \
+    defined (CONFIG_MACH_MSM8926_E8LTE) || defined (CONFIG_MACH_MSM8226_E9WIFI) || \
+    defined (CONFIG_MACH_MSM8226_E9WIFIN) || defined (CONFIG_MACH_MSM8926_E9LTE)
+	if(lge_boot_mode_for_touch == 2){
+		if (battery_voltage_status_flag == false)
+		{
+			if ((chip->rescale_soc > 1) || (chip->vbat_uv >= 3550000)) {
+				battery_voltage_status_flag = true;
+			} else
+				return 0;
+		}
+	}
+#endif
     return chip->rescale_soc;
 #else
 	return soc;
@@ -2075,6 +2261,29 @@ static int report_cc_based_soc(struct qpnp_bms_chip *chip)
 
 static int report_state_of_charge(struct qpnp_bms_chip *chip)
 {
+#ifdef CONFIG_MAX17048_FUELGAUGE
+	union power_supply_propval ret = {0,};
+	if (bms_fake_battery != -EINVAL) {
+		pr_debug("Returning Fake SOC = %d%%\n", bms_fake_battery);
+		return bms_fake_battery;
+	} else {
+		if (chip->maxim17048 == NULL)
+			chip->maxim17048 = power_supply_get_by_name("max17048");
+
+		if ((check_use_external_fuelgauge(chip)) && (chip->maxim17048 != NULL)) {
+			/* if battery has been registered, use the present property */
+			chip->maxim17048->get_property(chip->maxim17048,
+						POWER_SUPPLY_PROP_CAPACITY, &ret);
+			return ret.intval;
+		} else if (chip->use_voltage_soc) {
+			printk("[LGE] No Fuelgauge and use voltage SOC\n");
+			return report_voltage_based_soc(chip);
+		} else {
+			printk("[LGE] No Fuelgauge and CC based SOC\n");
+			return report_cc_based_soc(chip);
+		}
+	}
+#else
 	if (bms_fake_battery != -EINVAL) {
 		pr_debug("Returning Fake SOC = %d%%\n", bms_fake_battery);
 		return bms_fake_battery;
@@ -2082,6 +2291,7 @@ static int report_state_of_charge(struct qpnp_bms_chip *chip)
 		return report_voltage_based_soc(chip);
 	else
 		return report_cc_based_soc(chip);
+#endif
 }
 
 #define VDD_MAX_ERR			5000
@@ -2096,7 +2306,8 @@ static int charging_adjustments(struct qpnp_bms_chip *chip,
 	batt_terminal_uv = vbat_uv + (ibat_ua * chip->r_conn_mohm) / 1000;
 
 	if (chip->soc_at_cv == -EINVAL) {
-		if (batt_terminal_uv >= chip->max_voltage_uv - VDD_MAX_ERR) {
+		if (batt_terminal_uv >= chip->max_voltage_uv - VDD_MAX_ERR ||
+							chip->in_taper_charge) {
 			chip->soc_at_cv = soc;
 			chip->prev_chg_soc = soc;
 			chip->ibat_at_cv_ua = params->iavg_ua;
@@ -2318,7 +2529,7 @@ static int adjust_soc(struct qpnp_bms_chip *chip, struct soc_params *params,
 			delta_ocv_uv = delta_ocv_uv_limit;
 		else
 			delta_ocv_uv = -1 * delta_ocv_uv_limit;
-		pr_debug("new delta ocv = %d\n", delta_ocv_uv);
+		printk("new delta ocv = %d\n", delta_ocv_uv);
 	}
 
 	if (wake_lock_active(&chip->low_voltage_wake_lock)) {
@@ -2354,7 +2565,6 @@ skip_limits:
 	rc_new_uah = (params->fcc_uah * pc_new) / 100;
 	soc_new = (rc_new_uah - params->cc_uah - params->uuc_uah)*100
 					/ (params->fcc_uah - params->uuc_uah);
-	soc_new = bound_soc(soc_new);
 
 	/*
 	 * if soc_new is ZERO force it higher so that phone doesnt report soc=0
@@ -2366,11 +2576,16 @@ skip_limits:
 	soc = soc_new;
 
 out:
+#if defined (CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E8WIFI) || \
+    defined (CONFIG_MACH_MSM8926_E8LTE) || defined (CONFIG_MACH_MSM8226_E9WIFI) || \
+    defined (CONFIG_MACH_MSM8226_E9WIFIN) || defined (CONFIG_MACH_MSM8926_E9LTE)
+	chip->vbat_uv = vbat_uv;
+#endif
 	pr_debug("ibat_ua = %d, vbat_uv = %d, ocv_est_uv = %d, pc_est = %d, soc_est = %d, n = %d, delta_ocv_uv = %d, last_ocv_uv = %d, pc_new = %d, soc_new = %d, rbatt = %d, slope = %d\n",
 		ibat_ua, vbat_uv, ocv_est_uv, pc_est,
 		soc_est, n, delta_ocv_uv, chip->last_ocv_uv,
 		pc_new, soc_new, params->rbatt_mohm, slope);
-	printk("ibat_ua = %d, vbat_uv = %d, ocv_est_uv = %d, pc_est = %d, soc_est = %d, n = %d, delta_ocv_uv = %d, last_ocv_uv = %d, pc_new = %d, pc = %d, soc_new = %d, rbatt = %d, slope = %d\n",
+	pr_info("ibat_ua = %d, vbat_uv = %d, ocv_est_uv = %d, pc_est = %d, soc_est = %d, n = %d, delta_ocv_uv = %d, last_ocv_uv = %d, pc_new = %d, pc = %d, soc_new = %d, rbatt = %d, slope = %d\n",
 		ibat_ua, vbat_uv, ocv_est_uv, pc_est,
 		soc_est, n, delta_ocv_uv, chip->last_ocv_uv,
 		pc_new, pc, soc_new, params->rbatt_mohm, slope);
@@ -2386,7 +2601,12 @@ static int clamp_soc_based_on_voltage(struct qpnp_bms_chip *chip, int soc)
 		pr_err("adc vbat failed err = %d\n", rc);
 		return soc;
 	}
-	if (soc == 0 && vbat_uv > chip->v_cutoff_uv) {
+
+	/* only clamp when discharging */
+	if (is_battery_charging(chip))
+		return soc;
+
+	if (soc <= 0 && vbat_uv > chip->v_cutoff_uv) {
 		pr_debug("clamping soc to 1, vbat (%d) > cutoff (%d)\n",
 						vbat_uv, chip->v_cutoff_uv);
 		return 1;
@@ -2549,9 +2769,11 @@ static int calculate_state_of_charge(struct qpnp_bms_chip *chip,
 					int batt_temp)
 {
 	struct soc_params params;
-	int soc=0;
-	int previous_soc, shutdown_soc, new_calculated_soc;
+	int soc, previous_soc, shutdown_soc, new_calculated_soc;
 	int remaining_usable_charge_uah;
+#ifdef CONFIG_MAX17048_FUELGAUGE
+	union power_supply_propval ret = {0,};
+#endif
 
 	calculate_soc_params(chip, raw, &params, batt_temp);
 	if (!is_battery_present(chip)) {
@@ -2601,11 +2823,41 @@ static int calculate_state_of_charge(struct qpnp_bms_chip *chip,
 	mutex_unlock(&chip->soc_invalidation_mutex);
 
 	pr_debug("SOC before adjustment = %d\n", soc);
-	new_calculated_soc = adjust_soc(chip, &params, soc, batt_temp);
+#ifdef CONFIG_MAX17048_FUELGAUGE
+	if (chip->maxim17048 == NULL)
+		chip->maxim17048 = power_supply_get_by_name("max17048");
+
+	if ((check_use_external_fuelgauge(chip)) && (chip->maxim17048 != NULL)) {
+		/* if battery has been registered, use the present property */
+		chip->maxim17048->get_property(chip->maxim17048,
+					POWER_SUPPLY_PROP_CAPACITY, &ret);
+		new_calculated_soc = ret.intval;
+		if (wake_lock_active(&chip->low_voltage_wake_lock)) {
+			wake_unlock(&chip->low_voltage_wake_lock);
+			printk("release low voltage wakelock using prop!!!\n");
+		}
+	} else {
+		new_calculated_soc = adjust_soc(chip, &params, soc, batt_temp);
+
+		/* always clamp soc due to BMS hw/sw immaturities */
+		new_calculated_soc = clamp_soc_based_on_voltage(chip,
+						new_calculated_soc);
+	}
+#else
+	if (chip->first_time_calc_soc && !chip->shutdown_soc_invalid) {
+		pr_debug("Skip adjustment when shutdown SOC has been forced\n");
+		new_calculated_soc = soc;
+	} else {
+		pr_debug("SOC before adjustment = %d\n", soc);
+		new_calculated_soc = adjust_soc(chip, &params, soc, batt_temp);
+	}
 
 	/* always clamp soc due to BMS hw/sw immaturities */
 	new_calculated_soc = clamp_soc_based_on_voltage(chip,
 					new_calculated_soc);
+
+	new_calculated_soc = bound_soc(new_calculated_soc);
+#endif
 	/*
 	 * If the battery is full, configure the cc threshold so the system
 	 * wakes up after SoC changes
@@ -2653,14 +2905,29 @@ done_calculating:
 #endif
 
 #ifdef CONFIG_LGE_PM_VZW_LLK
-	if (external_qpnp_chg_is_usb_chg_plugged_in()) {
-		if (chip->rescale_soc == 35) {
-			vzw_llk_enable_charging(0);
-			printk(KERN_INFO "%s : VZW LLK Charging Stop!!\n", __func__);
-		}
-		else if (chip->rescale_soc == 30) {
-			vzw_llk_enable_charging(1);
-			printk(KERN_INFO "%s : VZW LLK Charging Enable!!\n", __func__);
+	if (store_demo_enabled == 1) {
+		if (external_qpnp_chg_is_usb_chg_plugged_in()) {
+			if (chip->rescale_soc >= 35) {
+				llk_monitor_soc_flag = true;
+				llk_stop_chg_flag = true;
+				vzw_llk_enable_charging(0);
+				printk(KERN_INFO "%s : VZW LLK Charging Stop!!\n", __func__);
+			} else if ((chip->rescale_soc > 30) && (chip->rescale_soc < 35)) {
+				if (llk_monitor_soc_flag == true) {
+					llk_stop_chg_flag = true;
+					vzw_llk_enable_charging(0);
+					printk(KERN_INFO "%s : VZW LLK Charging Stop!!\n", __func__);
+				} else {
+					llk_stop_chg_flag = false;
+					vzw_llk_enable_charging(1);
+					printk(KERN_INFO "%s : VZW LLK Charging Enable!!\n", __func__);
+				}
+			} else if (chip->rescale_soc <= 30) {
+				llk_monitor_soc_flag = false;
+				llk_stop_chg_flag = false;
+				vzw_llk_enable_charging(1);
+				printk(KERN_INFO "%s : VZW LLK Charging Enable!!\n", __func__);
+			}
 		}
 	}
 #endif
@@ -2679,10 +2946,15 @@ done_calculating:
 
 	get_current_time(&chip->last_recalc_time);
 	chip->first_time_calc_soc = 0;
-        chip->first_time_calc_uuc = 0;
+	chip->first_time_calc_uuc = 0;
 
-        printk("New_cal_SOC = %d, SOC = %d, batt_temp = %d, rbatt = %d, fcc_uah = %d, ocv_charge_uah = %d, uuc_uah = %d, cc_uah = %d, iavg_ua = %d\n",
-            new_calculated_soc, soc, batt_temp, params.rbatt_mohm, params.fcc_uah, params.ocv_charge_uah, params.uuc_uah, params.cc_uah, params.iavg_ua);
+    printk("New_cal_SOC = %d, SOC = %d, batt_temp = %d, rbatt = %d, fcc_uah = %d, ocv_charge_uah = %d, uuc_uah = %d, cc_uah = %d, iavg_ua = %d\n",
+			new_calculated_soc, soc, batt_temp, params.rbatt_mohm, params.fcc_uah, params.ocv_charge_uah, params.uuc_uah, params.cc_uah, params.iavg_ua);
+#if defined (CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E8WIFI) || \
+    defined (CONFIG_MACH_MSM8926_E8LTE) || defined (CONFIG_MACH_MSM8226_E9WIFI) || \
+    defined (CONFIG_MACH_MSM8226_E9WIFIN) || defined (CONFIG_MACH_MSM8926_E9LTE)
+	printk("calculated_soc = %d, report_soc = %d, vbat = %d, ", chip->calculated_soc, chip->rescale_soc, chip->vbat_uv);
+#endif
 	return chip->calculated_soc;
 }
 
@@ -2726,7 +2998,7 @@ static int recalculate_raw_soc(struct qpnp_bms_chip *chip)
 		soc = calculate_soc_from_voltage(chip);
 	} else {
 		if (!chip->batfet_closed)
-			qpnp_iadc_calibrate_for_trim(chip->iadc_dev, true);
+			qpnp_iadc_calibrate_for_trim(chip->iadc_dev, false);
 		rc = qpnp_vadc_read(chip->vadc_dev, LR_MUX1_BATT_THERM,
 								&result);
 		if (rc) {
@@ -2740,7 +3012,12 @@ static int recalculate_raw_soc(struct qpnp_bms_chip *chip)
 			batt_temp = (int)result.physical;
 
 			mutex_lock(&chip->last_ocv_uv_mutex);
-			read_soc_params_raw(chip, &raw, batt_temp);
+			rc = read_soc_params_raw(chip, &raw, batt_temp);
+			if (rc) {
+				pr_err("Unable to read params, rc: %d\n", rc);
+				soc = 0;
+				goto done;
+			}
 			calculate_soc_params(chip, &raw, &params, batt_temp);
 			if (!is_battery_present(chip)) {
 				pr_debug("battery gone\n");
@@ -2754,12 +3031,19 @@ static int recalculate_raw_soc(struct qpnp_bms_chip *chip)
 				soc = calculate_raw_soc(chip, &raw,
 							&params, batt_temp);
 			}
+done:
 			mutex_unlock(&chip->last_ocv_uv_mutex);
 		}
 	}
 	bms_relax(&chip->soc_wake_source);
 	return soc;
 }
+
+#if defined(CONFIG_MACH_MSM8926_E8LTE) || defined(CONFIG_MACH_MSM8226_E8WIFI)
+extern void check_touch_bat_therm(int type);
+int touch_thermal_mode = 0;
+int thermal_threshold = 20;
+#endif
 
 static int recalculate_soc(struct qpnp_bms_chip *chip)
 {
@@ -2778,7 +3062,7 @@ static int recalculate_soc(struct qpnp_bms_chip *chip)
 		soc = calculate_soc_from_voltage(chip);
 	} else {
 		if (!chip->batfet_closed)
-			qpnp_iadc_calibrate_for_trim(chip->iadc_dev, true);
+			qpnp_iadc_calibrate_for_trim(chip->iadc_dev, false);
 		rc = qpnp_vadc_read(chip->vadc_dev, LR_MUX1_BATT_THERM,
 								&result);
 		if (rc) {
@@ -2792,17 +3076,35 @@ static int recalculate_soc(struct qpnp_bms_chip *chip)
 			batt_temp = (int)result.physical;
 
 			mutex_lock(&chip->last_ocv_uv_mutex);
-			read_soc_params_raw(chip, &raw, batt_temp);
-			soc = calculate_state_of_charge(chip, &raw, batt_temp);
+			rc = read_soc_params_raw(chip, &raw, batt_temp);
+			if (rc) {
+				pr_err("Unable to read params, rc: %d\n", rc);
+				soc = chip->calculated_soc;
+			} else {
+				soc = calculate_state_of_charge(chip,
+						&raw, batt_temp);
+			}
 			mutex_unlock(&chip->last_ocv_uv_mutex);
 		}
 	}
 
 #ifdef CONFIG_LGE_PM_PWR_KEY_FOR_CHG_LOGO
-	if(lge_get_boot_mode() == LGE_BOOT_MODE_CHARGERLOGO && is_enter_first && (is_eoc_work_stop || chip->done_charging)){
+	if (lge_get_boot_mode() == LGE_BOOT_MODE_CHARGERLOGO && is_enter_first && (is_eoc_work_stop || chip->done_charging)) {
 		is_enter_first = false;
-	
+
 		qpnp_goto_suspend_for_chg_logo();
+	}
+#endif
+
+#if defined(CONFIG_MACH_MSM8926_E8LTE) || defined(CONFIG_MACH_MSM8226_E8WIFI)
+	rc = qpnp_vadc_read(chip->vadc_dev, P_MUX5_1_1, &result);
+
+	if (touch_thermal_mode == 0 && result.physical >= 550) {
+		touch_thermal_mode = 1;
+		check_touch_bat_therm(1);
+	} else if (touch_thermal_mode == 1 && result.physical < (550-thermal_threshold)) {
+		touch_thermal_mode = 0;
+		check_touch_bat_therm(0);
 	}
 #endif
 
@@ -3014,7 +3316,13 @@ static int setup_vbat_monitoring(struct qpnp_bms_chip *chip)
 	chip->vbat_monitor_params.low_thr = chip->low_voltage_threshold;
 	chip->vbat_monitor_params.high_thr = chip->max_voltage_uv
 							- VBATT_ERROR_MARGIN;
+#if 0   /*LGE_CHANGES : platfrom 8x26, temporary disabled,
+	in power off charging mode. after eoc it goes to suspend. but this interrupt
+	occured, it couldn't re-enter suspend. before it fixed. this irq disabled*/
 	chip->vbat_monitor_params.state_request = ADC_TM_HIGH_LOW_THR_ENABLE;
+#else
+	chip->vbat_monitor_params.state_request = ADC_TM_HIGH_LOW_THR_DISABLE;
+#endif
 	chip->vbat_monitor_params.channel = VBAT_SNS;
 	chip->vbat_monitor_params.btm_ctx = (void *)chip;
 	chip->vbat_monitor_params.timer_interval = ADC_MEAS1_INTERVAL_1S;
@@ -3258,8 +3566,10 @@ static int backup_new_fcc(struct qpnp_bms_chip *chip, int fcc_mah,
 		min_cycle = chip->fcc_learning_samples[0].chargecycles;
 		for (i = 1; i < chip->min_fcc_learning_samples; i++) {
 			if (min_cycle >
-				chip->fcc_learning_samples[i].chargecycles)
+				chip->fcc_learning_samples[i].chargecycles) {
 				pos = i;
+				break;
+			}
 		}
 	} else {
 		/* find an empty location */
@@ -3346,7 +3656,7 @@ static void fcc_learning_config(struct qpnp_bms_chip *chip, bool start)
 
 	if (start) {
 		chip->start_pc = interpolate_pc(chip->pc_temp_ocv_lut,
-			batt_temp / 10, raw.last_good_ocv_uv / 1000);
+			batt_temp, raw.last_good_ocv_uv / 1000);
 		chip->start_cc_uah = calculate_cc(chip, raw.cc, CC, NORESET);
 		chip->start_real_soc = calculate_real_soc(chip,
 				batt_temp, &raw, chip->start_cc_uah);
@@ -3445,6 +3755,7 @@ static void charging_ended(struct qpnp_bms_chip *chip)
 	mutex_lock(&chip->last_ocv_uv_mutex);
 	chip->soc_at_cv = -EINVAL;
 	chip->prev_chg_soc = -EINVAL;
+	chip->in_taper_charge = false;
 
 	/* update the chargecycles */
 	if (chip->end_soc > chip->start_soc) {
@@ -3515,12 +3826,11 @@ static void batfet_status_check(struct qpnp_bms_chip *chip)
 {
 	bool batfet_closed;
 
-	if (chip->iadc_bms_revision2 > CALIB_WRKARND_DIG_MAJOR_MAX)
-		return;
-
 	batfet_closed = is_batfet_closed(chip);
 	if (chip->batfet_closed != batfet_closed) {
 		chip->batfet_closed = batfet_closed;
+		if (chip->iadc_bms_revision2 > CALIB_WRKARND_DIG_MAJOR_MAX)
+			return;
 		if (batfet_closed == false) {
 			/* batfet opened */
 			schedule_work(&chip->batfet_open_work);
@@ -3577,6 +3887,11 @@ static void qpnp_bms_external_power_changed(struct power_supply *psy)
 	battery_insertion_check(chip);
 	batfet_status_check(chip);
 	battery_status_check(chip);
+
+	if (POWER_SUPPLY_CHARGE_TYPE_TAPER == get_battery_charge_type(chip))
+		chip->in_taper_charge = true;
+	else
+		chip->in_taper_charge = false;
 }
 
 static int qpnp_bms_power_get_property(struct power_supply *psy,
@@ -3613,6 +3928,12 @@ static int qpnp_bms_power_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
 		val->intval = get_prop_bms_charge_full_design(chip);
 		break;
+#if defined (CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E9WIFI) || \
+    defined (CONFIG_MACH_MSM8226_E9WIFIN) || defined (CONFIG_MACH_MSM8926_E9LTE)
+	case POWER_SUPPLY_PROP_BATTERY_DUALIZATION:
+		val->intval = read_battery_id(chip);
+		break;
+#endif
 #ifdef CONFIG_LGE_PM_FACTORY_TESTMODE
 	case POWER_SUPPLY_PROP_CHCOMP:
 		val->intval = get_prop_bms_capacity(chip);
@@ -3627,11 +3948,95 @@ static int qpnp_bms_power_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CYCLE_COUNT:
 		val->intval = chip->charge_cycles;
 		break;
+#ifdef CONFIG_MAX17048_FUELGAUGE
+	case POWER_SUPPLY_PROP_USE_FUELGAUGE:
+		val->intval = check_use_external_fuelgauge(chip);
+		break;
+
+#endif
+#if defined(CONFIG_MACH_MSM8926_JAGNM_ATT) || defined(CONFIG_MACH_MSM8926_JAGNM_RGS) || defined(CONFIG_MACH_MSM8926_JAGNM_TLS) \
+	|| defined(CONFIG_MACH_MSM8926_JAGNM_VTR) || defined(CONFIG_MACH_MSM8926_JAGNM_BELL) || defined(CONFIG_MACH_MSM8926_JAGC_SPR)
+	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
+		val->intval = report_state_of_voltage(chip);
+		break;
+#endif
+#ifdef CONFIG_LGE_PM_FIX_CEC_FAIL
+	case POWER_SUPPLY_PROP_RELEASE_CV_LOCK:
+		if (wake_lock_active(&chip->cv_wake_lock)) {
+			val->intval = 1;
+		} else {
+			val->intval = 0;
+		}
+		break;
+#endif
 	default:
 		return -EINVAL;
 	}
 	return 0;
 }
+
+#ifdef CONFIG_LGE_PM
+static int
+qpnp_bms_property_is_writeable(struct power_supply *psy,
+						enum power_supply_property psp)
+{
+	int ret = 0;
+	switch (psp) {
+#ifdef CONFIG_MAX17048_FUELGAUGE
+	case POWER_SUPPLY_PROP_USE_FUELGAUGE:
+		ret = 1;
+		break;
+#endif
+#ifdef CONFIG_LGE_PM_FIX_CEC_FAIL
+	case POWER_SUPPLY_PROP_RELEASE_CV_LOCK:
+		ret = 1;
+		break;
+#endif
+
+	default:
+		break;
+	}
+
+	return ret;
+}
+
+static int
+qpnp_bms_power_set_property(struct power_supply *psy,
+				  enum power_supply_property psp,
+				  const union power_supply_propval *val)
+{
+	int ret = 0;
+	struct qpnp_bms_chip *chip = container_of(psy, struct qpnp_bms_chip,
+								bms_psy);
+
+	switch (psp) {
+#ifdef CONFIG_MAX17048_FUELGAUGE
+	case POWER_SUPPLY_PROP_USE_FUELGAUGE:
+		ret = set_use_external_fuelgauge(chip, val->intval);
+		pr_debug("[LGE]  use_external_fuelgauge[%d]\n",
+			chip->bms_psy.use_external_fuelgauge);
+		break;
+#endif
+#ifdef CONFIG_LGE_PM_FIX_CEC_FAIL
+	case POWER_SUPPLY_PROP_RELEASE_CV_LOCK:
+		if (val->intval == 0) {
+			if (wake_lock_active(&chip->cv_wake_lock)) {
+				wake_unlock(&chip->cv_wake_lock);
+				pr_debug("release cv wakelock using prop!!!\n");
+			}
+		}
+		break;
+#endif
+	default:
+		return -EINVAL;
+	}
+	if (ret < 0)
+		return -EINVAL;
+	power_supply_changed(&chip->bms_psy);
+	return 0;
+}
+#endif
+
 
 #define OCV_USE_LIMIT_EN		BIT(7)
 static int set_ocv_voltage_thresholds(struct qpnp_bms_chip *chip,
@@ -3754,6 +4159,7 @@ static void load_shutdown_data(struct qpnp_bms_chip *chip)
 	 * Do a quick run of SoC calculation to find whether the shutdown soc
 	 * is close enough.
 	 */
+	chip->shutdown_iavg_ma = MIN_IAVG_MA;
 	calculated_soc = recalculate_raw_soc(chip);
 	shutdown_soc_out_of_limit = (abs(shutdown_soc - calculated_soc)
 			> chip->shutdown_soc_valid_limit);
@@ -3791,12 +4197,6 @@ static void load_shutdown_data(struct qpnp_bms_chip *chip)
 			chip->shutdown_iavg_ma,
 			chip->shutdown_soc_invalid,
 			chip->battery_removed);
-	pr_info("raw_soc = %d shutdown_soc = %d shutdown_iavg = %d shutdown_soc_invalid = %d, battery_removed = %d\n",
-			calculated_soc,
-			chip->shutdown_soc,
-			chip->shutdown_iavg_ma,
-			chip->shutdown_soc_invalid,
-			chip->battery_removed);
 }
 
 static irqreturn_t bms_ocv_thr_irq_handler(int irq, void *_chip)
@@ -3820,194 +4220,254 @@ static irqreturn_t bms_sw_cc_thr_irq_handler(int irq, void *_chip)
 	return IRQ_HANDLED;
 }
 
-static int64_t read_battery_id(struct qpnp_bms_chip *chip)
-{
-#ifdef CONFIG_LGE_PM_BATTERY_ID_CHECKER
-	return read_lge_battery_id();
-#else
-	int rc;
-	struct qpnp_vadc_result result;
-
-	rc = qpnp_vadc_read(chip->vadc_dev, LR_MUX2_BAT_ID, &result);
-	if (rc) {
-		pr_err("error reading batt id channel = %d, rc = %d\n",
-					LR_MUX2_BAT_ID, rc);
-		return rc;
-	}
-
-	return result.physical;
-#endif
-
-}
-
 static int set_battery_data(struct qpnp_bms_chip *chip)
 {
 #ifdef CONFIG_LGE_PM_BATTERY_ID_CHECKER
 	int32_t battery_id;
 #endif
 
-#ifdef CONFIG_LGE_PM_BATTERY_PROFILE_DATA // Neet to change later
+#ifdef CONFIG_LGE_PM_BATTERY_PROFILE_DATA	/* Neet to change later */
 	struct bms_battery_data *batt_data;
 
 #ifdef CONFIG_LGE_PM_BATTERY_ID_CHECKER
 	battery_id = read_battery_id(chip);
 
 #ifdef CONFIG_LGE_PM_BATTERY_CAPACITY_1540mAh
-	switch ( battery_id ){
-		case BATT_ID_DS2704_N : // FALL THROUGH
-		case BATT_ID_DS2704_L : // FALL THROUGH
-		case BATT_ID_DS2704_C : // FALL THROUGH
-		case BATT_ID_ISL6296_N : // FALL THROUGH
-		case BATT_ID_ISL6296_L : // FALL THROUGH
-		case BATT_ID_ISL6296_C : // FALL THROUGH
-		default :
-			batt_data = &LGC_BL44JR_1540_data;
-			pr_info("[BATTERY PROFILE] No battery ID matching\nUsing default profile - LGC_1540mAh for id(%d)\n",battery_id);
-			break;
+	switch (battery_id) {
+	case BATT_ID_DS2704_N:	/* FALL THROUGH */
+	case BATT_ID_DS2704_L:	/* FALL THROUGH */
+	case BATT_ID_DS2704_C:	/* FALL THROUGH */
+	case BATT_ID_ISL6296_N:	/* FALL THROUGH */
+	case BATT_ID_ISL6296_L:	/* FALL THROUGH */
+	case BATT_ID_ISL6296_C:	/* FALL THROUGH */
+	default:
+		batt_data = &LGC_BL44JR_1540_data;
+		pr_info("[BATTERY PROFILE] No battery ID matching\nUsing default profile - LGC_1540mAh for id(%d)\n", battery_id);
+		break;
 	}
 #elif defined(CONFIG_LGE_PM_BATTERY_CAPACITY_1700mAh)
-	switch ( battery_id ){
-		case BATT_ID_DS2704_L : // FALL THROUGH
-			batt_data = &LG_LGC_BL44JH_1700_data;
-			pr_info("[BATTERY PROFILE] Using battery profile - LGChem_1700mAh for id(%d)\n",battery_id);
-			break;
-		case BATT_ID_ISL6296_L : // FALL THROUGH
-			batt_data = &LG_TOCAD_BL44JH_1700_data;
-			pr_info("[BATTERY PROFILE] Using battery profile - TOCAD_1700mAh for id(%d)\n",battery_id);
-			break;
-		case BATT_ID_DS2704_N : // FALL THROUGH
-		case BATT_ID_DS2704_C : // FALL THROUGH
-		case BATT_ID_ISL6296_N : // FALL THROUGH
-		case BATT_ID_ISL6296_C : // FALL THROUGH			
-		default :
-			batt_data = &LG_LGC_BL44JH_1700_data;
-			pr_err("[BATTERY PROFILE] No battery ID matching\nUsing default profile - LG_LGC_BL44JH_1700_data for id(%d)\n",battery_id);
-			break;
+#ifdef CONFIG_MACH_MSM8926_VFP_KR
+	switch (battery_id) {
+	case BATT_ID_DS2704_L:	/* FALL THROUGH */
+		batt_data = &LGE_BL_44JH_1700mAh_LG_Chem_data;
+		pr_info("[BATTERY PROFILE] Using battery profile - LGChem_1700mAh for id(%d)\n", battery_id);
+		break;
+	case BATT_ID_ISL6296_L:	/* FALL THROUGH */
+		batt_data = &LGE_BL_44JH_1700mAh_LG_Chem_data; /* It will be changed for tocad cell data */
+		pr_info("[BATTERY PROFILE] Using battery profile - TOCAD_1700mAh for id(%d)\n", battery_id);
+		break;
+	case BATT_ID_DS2704_N:	/* FALL THROUGH */
+	case BATT_ID_DS2704_C:	/* FALL THROUGH */
+	case BATT_ID_ISL6296_N:	/* FALL THROUGH */
+	case BATT_ID_ISL6296_C:	/* FALL THROUGH */
+	default:
+		batt_data = &LGE_BL_44JH_1700mAh_LG_Chem_data;
+		pr_err("[BATTERY PROFILE] No battery ID matching\nUsing default profile - LGE_BL_44JH_1700mAh_LG_Chem_data for id(%d)\n", battery_id);
+		break;
+	}
+#else
+	switch (battery_id) {
+	case BATT_ID_DS2704_L:	/* FALL THROUGH */
+		batt_data = &LG_LGC_BL44JH_1700_data;
+		pr_info("[BATTERY PROFILE] Using battery profile - LGChem_1700mAh for id(%d)\n", battery_id);
+		break;
+	case BATT_ID_ISL6296_L:	/* FALL THROUGH */
+		batt_data = &LG_TOCAD_BL44JH_1700_data;
+		pr_info("[BATTERY PROFILE] Using battery profile - TOCAD_1700mAh for id(%d)\n", battery_id);
+		break;
+	case BATT_ID_DS2704_N:	/* FALL THROUGH */
+	case BATT_ID_DS2704_C:	/* FALL THROUGH */
+	case BATT_ID_ISL6296_N:	/* FALL THROUGH */
+	case BATT_ID_ISL6296_C:	/* FALL THROUGH */
+	default:
+		batt_data = &LG_LGC_BL44JH_1700_data;
+		pr_err("[BATTERY PROFILE] No battery ID matching\nUsing default profile - LG_LGC_BL44JH_1700_data for id(%d)\n", battery_id);
+		break;
+	}
+#endif
+#elif defined(CONFIG_LGE_PM_BATTERY_CAPACITY_1900mAh)
+	switch (battery_id) {
+	case BATT_ID_DS2704_N:	/* FALL THROUGH */
+	case BATT_ID_DS2704_L:	/* FALL THROUGH */
+		batt_data = &LGE_L70_CHEM_1900mAh_data;
+		pr_err("[BATTERY PROFILE] Using LGC profile - LGChem_1900mAh for id(%d)\n", battery_id);
+		break;
+	case BATT_ID_DS2704_C:	/* FALL THROUGH */
+	case BATT_ID_ISL6296_N:	/* FALL THROUGH */
+	case BATT_ID_ISL6296_L:	/* FALL THROUGH */
+		batt_data = &LGE_L70_TOCAD_1900mAh_data;
+		pr_err("[BATTERY PROFILE] Using TOCAD profile - Tocad_1900mAh for id(%d)\n", battery_id);
+		break;
+	case BATT_ID_ISL6296_C:	/* FALL THROUGH */
+	default:
+		batt_data = &LGE_L70_CHEM_1900mAh_data;
+		pr_err("[BATTERY PROFILE] No battery ID matching\nUsing default profile - LGChem_1900mAh for id(%d)\n", battery_id);
+		break;
 	}
 #elif defined(CONFIG_LGE_PM_BATTERY_CAPACITY_2440mAh)
-	switch ( battery_id ){
-		case BATT_ID_DS2704_N : // FALL THROUGH
-		case BATT_ID_DS2704_L :
-			batt_data = &LGE_BL_59UH_2440mAh_LG_Chem_data;
-			pr_info("[BATTERY PROFILE] Using battery profile - LGChem_2440mAh for id(%d)\n",battery_id);
-			break;
-		case BATT_ID_DS2704_C :
-			batt_data = &LGE_BL_59UH_2440mAh_TOCAD_data;
-			pr_info("[BATTERY PROFILE] Using battery profile - TOCAD_2440mAh for id(%d)\n",battery_id);
-			break;
-		case BATT_ID_ISL6296_N : // FALL THROUGH
-		case BATT_ID_ISL6296_L :
-			batt_data = &LGE_BL_59UH_2440mAh_TOCAD_data;
-			pr_info("[BATTERY PROFILE] Using battery profile - TOCAD_2440mAh for id(%d)\n",battery_id);
-			break;
-		case BATT_ID_ISL6296_C :
-			batt_data = &LGE_BL_59UH_2440mAh_LG_Chem_data;
-			pr_info("[BATTERY PROFILE] Using battery profile - LGChem_2440mAh for id(%d)\n",battery_id);
-			break;
-		default :
-			batt_data = &LGE_BL_59UH_2440mAh_LG_Chem_data;
-			pr_err("[BATTERY PROFILE] No battery ID matching\nUsing default profile - LGE_BL_59UH_2440mAh_LG_Chem_data for id(%d)\n",battery_id);
-			break;
+	switch (battery_id) {
+	case BATT_ID_DS2704_N:	/* FALL THROUGH */
+	case BATT_ID_DS2704_L:
+		batt_data = &LGE_BL_59UH_2440mAh_LG_Chem_data;
+		pr_info("[BATTERY PROFILE] Using battery profile - LGChem_2440mAh for id(%d)\n", battery_id);
+		break;
+	case BATT_ID_DS2704_C:
+		batt_data = &LGE_BL_59UH_2440mAh_TOCAD_data;
+		pr_info("[BATTERY PROFILE] Using battery profile - TOCAD_2440mAh for id(%d)\n", battery_id);
+		break;
+	case BATT_ID_ISL6296_N:	/* FALL THROUGH */
+	case BATT_ID_ISL6296_L:
+		batt_data = &LGE_BL_59UH_2440mAh_TOCAD_data;
+		pr_info("[BATTERY PROFILE] Using battery profile - TOCAD_2440mAh for id(%d)\n", battery_id);
+		break;
+	case BATT_ID_ISL6296_C:
+		batt_data = &LGE_BL_59UH_2440mAh_LG_Chem_data;
+		pr_info("[BATTERY PROFILE] Using battery profile - LGChem_2440mAh for id(%d)\n", battery_id);
+		break;
+	default:
+		batt_data = &LGE_BL_59UH_2440mAh_LG_Chem_data;
+		pr_err("[BATTERY PROFILE] No battery ID matching\nUsing default profile - LGE_BL_59UH_2440mAh_LG_Chem_data for id(%d)\n", battery_id);
+		break;
 	}
 #elif defined(CONFIG_LGE_PM_BATTERY_CAPACITY_2540mAh)
-	switch ( battery_id ){
-		case BATT_ID_DS2704_L : // FALL THROUGH
-		case BATT_ID_ISL6296_C :
-			batt_data = &LGE_BL_54SH_2540mAh_LG_Chem_data;
-			pr_info("[BATTERY PROFILE] Using battery profile - LGChem_2540mAh for id(%d)\n",battery_id);
-			break;
-		case BATT_ID_DS2704_C : // FALL THROUGH
-		case BATT_ID_ISL6296_L :
-			batt_data = &LGE_BL_54SH_2540mAh_LG_Sanyo_data;
-			pr_info("[BATTERY PROFILE] Using battery profile - Sanyo_2540mAh for id(%d)\n",battery_id);
-			break;
-		case BATT_ID_DS2704_N : // FALL THROUGH
-		case BATT_ID_ISL6296_N : // FALL THROUGH
-		default :
-			batt_data = &LGE_BL_54SH_2540mAh_LG_Chem_data;
-			pr_err("[BATTERY PROFILE] No battery ID matching\nUsing default profile - LGChem_2540mAh for id(%d)\n",battery_id);
-			break;
+	switch (battery_id) {
+	case BATT_ID_DS2704_L:	/* FALL THROUGH */
+	case BATT_ID_ISL6296_C:
+		batt_data = &LGE_BL_54SH_2540mAh_LG_Chem_data;
+		pr_info("[BATTERY PROFILE] Using battery profile - LGChem_2540mAh for id(%d)\n", battery_id);
+		break;
+	case BATT_ID_DS2704_C:	/* FALL THROUGH */
+	case BATT_ID_ISL6296_L:
+		batt_data = &LGE_BL_54SH_2540mAh_LG_Sanyo_data;
+		pr_info("[BATTERY PROFILE] Using battery profile - Sanyo_2540mAh for id(%d)\n", battery_id);
+		break;
+	case BATT_ID_DS2704_N:	/* FALL THROUGH */
+	case BATT_ID_ISL6296_N:	/* FALL THROUGH */
+	default:
+		batt_data = &LGE_BL_54SH_2540mAh_LG_Chem_data;
+		pr_err("[BATTERY PROFILE] No battery ID matching\nUsing default profile - LGChem_2540mAh for id(%d)\n", battery_id);
+		break;
 	}
 #elif defined(CONFIG_LGE_PM_BATTERY_CAPACITY_3000mAh)
-	switch ( battery_id ){
-		case BATT_ID_DS2704_L : // FALL THROUGH
-		case BATT_ID_ISL6296_C : // FALL THROUGH
-			batt_data = &LGE_BL_64SH_3000mAh_LG_Chem_data;
-			pr_info("[BATTERY PROFILE] Using battery profile - LGChem_3000mAh for id(%d)\n",battery_id);
-			break;
-		case BATT_ID_DS2704_C : // FALL THROUGH
-		case BATT_ID_ISL6296_L : // FALL THROUGH
-			batt_data = &LGE_BL_64SH_3000mAh_Technohill_data;
-			pr_info("[BATTERY PROFILE] Using battery profile - Technohill_3000mAh for id(%d)\n",battery_id);
-			break;
-		case BATT_ID_DS2704_N : // FALL THROUGH
-		case BATT_ID_ISL6296_N : // FALL THROUGH
-		default : 
-			batt_data = &LGE_BL_64SH_3000mAh_LG_Chem_data;
-			pr_err("[BATTERY PROFILE] No battery ID matching\nUsing default profile - LGChem_3000mAh for id(%d)\n",battery_id);
-			break;
+	switch (battery_id) {
+	case BATT_ID_DS2704_L:	/* FALL THROUGH */
+	case BATT_ID_ISL6296_C:	/* FALL THROUGH */
+		batt_data = &LGE_BL_64SH_3000mAh_LG_Chem_data;
+		pr_info("[BATTERY PROFILE] Using battery profile - LGChem_3000mAh for id(%d)\n", battery_id);
+		break;
+	case BATT_ID_DS2704_C:	/* FALL THROUGH */
+	case BATT_ID_ISL6296_L:	/* FALL THROUGH */
+		batt_data = &LGE_BL_64SH_3000mAh_Technohill_data;
+		pr_info("[BATTERY PROFILE] Using battery profile - Technohill_3000mAh for id(%d)\n", battery_id);
+		break;
+	case BATT_ID_DS2704_N:	/* FALL THROUGH */
+	case BATT_ID_ISL6296_N:	/* FALL THROUGH */
+	default:
+		batt_data = &LGE_BL_64SH_3000mAh_LG_Chem_data;
+		pr_err("[BATTERY PROFILE] No battery ID matching\nUsing default profile - LGChem_3000mAh for id(%d)\n", battery_id);
+		break;
 	}
 #elif defined(CONFIG_LGE_PM_BATTERY_CAPACITY_2100mAh)
-	switch ( battery_id ){
-		case BATT_ID_DS2704_N : // FALL THROUGH
-		case BATT_ID_DS2704_L : // FALL THROUGH
-            batt_data = &LGE_LGC_2040mAH_data;
-			pr_err("[BATTERY PROFILE] Using default profile - LGChem_2100mAh for id(%d)\n",battery_id);
-            break;
-		case BATT_ID_DS2704_C : // FALL THROUGH
-		case BATT_ID_ISL6296_N : // FALL THROUGH
-		case BATT_ID_ISL6296_L : // FALL THROUGH
+	switch (battery_id) {
+	case BATT_ID_DS2704_N:	/* FALL THROUGH */
+	case BATT_ID_DS2704_L:	/* FALL THROUGH */
+		batt_data = &LGE_LGC_2040mAH_data;
+		pr_err("[BATTERY PROFILE] Using default profile - LGChem_2100mAh for id(%d)\n", battery_id);
+		break;
+	case BATT_ID_DS2704_C:	/* FALL THROUGH */
+	case BATT_ID_ISL6296_N:	/* FALL THROUGH */
+	case BATT_ID_ISL6296_L:	/* FALL THROUGH */
 #ifdef CONFIG_LGE_PM_BATTERY_HITACI_2100mAh
-            batt_data = &LGE_Hitaci_2040mAh_data;
-			pr_err("[BATTERY PROFILE] Using default profile - Hitaci_2100mAh for id(%d)\n",battery_id);
+		batt_data = &LGE_Hitaci_2040mAh_data;
+		pr_err("[BATTERY PROFILE] Using default profile - Hitaci_2100mAh for id(%d)\n", battery_id);
 #else
-            batt_data = &LGE_Tocad_2040mAh_data;
-			pr_err("[BATTERY PROFILE] Using default profile - Tocad_2100mAh for id(%d)\n",battery_id);
+		batt_data = &LGE_Tocad_2040mAh_data;
+		pr_err("[BATTERY PROFILE] Using default profile - Tocad_2100mAh for id(%d)\n", battery_id);
 #endif
-            break;
-		case BATT_ID_ISL6296_C : // FALL THROUGH
-		default : 
-            batt_data = &LGE_LGC_2040mAH_data;
-			pr_err("[BATTERY PROFILE] No battery ID matching\nUsing default profile - LGChem_2100mAh for id(%d)\n",battery_id);
-			break;
+		break;
+#ifdef CONFIG_LGE_PM_BATTERY_ID_RANIX_SILICON_WORKS
+	case BATT_ID_RA4301_VC0:
+	case BATT_ID_RA4301_VC1:
+	case BATT_ID_RA4301_VC2:
+	case BATT_ID_SW3800_VC0:
+	case BATT_ID_SW3800_VC1:
+	case BATT_ID_SW3800_VC2:
+		batt_data = &LGE_BL41A1H_1527783_2100mAh_BMS_data;
+		pr_err("[BATTERY PROFILE] Using default profile - SW_2100mAh, RANIX_2100mAh for id(%d)\n", battery_id);
+		break;
+#endif
+	case BATT_ID_ISL6296_C:	/* FALL THROUGH */
+	default:
+		batt_data = &LGE_LGC_2040mAH_data;
+		pr_err("[BATTERY PROFILE] No battery ID matching\nUsing default profile - LGChem_2100mAh for id(%d)\n", battery_id);
+		break;
 	}
 #elif defined(CONFIG_LGE_PM_BATTERY_CAPACITY_3200mAh)
-	switch ( battery_id ){
-		case BATT_ID_DS2704_N : // FALL THROUGH
-		case BATT_ID_DS2704_L : // FALL THROUGH
-            batt_data = &LGE_BL_47TH_3200mAh_LG_Chem_data;
-			pr_err("[BATTERY PROFILE] Using default profile - LGChem_3200mAh for id(%d)\n",battery_id);
-            break;
-		case BATT_ID_DS2704_C : // FALL THROUGH
-		case BATT_ID_ISL6296_N : // FALL THROUGH
-		case BATT_ID_ISL6296_L : // FALL THROUGH
-            batt_data = &LGE_BL_47TH_3200mAh_Tocad_data;
-			pr_err("[BATTERY PROFILE] Using default profile - Tocad_3200mAh for id(%d)\n",battery_id);
-            break;
-		case BATT_ID_ISL6296_C : // FALL THROUGH
-		default : 
-            batt_data = &LGE_BL_47TH_3200mAh_LG_Chem_data;
-			pr_err("[BATTERY PROFILE] No battery ID matching\nUsing default profile - LGChem_3200mAh for id(%d)\n",battery_id);
-			break;
+	switch (battery_id) {
+	case BATT_ID_ISL6296_C:	/* FALL THROUGH */
+	case BATT_ID_DS2704_L:	/* FALL THROUGH */
+		batt_data = &LGE_BL_47TH_3200mAh_LG_Chem_data;
+		pr_err("[BATTERY PROFILE] Using default profile - LGChem_3200mAh for id(%d)\n", battery_id);
+		break;
+	case BATT_ID_DS2704_C:	/* FALL THROUGH */
+	case BATT_ID_ISL6296_L:	/* FALL THROUGH */
+		batt_data = &LGE_BL_47TH_3200mAh_Tocad_data;
+		pr_err("[BATTERY PROFILE] Using default profile - Tocad_3200mAh for id(%d)\n", battery_id);
+		break;
+	default:
+		batt_data = &LGE_BL_47TH_3200mAh_LG_Chem_data;
+		pr_err("[BATTERY PROFILE] No battery ID matching\nUsing default profile - LGChem_3200mAh for id(%d)\n", battery_id);
+		break;
 	}
 #else
 	batt_data = &LGE_BL_54SH_2540mAh_LG_Chem_data;
-	pr_err("[BATTERY PROFILE] No battery capacity defconfig\nUsing default profile - LGChem_2540mAh for id(%d)\n",battery_id);
+	pr_err("[BATTERY PROFILE] No battery capacity defconfig\nUsing default profile - LGChem_2540mAh for id(%d)\n", battery_id);
 #endif
 
-#else // Not PM battery ID checker
-	// Set Default Battery Profile
+#else	/* Not PM battery ID checker */
+	/* Set Default Battery Profile */
+	int64_t battery_id;
+	bool batt_id;
+	battery_id = read_battery_id(chip);
+	pr_err("%s, battery_id : %lld\n", __func__, battery_id);
+#if defined (CONFIG_LGE_PM_BATTERY_CAPACITY_4200mAh)
+	batt_id = true;
+	batt_data = &LGE_LGC_4200mAh_data;
+	pr_err("[BATTERY PROFILE] Using default profile - LGC_4200mAh\n");
+#else
+	if (battery_id < 1000000)
+		batt_id = true;
+	else
+		batt_id = false;
+#if defined (CONFIG_MACH_MSM8926_E7LTE_ATT_US) || defined(CONFIG_LGE_PM_BATTERY_CAPACITY_4000mAh)
+	if(batt_id) {
+		batt_data = &LGE_BL_T12_4000mAh_LG_Chem_data;
+		pr_err("[BATTERY PROFILE] Using default profile - LGC_4000mAh\n");
+	} else {
+		batt_data = &LGE_BL_T12_4000mAh_TOCAD_data;
+		pr_err("[BATTERY PROFILE] Using default profile - TOCAD_4000mAh\n");
+	}
+#elif defined(CONFIG_LGE_PM_BATTERY_CAPACITY_8000mAh)
+	if (batt_id) {
+		batt_data = &LGE_BL_T13_8000mAh_LG_Chem_data;
+		pr_err("[BATTERY PROFILE] Using default profile - LGC_8000mAh\n");
+	} else {
+		batt_data = &LGE_BL_T13_8000mAh_TOCAD_data;
+		pr_err("[BATTERY PROFILE] Using default profile - TOCAD_8000mAh\n");
+	}
+#else
 	batt_data = &LGE_BL_54SH_2540mAh_LG_Chem_data;
 	pr_err("[BATTERY PROFILE] This version doesn't support BATTERY ID CHECKER\nUsing default profile-LGChem_2540mAh\n");
-
 #endif
-#if 1 //FIXME
+#endif
+#endif
+#if 1	/* FIXME */
 	goto assign_data;
 #endif
-#else // Not PM battery profile
+#else	/* Not PM battery profile */
 	pr_err ("[BATTERY PROFILE] This version doesn't support BATTERY ID PROFILE use QCT Battery Data\n");
-	
-	// From Here : QCT Original Data We don't use this
+
+	/* From Here : QCT Original Data We don't use this */
 	int64_t battery_id;
 	int rc = 0, dt_data = false;
 	struct bms_battery_data *batt_data;
@@ -4089,7 +4549,6 @@ assign_data:
 	chip->default_rbatt_mohm = batt_data->default_rbatt_mohm;
 	chip->rbatt_capacitive_mohm = batt_data->rbatt_capacitive_mohm;
 	chip->flat_ocv_threshold_uv = batt_data->flat_ocv_threshold_uv;
-
 #ifndef CONFIG_LGE_PM_BATTERY_PROFILE_DATA
 	/* Override battery properties if specified in the battery profile */
 	if (batt_data->max_voltage_uv >= 0 && dt_data)
@@ -4216,7 +4675,11 @@ static inline int bms_read_properties(struct qpnp_bms_chip *chip)
 
 	if (chip->adjust_soc_low_threshold >= 45)
 		chip->adjust_soc_low_threshold = 45;
-
+#ifdef CONFIG_MAX17048_FUELGAUGE
+	chip->bms_psy.use_external_fuelgauge = of_property_read_bool(
+			chip->spmi->dev.of_node,
+			"qcom,use-external-fuelgauge");
+#endif
 	SPMI_PROP_READ_BOOL(enable_fcc_learning, "enable-fcc-learning");
 	if (chip->enable_fcc_learning) {
 		SPMI_PROP_READ(min_fcc_learning_soc,
@@ -4314,6 +4777,7 @@ do {									\
 		pr_err("Unable to request " #irq_name " irq: %d\n", rc);\
 		return -ENXIO;						\
 	}								\
+	chip->irq_name##_irq.ready = true;				\
 } while (0)
 
 static int bms_request_irqs(struct qpnp_bms_chip *chip)
@@ -4321,8 +4785,10 @@ static int bms_request_irqs(struct qpnp_bms_chip *chip)
 	int rc;
 
 	SPMI_REQUEST_IRQ(chip, rc, sw_cc_thr);
+	disable_bms_irq(&chip->sw_cc_thr_irq);
 	enable_irq_wake(chip->sw_cc_thr_irq.irq);
 	SPMI_REQUEST_IRQ(chip, rc, ocv_thr);
+	disable_bms_irq(&chip->ocv_thr_irq);
 	enable_irq_wake(chip->ocv_thr_irq.irq);
 	return 0;
 }
@@ -4537,8 +5003,18 @@ static int refresh_die_temp_monitor(struct qpnp_bms_chip *chip)
 						+ chip->temperature_margin;
 	chip->die_temp_monitor_params.low_temp = result.physical
 						- chip->temperature_margin;
+#if 0
+	/*
+	 * LGE_CHANGES : platfrom 8x26, temporary disabled,
+	 * in power off charging mode. after eoc it goes to suspend. but this interrupt
+	 * occured, it couldn't re-enter suspend. before it fixed. this irq disabled
+	 */
 	chip->die_temp_monitor_params.state_request =
-						ADC_TM_HIGH_LOW_THR_ENABLE;
+												ADC_TM_HIGH_LOW_THR_ENABLE;
+#else
+	chip->die_temp_monitor_params.state_request =
+												ADC_TM_HIGH_LOW_THR_DISABLE;
+#endif
 	return qpnp_adc_tm_channel_measure(chip->adc_tm_dev,
 					&chip->die_temp_monitor_params);
 }
@@ -4578,6 +5054,29 @@ static int setup_die_temp_monitoring(struct qpnp_bms_chip *chip)
 	pr_debug("setup complete\n");
 	return 0;
 }
+
+int get_batt_therm_touch(void){
+    struct qpnp_vadc_result result;
+    int rc = 0;
+
+    if(dummy_chip != NULL){
+        rc = qpnp_vadc_read(dummy_chip->vadc_dev, LR_MUX1_BATT_THERM, &result);
+
+        if(rc){
+             printk(KERN_INFO"[Touch] BAT TEMP read ERROR !!");
+            return 0xfff;
+        } else{
+           printk(KERN_INFO"[Touch][%s] Read Batt Temp = %d",__func__ ,(int)result.physical);
+        }
+
+        return (int)result.physical;
+    }
+
+    printk(KERN_INFO"[Touch] Skip Touch Battery Temp!!");
+    return 0xfff;
+
+}
+EXPORT_SYMBOL(get_batt_therm_touch);
 
 static int __devinit qpnp_bms_probe(struct spmi_device *spmi)
 {
@@ -4723,13 +5222,12 @@ static int __devinit qpnp_bms_probe(struct spmi_device *spmi)
 		goto error_setup;
 	}
 
-#ifdef CONFIG_LGE_PM
 	rc = bms_request_irqs(chip);
 	if (rc) {
 		pr_err("error requesting bms irqs, rc = %d\n", rc);
-		goto unregister_dc;
+		goto error_setup;
 	}
-#endif
+
 	battery_insertion_check(chip);
 	batfet_status_check(chip);
 	battery_status_check(chip);
@@ -4742,6 +5240,11 @@ static int __devinit qpnp_bms_probe(struct spmi_device *spmi)
 	chip->bms_psy.properties = msm_bms_power_props;
 	chip->bms_psy.num_properties = ARRAY_SIZE(msm_bms_power_props);
 	chip->bms_psy.get_property = qpnp_bms_power_get_property;
+#ifdef CONFIG_LGE_PM
+	chip->bms_psy.set_property = qpnp_bms_power_set_property;
+	chip->bms_psy.property_is_writeable = qpnp_bms_property_is_writeable;
+	/* chip->bms_psy.use_external_fuelgauge- chip->use_external_fuelgauge; */
+#endif
 	chip->bms_psy.external_power_changed =
 		qpnp_bms_external_power_changed;
 	chip->bms_psy.supplied_to = qpnp_bms_supplicants;
@@ -4763,15 +5266,6 @@ static int __devinit qpnp_bms_probe(struct spmi_device *spmi)
 		goto unregister_dc;
 	}
 
-#ifndef CONFIG_LGE_PM
-	/* we changed code location before calculate_soc_work to avoid warning message for ocv_thr/sw_cc_thr IRQ */
-	rc = bms_request_irqs(chip);
-	if (rc) {
-		pr_err("error requesting bms irqs, rc = %d\n", rc);
-		goto unregister_dc;
-	}
-#endif	
-
 #ifdef CONFIG_LGE_PM_BMS_MIN_IAVG_CAL_TIME
 	get_current_time(&chip->last_iavg_cal_time);
 #endif
@@ -4779,6 +5273,9 @@ static int __devinit qpnp_bms_probe(struct spmi_device *spmi)
 	pr_info("probe success: soc =%d vbatt = %d ocv = %d r_sense_uohm = %u warm_reset = %d\n",
 			get_prop_bms_capacity(chip), vbatt, chip->last_ocv_uv,
 			chip->r_sense_uohm, warm_reset);
+
+
+        dummy_chip = chip;
 	return 0;
 
 unregister_dc:
@@ -4819,8 +5316,8 @@ static int bms_resume(struct device *dev)
 	struct qpnp_bms_chip *chip = dev_get_drvdata(dev);
 
 	rc = get_current_time(&tm_now_sec);
-    pr_debug("[BMS_DEBUG] bms_resume current_time = %ld, last_recalc_time = %ld, delta = %ld\n",
-        tm_now_sec, chip->last_recalc_time, tm_now_sec - chip->last_recalc_time);
+	pr_debug("[BMS_DEBUG] bms_resume current_time = %ld, last_recalc_time = %ld, delta = %ld\n",
+		tm_now_sec, chip->last_recalc_time, tm_now_sec - chip->last_recalc_time);
 	if (rc) {
 		pr_err("Could not read current time: %d\n", rc);
 	} else {

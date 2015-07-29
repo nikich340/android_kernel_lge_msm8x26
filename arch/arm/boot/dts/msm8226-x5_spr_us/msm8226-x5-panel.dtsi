@@ -68,7 +68,24 @@
 	E5 00 0C 15 07 04 00 80 20 00 10 00 00 08 06 04 00 80 0E
 	39 01 00 00 00 00 12		/* set Hue Gain */
 	E2 40 00 00 05 05 10 10 10 04 04 08 10 10 10 10 10 10
-	05 01 00 00 28 00 01 11];  /* sleep out */
+	39 01 00 00 00 00 05 /* OSC enable */
+	B0 00 01 00 0C
+	39 01 00 00 00 00 04 /* Soft-start pump enable */
+	CF 00 1D 03
+	39 01 00 00 0A 00 05 /* VGH_EN=1 */
+	B0 00 01 08 0C
+	39 01 00 00 19 00 05 /*VGL_EN=1 */
+	B0 00 01 18 0C
+	39 01 00 00 05 00 05 /*VCL_EN=1 */
+	B0 00 01 1C 0C
+	39 01 00 00 05 00 04 /* VGH, VGL Strong pump */
+	CF 00 15 03
+	39 01 00 00 00 00 04 /* Soft-start function disable */
+	CF 00 01 03
+	39 01 00 00 00 00 05 /* VSP_EN=1, waiting for external VSP */
+	B0 00 01 3C 0C
+	39 01 00 00 00 00 05 /* VSN_EN=1, waiting for external VSN */
+	B0 00 01 7C 0C];
 };
 
 &dsi_lgd_vid_dsv{

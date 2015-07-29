@@ -396,6 +396,17 @@ config BATTERY_BQ27520
 	help
 	  Say Y here to enable support for batteries with BQ27520 (I2C) chips.
 
+config SMB358_CHARGER
+	tristate "SMB358 Battery Charger"
+	depends on I2C
+	help
+	  Say Y to include support for SMB358 Battery Charger.
+	  SMB358 is a single path switching mode charger capable of charging
+	  the battery with 2Amps of current.
+	  The driver supports charger enable/disable.
+	  The driver reports the charger status via the power supply framework.
+	  A charger status change triggers an IRQ via the device STAT pin.
+
 config BQ27520_TEST_ENABLE
 	bool "Enable BQ27520 Fuel Gauge Chip Test"
 	depends on BATTERY_BQ27520
@@ -505,6 +516,12 @@ config LGE_PM
 	  Power Management, Battery charging, Battery Monitoring System
 	  with battery FET and fuel gauge.
 
+config EXTERNAL_FUELGAUGE
+	tristate "extenal fuel gauging external driver"
+	depends on I2C && LGE_PM
+	default n
+	help
+	  Say Y here to enable support for external fuel gauge chip lge feature.
 config MAX17048_FUELGAUGE
 	tristate "Maxim MAX17048 fuel gauging external driver"
 	depends on I2C && LGE_PM
@@ -514,11 +531,25 @@ config MAX17048_FUELGAUGE
 	  in handheld and portable equipment. The MAX17048 is configured
 	  to operate with a single lithium cell
 
+config CHG_DETECTOR_MAX14656
+	tristate "max14656 USB Charger Detector"
+	depends on I2C
+	default n
+	help
+	  Say Y to enable support for the MAX14656
+
 config LGE_PM_BATTERY_ID_CHECKER
 	bool "Virtual Device for LGE Battery ID Checker"
 	depends on LGE_PM
 	help
 	  Say Y here to enable LGE Battery ID Checker
+
+config LGE_PM_BATTERY_ID_RANIX_SILICON_WORKS
+	bool "Virtual Device for LGE Battery ID ranix n silicon works Checker"
+	depends on LGE_PM_BATTERY_ID_CHECKER
+	default n
+	help
+	  Say Y here to enable LGE Battery ID RANIX n SILICON WORKS
 
 config LGE_PM_BATTERY_4_2VOLT
 	bool "LGE Support 4.2V Battery"
@@ -555,6 +586,12 @@ config LGE_PM_CHARGING_TEMP_SCENARIO
 	depends on LGE_PM
 	help
 	  Say Y here to enable LGE Charging Temp Scenario
+
+config LGE_PM_CHARGING_TEMP_SCENARIO_V1_8
+	bool "LGE Charging Temp Scenario V1.8"
+	depends on LGE_PM_CHARGING_TEMP_SCENARIO
+	help
+	  Say Y here to enable LGE Charging Temp Scenario V1.8
 
 config LGE_PM_VZW_CHARGING_TEMP_SCENARIO
 	bool "VZW Charging Temp Scenario"
@@ -632,12 +669,6 @@ config LGE_PM_VZW_FAST_CHG
 	help
 	  Say Y here to meet VZW requirement.
 
-config LGE_PM_VZW_HIGH_TEMP_PWR_OFF
-	bool "Notify power-off due to high temperature in chargerlogo"
-	depends on LGE_PM
-	help
-	  Say Y here to notify in chargerlogo when occurring power-off due to high temperature
-
 config LGE_PM_VZW_LLK
 	bool "VZW store mode"
 	depends on LGE_PM
@@ -656,12 +687,32 @@ config LGE_PM_WORKAROUND_USB_VALID_BY_REVERSE_BOOST
 	help
 	  This code is workaround code for loss of UVD detection by reverse boost of PM8110 & PM8x26
 
+config LGE_PM_WORKAROUND_WEAK_CHARGER_REMOVAL_DETECTION
+  bool "Workaround code for faulty removal detection"
+  depends on LGE_PM
+  help
+    This code is workaround code for faulty removal detection
+    when CHG GONE interrupt is misled by weak charger
+
 config LGE_PM_WORKAROUND_PORT_OPEN_FAIL_IN_FACTORY_TEST
 	bool "Workaround code for port open fail in factory test"
 	depends on LGE_PM
 	help
 	  This code is workaround code for OVD detection by USBIN Voltage in factory test
-	  
+
+config LGE_PM_SPMI_BMS_ERROR_CHECK
+        bool "Workaround code for SPMI BMS error exception handling"
+        depends on LGE_PM
+        help
+          This code is workaround code for spmi bms error exception handling.
+
+config LGE_PM_DISABLE_ULPM_MODE
+	bool "Control Power mode in off mode"
+	depends on LGE_PM
+	help
+	  This code is that disable the ULPM mode in off mode.
+	  To protect VPH_PWR drop, changed power mode from ULPM to LPM
+
 config LGE_PM_BMS_FACTORY_TEST
 	bool "Workaround code for fuel gauge fail in factory test"
 	depends on LGE_PM
@@ -679,5 +730,37 @@ config LGE_PM_BMS_CC_ACCURACY_PATCH
 	depends on LGE_PM
 	help
 	  This code is workaround code for cc accuracy problem after EOC with TA.
+config LGE_WIRELESS_CHARGER_RT9536
+	bool "RT9536 wireless charger"
+	depends on LGE_PM
+	default n
+	help
+	   Say Y here to support rt9536 wireless charger
 
+config LGE_PM_CHARGING_DEBUG_LOG
+	bool "Charging debug log"
+	depends on LGE_PM
+	help
+	  Say Y here to enable charging debug log
+
+config LGE_PM_HARDRESET_KEY_COMBINATION
+	bool "HARD RESET using key combination"
+	depends on LGE_PM
+	default n
+	help
+	   Say Y here to support HARD RESET using key combination
+
+config LGE_PM_DQSL
+	bool "VZW DQSL"
+	depends on LGE_PM
+	default n
+	help
+	   Say Y here to support VZW DQSL
+
+config LGE_PM_FIX_CEC_FAIL
+	bool "Fix CEC Fail"
+	depends on LGE_PM
+	default n
+	help
+	   Say Y here to support workaround code for cec fail
 endif # POWER_SUPPLY

@@ -46,19 +46,7 @@
 	maxim_max1462x_revC {
 		compatible = "maxim,max1462x";
 		status = "disable";          //"ok" or "disable"
-		revision = "rev_c";
-	};
-
-	maxim_max1462x_revD {
-		compatible = "maxim,max1462x";
-		status = "ok";          //"ok" or "disable"
-		revision = "rev_d";
-	};
-
-	maxim_max1462x_revE {
-		compatible = "maxim,max1462x";
-		status = "ok";          //"ok" or "disable"
-		revision = "rev_e...";
+		revision = "rev_c...";
 	};
 
 	i2c@f9924000 { /* BLSP-1 QUP-2 */

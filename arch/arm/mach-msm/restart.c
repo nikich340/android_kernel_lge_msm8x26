@@ -77,11 +77,7 @@ static void *emergency_dload_mode_addr;
 
 /* Download mode master kill-switch */
 static int dload_set(const char *val, struct kernel_param *kp);
-#ifdef CONFIG_MACH_MSM8X10_W3C_TRF_US
 static int download_mode = 0;
-#else
-static int download_mode = 0;
-#endif
 module_param_call(download_mode, dload_set, param_get_int,
 			&download_mode, 0644);
 static int panic_prep_restart(struct notifier_block *this,
@@ -97,6 +93,7 @@ static struct notifier_block panic_blk = {
 
 static void set_dload_mode(int on)
 {
+	pr_err("%s(%d)\n", __func__, on);
 	if (dload_mode_addr) {
 		__raw_writel(on ? 0xE47B337D : 0, dload_mode_addr);
 		__raw_writel(on ? 0xCE14091A : 0,
@@ -108,6 +105,7 @@ static void set_dload_mode(int on)
 
 static bool get_dload_mode(void)
 {
+	pr_err("%s(%d)\n", __func__, dload_mode_enabled);
 	return dload_mode_enabled;
 }
 
@@ -122,6 +120,10 @@ static void enable_emergency_dload_mode(void)
 		__raw_writel(EMERGENCY_DLOAD_MAGIC3,
 				emergency_dload_mode_addr +
 				(2 * sizeof(unsigned int)));
+
+		/* Need disable the pmic wdt, then the emergency dload mode
+		 * will not auto reset. */
+		qpnp_pon_wd_config(0);
 		mb();
 	}
 }
@@ -255,6 +257,9 @@ static irqreturn_t resout_irq_handler(int irq, void *dev_id)
 extern unsigned int set_ram_test_flag;
 static void msm_restart_prepare(const char *cmd)
 {
+#if defined(CONFIG_MACH_MSM8926_AKA_CN) || defined(CONFIG_MACH_MSM8926_AKA_KR)
+	int Reset_type = 0; //default Hard reset
+#endif
 #ifdef CONFIG_MSM_DLOAD_MODE
 
 	/* This looks like a normal reboot at this point. */
@@ -277,10 +282,35 @@ static void msm_restart_prepare(const char *cmd)
 	pm8xxx_reset_pwr_off(1);
 
 	/* Hard reset the PMIC unless memory contents must be maintained. */
+#if defined(CONFIG_MACH_MSM8926_AKA_CN) || defined(CONFIG_MACH_MSM8926_AKA_KR)
+	if (cmd != NULL) {
+		if (!strncmp(cmd, "bootloader", 10)
+		    ||!strncmp(cmd, "recovery", 8)
+		    ||!strncmp(cmd, "fota", 4)
+#ifdef CONFIG_LGE_BNR_RECOVERY_REBOOT
+		/* PC Sync B&R : Add restart reason */
+		    ||!strncmp(cmd, "--bnr_recovery", 14)
+#endif
+		    ||!strncmp(cmd, "rtc", 3)
+		    ||!strncmp(cmd, "oem-", 4)
+		    ||!strncmp(cmd, "edl", 3)
+#ifdef CONFIG_LGE_LCD_OFF_DIMMING
+		    ||!strncmp(cmd, "LCD off", 7)
+#endif
+		)
+		    Reset_type = 1; //Warm reset;
+	}
+#ifdef CONFIG_LAF_G_DRIVER
+	if (get_dload_mode() || Reset_type || (restart_mode == RESTART_DLOAD))
+#else
+	if (get_dload_mode() || Reset_type )
+#endif
+#else //CONFIG_MACH_MSM8926_AKA_CN  CONFIG_MACH_MSM8926_AKA_KR
 #ifdef CONFIG_LAF_G_DRIVER
 	if (get_dload_mode() || in_panic || (cmd != NULL && cmd[0] != '\0') || (restart_mode == RESTART_DLOAD))
 #else
 	if (get_dload_mode() || in_panic || (cmd != NULL && cmd[0] != '\0'))
+#endif
 #endif
 		qpnp_pon_system_pwr_off(PON_POWER_OFF_WARM_RESET);
 	else
@@ -291,11 +321,19 @@ static void msm_restart_prepare(const char *cmd)
 			__raw_writel(0x77665500, restart_reason);
 		} else if (!strncmp(cmd, "recovery", 8)) {
 			__raw_writel(0x77665502, restart_reason);
+		} else if (!strncmp(cmd, "fota", 4)) {
+			__raw_writel(0x77665566, restart_reason);
 #ifdef CONFIG_LGE_BNR_RECOVERY_REBOOT
 			/* PC Sync B&R : Add restart reason */
 		} else if (!strncmp(cmd, "--bnr_recovery", 14)) {
 			__raw_writel(0x77665555, restart_reason);
 #endif
+#ifdef CONFIG_LGE_LCD_OFF_DIMMING
+        } else if (!strncmp(cmd, "LCD off", 7)) {
+            __raw_writel(0x77665560, restart_reason);
+#endif
+		} else if (!strcmp(cmd, "rtc")) {
+			__raw_writel(0x77665503, restart_reason);
 		} else if (!strncmp(cmd, "oem-", 4)) {
 			unsigned long code;
 			code = simple_strtoul(cmd + 4, NULL, 16) & 0xff;

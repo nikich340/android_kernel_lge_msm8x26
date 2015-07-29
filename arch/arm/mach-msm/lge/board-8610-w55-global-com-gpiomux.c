@@ -698,7 +698,7 @@ static struct msm_gpiomux_config ags04_ts_configs[] __initdata = {
 
 
 /*  LGE_CHANGE_S, [NFC][taesik.kim@lge.com], NFC Bring up*/
-#ifdef CONFIG_LGE_NFC_PN547
+#ifdef CONFIG_LGE_NFC_PN547_C2
 
 
 static struct gpiomux_setting nfc_pn547_ven_cfg = {
@@ -851,7 +851,7 @@ void __init msm8610_init_gpiomux(void)
 			ARRAY_SIZE(msm_gpio_int_configs));
 
 	/*  LGE_CHANGE_S, [NFC][taesik.kim@lge.com], NFC Bring up */
-#ifdef CONFIG_LGE_NFC_PN547
+#ifdef CONFIG_LGE_NFC_PN547_C2
 	if (revision <= HW_REV_B){
 		msm_gpiomux_install(msm_nfc_configs, ARRAY_SIZE(msm_nfc_configs));
 	}

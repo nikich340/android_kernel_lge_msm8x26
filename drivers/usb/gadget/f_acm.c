@@ -180,8 +180,9 @@ static int acm_port_disconnect(struct f_acm *acm)
 #define GS_LOG2_NOTIFY_INTERVAL		5	/* 1 << 5 == 32 msec */
 #ifdef CONFIG_USB_G_LGE_ANDROID
 #define GS_NOTIFY_MAXPACKET		16	/* For LG host driver */
+#define GS_DESC_NOTIFY_MAXPACKET	64	/* For acm_hs_notify_desc */
 #else
-// #define GS_NOTIFY_MAXPACKET		10	/* notification + 2 bytes */
+#define GS_NOTIFY_MAXPACKET		10	/* notification + 2 bytes */
 #endif
 
 /* interface and class descriptors: */
@@ -299,7 +300,11 @@ static struct usb_endpoint_descriptor acm_hs_notify_desc = {
 	.bDescriptorType =	USB_DT_ENDPOINT,
 	.bEndpointAddress =	USB_DIR_IN,
 	.bmAttributes =		USB_ENDPOINT_XFER_INT,
+#ifdef CONFIG_USB_G_LGE_ANDROID
+	.wMaxPacketSize =	cpu_to_le16(GS_DESC_NOTIFY_MAXPACKET),
+#else
 	.wMaxPacketSize =	cpu_to_le16(GS_NOTIFY_MAXPACKET),
+#endif
 	.bInterval =		GS_LOG2_NOTIFY_INTERVAL+4,
 };
 
@@ -926,6 +931,32 @@ static inline bool can_support_cdc(struct usb_configuration *c)
 	return true;
 }
 
+#ifdef CONFIG_USB_G_LGE_MULTICONFIG_ATF_WA
+/*
+ * B2-BSP-USB@lge.com
+ * For support Android file transfer,
+ * change ACM interfaceclass value when connect to OS X.
+ * This is just workaround codes until 0x633e added to libmtp.
+ */
+static int lge_acm_desc_change(struct usb_function *f, bool is_mac)
+{
+	if (is_mac == true) {
+		if (gadget_is_superspeed(f->config->cdev->gadget))
+			((struct usb_interface_descriptor *)f->ss_descriptors[1])->bInterfaceClass = USB_CLASS_VENDOR_SPEC;
+		((struct usb_interface_descriptor *)f->hs_descriptors[1])->bInterfaceClass = USB_CLASS_VENDOR_SPEC;
+		((struct usb_interface_descriptor *)f->descriptors[1])->bInterfaceClass = USB_CLASS_VENDOR_SPEC;
+		pr_info("MAC ACM bInterfaceClass change to %u \n", ((struct usb_interface_descriptor *)f->hs_descriptors[1])->bInterfaceClass);
+	} else {
+		if (gadget_is_superspeed(f->config->cdev->gadget))
+			((struct usb_interface_descriptor *)f->ss_descriptors[1])->bInterfaceClass = USB_CLASS_COMM;
+		((struct usb_interface_descriptor *)f->hs_descriptors[1])->bInterfaceClass = USB_CLASS_COMM;
+		((struct usb_interface_descriptor *)f->descriptors[1])->bInterfaceClass = USB_CLASS_COMM;
+		pr_info("WIN/LINUX ACM bInterfaceClass change to %u \n", ((struct usb_interface_descriptor *)f->hs_descriptors[1])->bInterfaceClass);
+	}
+	return 0;
+}
+#endif
+
 /**
  * acm_bind_config - add a CDC ACM function to a configuration
  * @c: the configuration to support the CDC ACM instance
@@ -1005,7 +1036,9 @@ int acm_bind_config(struct usb_configuration *c, u8 port_num)
 	acm->port.func.set_alt = acm_set_alt;
 	acm->port.func.setup = acm_setup;
 	acm->port.func.disable = acm_disable;
-
+#ifdef CONFIG_USB_G_LGE_MULTICONFIG_ATF_WA
+	acm->port.func.desc_change = lge_acm_desc_change;
+#endif
 	status = usb_add_function(c, &acm->port.func);
 	if (status)
 		kfree(acm);

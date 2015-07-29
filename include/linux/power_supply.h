@@ -45,6 +45,10 @@ enum {
 	POWER_SUPPLY_CHARGE_TYPE_NONE,
 	POWER_SUPPLY_CHARGE_TYPE_TRICKLE,
 	POWER_SUPPLY_CHARGE_TYPE_FAST,
+	POWER_SUPPLY_CHARGE_TYPE_TAPER,
+#ifdef CONFIG_LGE_WIRELESS_CHARGER_RT9536
+	POWER_SUPPLY_CHARGE_TYPE_WIRELESS,
+#endif
 };
 
 enum {
@@ -87,6 +91,9 @@ enum {
 enum power_supply_property {
 	/* Properties of type `int' */
 	POWER_SUPPLY_PROP_STATUS = 0,
+#ifdef CONFIG_LGE_PM
+	POWER_SUPPLY_PROP_STATUS_ORIGINAL,
+#endif
 	POWER_SUPPLY_PROP_CHARGE_TYPE,
 	POWER_SUPPLY_PROP_HEALTH,
 	POWER_SUPPLY_PROP_PRESENT,
@@ -106,6 +113,7 @@ enum power_supply_property {
 	POWER_SUPPLY_PROP_INPUT_CURRENT_MAX,
 	POWER_SUPPLY_PROP_INPUT_CURRENT_TRIM,
 	POWER_SUPPLY_PROP_INPUT_CURRENT_SETTLED,
+	POWER_SUPPLY_PROP_VCHG_LOOP_DBC_BYPASS,
 	POWER_SUPPLY_PROP_CURRENT_NOW,
 	POWER_SUPPLY_PROP_CURRENT_AVG,
 	POWER_SUPPLY_PROP_POWER_NOW,
@@ -138,6 +146,9 @@ enum power_supply_property {
 	POWER_SUPPLY_PROP_TIME_TO_FULL_AVG,
 	POWER_SUPPLY_PROP_TYPE, /* use power_supply.type instead */
 	POWER_SUPPLY_PROP_SCOPE,
+#if defined (CONFIG_MACH_MSM8226_E7WIFI) || defined (CONFIG_MACH_MSM8226_E9WIFI) || defined (CONFIG_MACH_MSM8226_E9WIFIN) || defined (CONFIG_MACH_MSM8926_E9LTE)
+	POWER_SUPPLY_PROP_BATTERY_DUALIZATION,
+#endif
 #ifndef CONFIG_LGE_PM
 	POWER_SUPPLY_PROP_SYSTEM_TEMP_LEVEL,
 #endif
@@ -157,10 +168,31 @@ enum power_supply_property {
 #ifdef CONFIG_LGE_PM_VZW_FAST_CHG
 	POWER_SUPPLY_PROP_VZW_CHG_STATE,
 #endif
+#ifdef CONFIG_LGE_PM_VZW_LLK
+	POWER_SUPPLY_PROP_STORE_DEMO_ENABLED,
+#endif
+#ifdef CONFIG_MAX17048_FUELGAUGE
+	POWER_SUPPLY_PROP_USE_FUELGAUGE,
+#endif
+#ifdef CONFIG_LGE_WIRELESS_CHARGER_RT9536
+	POWER_SUPPLY_PROP_WLC_ENABLE,
+#endif
+#ifdef CONFIG_LGE_PM
+	POWER_SUPPLY_PROP_SAFTETY_CHARGER_TIMER,
+#endif
+#ifdef CONFIG_LGE_PM_FIX_CEC_FAIL
+	POWER_SUPPLY_PROP_RELEASE_CV_LOCK,
+#endif
+#ifdef CONFIG_CHG_DETECTOR_MAX14656
+	POWER_SUPPLY_PROP_USB_CHG_DETECT_DONE,
+	POWER_SUPPLY_PROP_USB_CHG_TYPE,
+	POWER_SUPPLY_PROP_USB_DCD_TIMEOUT,
+#endif
 	/* Properties of type `const char *' */
 	POWER_SUPPLY_PROP_MODEL_NAME,
 	POWER_SUPPLY_PROP_MANUFACTURER,
 	POWER_SUPPLY_PROP_SERIAL_NUMBER,
+
 };
 
 enum power_supply_type {
@@ -173,6 +205,15 @@ enum power_supply_type {
 	POWER_SUPPLY_TYPE_USB_CDP,	/* Charging Downstream Port */
 	POWER_SUPPLY_TYPE_USB_ACA,	/* Accessory Charger Adapters */
 	POWER_SUPPLY_TYPE_BMS,		/* Battery Monitor System */
+#ifdef CONFIG_MAX17048_FUELGAUGE
+	POWER_SUPPLY_TYPE_FUELGAUGE,
+#endif
+#ifdef CONFIG_LGE_WIRELESS_CHARGER_RT9536
+	POWER_SUPPLY_TYPE_WIRELESS,
+#endif
+#ifdef CONFIG_CHG_DETECTOR_MAX14656
+	POWER_SUPPLY_TYPE_CHARGER_DETECTOR,
+#endif
 };
 
 union power_supply_propval {
@@ -222,6 +263,9 @@ struct power_supply {
 	struct led_trigger *charging_blink_full_solid_trig;
 	char *charging_blink_full_solid_trig_name;
 #endif
+#ifdef CONFIG_MAX17048_FUELGAUGE
+	int use_external_fuelgauge;
+#endif
 };
 
 /*
@@ -249,6 +293,7 @@ extern void power_supply_changed(struct power_supply *psy);
 extern int power_supply_am_i_supplied(struct power_supply *psy);
 extern int power_supply_set_battery_charged(struct power_supply *psy);
 extern int power_supply_set_current_limit(struct power_supply *psy, int limit);
+extern int power_supply_set_voltage_limit(struct power_supply *psy, int limit);
 extern int power_supply_set_online(struct power_supply *psy, bool enable);
 extern int power_supply_set_health_state(struct power_supply *psy, int health);
 extern int power_supply_set_present(struct power_supply *psy, bool enable);
@@ -268,6 +313,9 @@ static inline void power_supply_changed(struct power_supply *psy) { }
 static inline int power_supply_am_i_supplied(struct power_supply *psy)
 							{ return -ENOSYS; }
 static inline int power_supply_set_battery_charged(struct power_supply *psy)
+							{ return -ENOSYS; }
+static inline int power_supply_set_voltage_limit(struct power_supply *psy,
+							int limit)
 							{ return -ENOSYS; }
 static inline int power_supply_set_current_limit(struct power_supply *psy,
 							int limit)

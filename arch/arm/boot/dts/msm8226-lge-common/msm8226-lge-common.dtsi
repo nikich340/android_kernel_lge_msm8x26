@@ -21,6 +21,17 @@
 /include/ "msm8226-lge-sound.dtsi"
 
 &soc {
+	android_usb: android_usb@fe8050c8 {
+		qcom,streaming-func = "rndis", "ecm", "mtp";
+	};
+
+	/delete-node/ sound;
+
+	qcom,wdt@f9017000 {
+		qcom,bark-time = <15000>;
+		qcom,pet-time = <10000>;
+	};
+
 	i2c@f9925000 { /* BLSP1 QUP3 */
 		cell-index = <2>;
 		compatible = "qcom,i2c-qup";
@@ -36,5 +47,8 @@
 		qcom,sda-gpio = <&msmgpio 10 0>;
 	};
 
+	i2c@f9927000 { /* BLSP1 QUP5 */
+		qcom,master-id = <86>;
+	};
 };
 

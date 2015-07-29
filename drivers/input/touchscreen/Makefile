@@ -15,6 +15,7 @@ obj-$(CONFIG_TOUCHSCREEN_ADS7846)	+= ads7846.o
 obj-$(CONFIG_TOUCHSCREEN_ATMEL_MAXTOUCH)	+= atmel_maxtouch.o
 obj-$(CONFIG_TOUCHSCREEN_ATMEL_S540)	+= atmel_s540.o
 obj-$(CONFIG_TOUCHSCREEN_ATMEL_MXT)	+= atmel_mxt_ts.o
+obj-$(CONFIG_TOUCHSCREEN_ATMEL_MAXTOUCH_TS)	+= atmel_maxtouch_ts.o
 obj-$(CONFIG_TOUCHSCREEN_ATMEL_TSADCC)	+= atmel_tsadcc.o
 obj-$(CONFIG_TOUCHSCREEN_AUO_PIXCIR)	+= auo-pixcir-ts.o
 obj-$(CONFIG_TOUCHSCREEN_BITSY)		+= h3600_ts_input.o
@@ -81,9 +82,14 @@ obj-$(CONFIG_TOUCHSCREEN_CY8C_TS)	+= cy8c_ts.o
 obj-$(CONFIG_TOUCHSCREEN_CYTTSP_I2C_QC)       += cyttsp-i2c-qc.o
 obj-$(CONFIG_TOUCHSCREEN_AGS04_TOUCH_KEYPAD)  += ags04_touch_keypad.o
 obj-$(CONFIG_TOUCHSCREEN_FT5X06)	+= ft5x06_ts.o
-obj-$(CONFIG_TOUCHSCREEN_SYNAPTICS_I2C_RMI4)		+= synaptics_i2c_rmi4.o
+ifneq ($(filter aka_skt_kr aka_kt_kr aka_lgu_kr aka_cmo_cn aka_cto_cn,$(TARGET_PRODUCT)),)
+#obj-$(CONFIG_TOUCHSCREEN_SYNAPTICS_I2C_RMI4)		+= synaptics_i2c_rmi4.o
+else
 obj-$(CONFIG_TOUCHSCREEN_SYNAPTICS_DSX_RMI4_DEV)	+= synaptics_rmi_dev.o
 obj-$(CONFIG_TOUCHSCREEN_SYNAPTICS_DSX_FW_UPDATE) 	+= synaptics_fw_update.o
+obj-$(CONFIG_TOUCHSCREEN_SYNAPTICS_I2C_RMI4)		+= synaptics_i2c_rmi4.o
+endif
+obj-$(CONFIG_TOUCHSCREEN_GT9XX)		+= gt9xx/
 obj-$(CONFIG_TOUCHSCREEN_LDCTC)		+= ldc_touch.o
 obj-$(CONFIG_TOUCHSCREEN_APS_MELFAS)	+= aps_ts.o
 obj-$(CONFIG_TOUCHSCREEN_GT9XX)		+= gt9xx/
@@ -95,19 +101,45 @@ obj-$(CONFIG_TOUCHSCREEN_IST30XX)      += ist30xx_tracking.o
 obj-$(CONFIG_TOUCHSCREEN_IST30XX)      += ist30xx_update.o
 obj-$(CONFIG_TOUCHSCREEN_MELFAS_APS)	+= aps_ts.o
 obj-$(CONFIG_TOUCHSCREEN_ADS_AGS04)	+= ags04_ts.o
-obj-$(CONFIG_TOUCHSCREEN_LGE_TS_MISC)		+= lge_ts_misc.o
+ifdef CONFIG_MACH_MSM8926_VFP_KR
+obj-$(CONFIG_TOUCHSCREEN_LGE_TS_MISC)		+= lge_ts_misc_vfp.o
+else
+obj-$(CONFIG_TOUCHSCREEN_LGE_TS_MISC)       += lge_ts_misc.o
+endif
 obj-$(CONFIG_TOUCHSCREEN_ATMEL_S336)	+= atmel_s336.o
 obj-$(CONFIG_TOUCHSCREEN_ATMEL_S336)	+= atmel_s336_patch.o
+obj-$(CONFIG_TOUCHSCREEN_ATMEL_1188S)	+= atmel_mxt1188S.o
+obj-$(CONFIG_TOUCHSCREEN_ATMEL_T641)	+= atmel_t641.o
+obj-$(CONFIG_TOUCHSCREEN_ATMEL_T641)	+= atmel_t641_patch.o
+obj-$(CONFIG_TOUCHSCREEN_ATMEL_T1664)	+= atmel_t1664.o
+obj-$(CONFIG_TOUCHSCREEN_ATMEL_T1664)	+= atmel_t1664_patch.o
+obj-$(CONFIG_TOUCHSCREEN_ATMEL_T1066)	+= atmel_t1066.o
+obj-$(CONFIG_TOUCHSCREEN_ATMEL_T1066)	+= atmel_t1066_patch.o
 obj-$(CONFIG_TOUCHSCREEN_MELFAS_MMS100S)	+= mms100s_ts.o
 obj-$(CONFIG_TOUCHSCREEN_MELFAS_MMS100S)	+= mms100s_isp.o
 obj-$(CONFIG_TOUCHSCREEN_MELFAS_MMS136)	+= mms100a_ts.o
 obj-$(CONFIG_TOUCHSCREEN_MELFAS_MMS136)	+= mms100a_isp.o
 obj-$(CONFIG_TOUCHSCREEN_MELFAS_MMS136)	+= mms100a_isc.o
 obj-$(CONFIG_TOUCHSCREEN_LGE_TOUCHCORE)		+= lge_ts_core.o
-obj-$(CONFIG_TOUCHSCREEN_LGE_MELFAS)		+= lge_ts_melfas.o
-obj-$(CONFIG_TOUCHSCREEN_LGE_MELFAS)		+= lge_ts_mms100s.o
-obj-$(CONFIG_TOUCHSCREEN_LGE_MELFAS)		+= lge_ts_mms100a.o
+obj-$(CONFIG_TOUCHSCREEN_LGE_MELFAS)        += lge_ts_melfas.o
+obj-$(CONFIG_TOUCHSCREEN_LGE_MELFAS)        += lge_ts_mms100s.o
+obj-$(CONFIG_TOUCHSCREEN_LGE_MELFAS)        += lge_ts_mms100a.o
+ifneq ($(filter aka_skt_kr aka_kt_kr aka_lgu_kr aka_cmo_cn aka_cto_cn,$(TARGET_PRODUCT)),)
+obj-$(CONFIG_TOUCHSCREEN_SYNAPTICS_I2C_RMI4) += lge_touch_core_aka.o
+obj-$(CONFIG_TOUCHSCREEN_SYNAPTICS_I2C_RMI4) += touch_synaptics_aka.o
+obj-$(CONFIG_TOUCHSCREEN_SYNAPTICS_I2C_RMI4) += touch_synaptics_proximity.o
+obj-$(CONFIG_TOUCHSCREEN_SYNAPTICS_I2C_RMI4) += touch_synaptics_ds5_fw_upgrade.o
+obj-$(CONFIG_TOUCHSCREEN_SYNAPTICS_I2C_RMI4)	+= DS5/
+obj-$(CONFIG_TOUCHSCREEN_SYNAPTICS_DSX)	+= synaptics_dsx/
+else
 obj-$(CONFIG_LGE_TOUCH_SYNAPTICS) += lge_touch_core.o
 obj-$(CONFIG_LGE_TOUCH_SYNAPTICS) += touch_synaptics.o
 obj-$(CONFIG_LGE_TOUCH_SYNAPTICS_FW_UPGRADE) += touch_synaptics_fw_upgrade.o
 obj-$(CONFIG_LGE_TOUCH_SYNAPTICS)	+= DS4/
+endif
+obj-$(CONFIG_TOUCHSCREEN_LGE_APS_TOUCHCORE_E2)	+= lge_ait_ts_core_E2.o
+obj-$(CONFIG_TOUCHSCREEN_APS_MIT200_E2)		+= lge_ait_ts_melfas_E2.o
+obj-$(CONFIG_TOUCHSCREEN_APS_MIT200_E2)		+= lge_ait_ts_mit200_E2.o
+obj-$(CONFIG_TOUCHSCREEN_LGE_AIT_TOUCHCORE)		+= lge_ait_ts_core.o
+obj-$(CONFIG_TOUCHSCREEN_LGE_AIT_MELFAS)		+= lge_ait_ts_melfas.o
+obj-$(CONFIG_TOUCHSCREEN_LGE_AIT_MELFAS)		+= lge_ait_ts_mit200.o

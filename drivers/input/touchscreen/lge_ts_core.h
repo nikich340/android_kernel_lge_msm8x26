@@ -25,11 +25,10 @@
 #define MAX_FINGER		10
 #define MAX_BUTTON		4
 
-struct touch_device_caps
-{
+struct touch_device_caps {
 	u8	button_support;
 	u16	y_button_boundary;
-	u32	button_margin;		// percentage %
+	u32	button_margin;		/* percentage % */
 	u8	number_of_button;
 	u32	button_name[MAX_BUTTON];
 	u8	is_width_supported;
@@ -44,11 +43,10 @@ struct touch_device_caps
 	u32	lcd_y;
 };
 
-struct touch_operation_role
-{
-	u8	key_type;		// none = 0, hard_touch_key = 1, virtual_key = 2
-	u32	booting_delay;	// ms
-	u32	reset_delay;	// ms
+struct touch_operation_role {
+	u8	key_type;		/* none = 0, hard_touch_key = 1, virtual_key = 2 */
+	u32	booting_delay;	/* ms */
+	u32	reset_delay;	/* ms */
 	u8	suspend_pwr;
 	u8	resume_pwr;
 
@@ -73,8 +71,7 @@ struct touch_power_info {
 
 #define NAME_BUFFER_SIZE 	128
 
-struct touch_platform_data
-{
+struct touch_platform_data {
 	int	int_pin;
 	int	reset_pin;
 	int	scl_pin;
@@ -96,8 +93,7 @@ struct touch_platform_data
 	struct touch_operation_role	*role;
 };
 
-struct t_data
-{
+struct t_data {
 	u16	id;
 	u16	x_position;
 	u16	y_position;
@@ -109,14 +105,12 @@ struct t_data
 	u8	point_log_state;
 };
 
-struct b_data
-{
+struct b_data {
 	u16	key_code;
 	u16	state;
 };
 
-struct touch_data
-{
+struct touch_data {
 	u8	total_num;
 	u8	prev_total_num;
 	u8	state;
@@ -129,8 +123,7 @@ struct touch_data
 	struct b_data	prev_button;
 };
 
-struct touch_fw_info
-{
+struct touch_fw_info {
 	char path[NAME_BUFFER_SIZE];
 	volatile bool is_downloading;
 	bool force_upgrade;
@@ -138,16 +131,14 @@ struct touch_fw_info
 	struct firmware *fw;
 };
 
-struct rect
-{
+struct rect {
 	u16	left;
 	u16	right;
 	u16	top;
 	u16	bottom;
 };
 
-struct section_info
-{
+struct section_info {
 	struct rect panel;
 	struct rect button[MAX_BUTTON];
 	struct rect button_cancel[MAX_BUTTON];
@@ -179,11 +170,11 @@ struct touch_device_driver {
 	int	(*probe)	(struct i2c_client *client, struct touch_platform_data *pdata);
 	int	(*resolution)	(struct i2c_client *client);
 	void	(*remove)	(struct i2c_client *client);
-	int	(*init)		(struct i2c_client *client, struct touch_fw_info* info);
-	int	(*data)		(struct i2c_client *client, struct touch_data* data);
+	int	(*init)		(struct i2c_client *client, struct touch_fw_info *info);
+	int	(*data)		(struct i2c_client *client, struct touch_data *data);
 	int	(*power)	(struct i2c_client *client, int power_ctrl);
 	int	(*ic_ctrl)	(struct i2c_client *client, u32 code, u32 value);
-	int 	(*fw_upgrade)	(struct i2c_client *client, struct touch_fw_info* info);
+	int 	(*fw_upgrade)	(struct i2c_client *client, struct touch_fw_info *info);
 	int (*sysfs) 	(struct i2c_client *client, char *buf1, const char *buf2, u32 code);
 };
 
@@ -239,7 +230,7 @@ enum {
 };
 
 enum {
-	KEY_NULL=0,
+	KEY_NULL = 0,
 	KEY_PANEL,
 	KEY_BOUNDARY
 };
@@ -280,11 +271,11 @@ enum {
 };
 
 enum {
-	GHOST_STAGE_CLEAR=0,
-	GHOST_STAGE_1=1,
-	GHOST_STAGE_2=2,
-	GHOST_STAGE_3=4,
-	GHOST_STAGE_4=8,
+	GHOST_STAGE_CLEAR = 0,
+	GHOST_STAGE_1 = 1,
+	GHOST_STAGE_2 = 2,
+	GHOST_STAGE_3 = 4,
+	GHOST_STAGE_4 = 8,
 };
 
 enum {
@@ -314,7 +305,7 @@ enum {
 };
 
 enum {
-	SYSFS_IRQ_CONTROL_STORE=0,
+	SYSFS_IRQ_CONTROL_STORE = 0,
 	SYSFS_REG_CONTROL_STORE,
 	SYSFS_FX_CONTROL_STORE,
 	SYSFS_SENSING_TEST_STORE,
@@ -332,20 +323,20 @@ enum {
 
 enum {
 	DEBUG_NONE			= 0,
-	DEBUG_BASE_INFO		= (1U << 0),	// 1
-	DEBUG_TRACE			= (1U << 1),	// 2
-	DEBUG_GET_DATA		= (1U << 2),	// 4
-	DEBUG_ABS			= (1U << 3),	// 8
-	DEBUG_BUTTON		= (1U << 4),	// 16
-	DEBUG_FW_UPGRADE	= (1U << 5),	// 32
-	DEBUG_GHOST			= (1U << 6),	// 64
-	DEBUG_IRQ_HANDLE	= (1U << 7),	// 128
-	DEBUG_POWER			= (1U << 8),	// 256
-	DEBUG_JITTER		= (1U << 9),	// 512
-	DEBUG_ACCURACY		= (1U << 10),	// 1024
-	DEBUG_NOISE			= (1U << 11),	// 2048
-	DEBUG_CONFIG		= (1U << 12),	// 4096
-	DEBUG_ABS_POINT		= (1U << 13),	// 8196
+	DEBUG_BASE_INFO		= (1U << 0),	/* 1 */
+	DEBUG_TRACE			= (1U << 1),	/* 2 */
+	DEBUG_GET_DATA		= (1U << 2),	/* 4 */
+	DEBUG_ABS			= (1U << 3),	/* 8 */
+	DEBUG_BUTTON		= (1U << 4),	/* 16 */
+	DEBUG_FW_UPGRADE	= (1U << 5),	/* 32 */
+	DEBUG_GHOST			= (1U << 6),	/* 64 */
+	DEBUG_IRQ_HANDLE	= (1U << 7),	/* 128 */
+	DEBUG_POWER			= (1U << 8),	/* 256 */
+	DEBUG_JITTER		= (1U << 9),	/* 512 */
+	DEBUG_ACCURACY		= (1U << 10),	/* 1024 */
+	DEBUG_NOISE			= (1U << 11),	/* 2048 */
+	DEBUG_CONFIG		= (1U << 12),	/* 4096 */
+	DEBUG_ABS_POINT		= (1U << 13),	/* 8196 */
 };
 
 #ifdef LGE_TOUCH_TIME_DEBUG
@@ -362,12 +353,12 @@ enum {
 
 enum {
 	DEBUG_TIME_PROFILE_NONE		= 0,
-	DEBUG_TIME_INT_INTERVAL		= (1U << 0),	// 1
-	DEBUG_TIME_INT_IRQ_DELAY	= (1U << 1),	// 2
-	DEBUG_TIME_INT_THREAD_IRQ_DELAY	= (1U << 2),	// 4
-	DEBUG_TIME_DATA_HANDLE		= (1U << 3),	// 8
-	DEBUG_TIME_FW_UPGRADE		= (1U << 4),	// 16
-	DEBUG_TIME_PROFILE_ALL		= (1U << 5),	// 32
+	DEBUG_TIME_INT_INTERVAL		= (1U << 0),	/* 1 */
+	DEBUG_TIME_INT_IRQ_DELAY	= (1U << 1),	/* 2 */
+	DEBUG_TIME_INT_THREAD_IRQ_DELAY	= (1U << 2),	/* 4 */
+	DEBUG_TIME_DATA_HANDLE		= (1U << 3),	/* 8 */
+	DEBUG_TIME_FW_UPGRADE		= (1U << 4),	/* 16 */
+	DEBUG_TIME_PROFILE_ALL		= (1U << 5),	/* 32 */
 };
 #endif
 
@@ -406,43 +397,46 @@ enum {
 #if defined(TOUCH_INFO_PRINT)
 #define TOUCH_INFO_MSG(fmt, args...) 	printk(KERN_ERR "[Touch] " fmt, ##args)
 #else
-#define TOUCH_INFO_MSG(fmt, args...)    do {} while(0)
+#define TOUCH_INFO_MSG(fmt, args...)    do {} while (0)
 #endif
 
 #if defined(TOUCH_ERROR_PRINT)
 #define TOUCH_ERR_MSG(fmt, args...) 	printk(KERN_ERR "[Touch E][%s %d] " fmt, \
 						__func__, __LINE__, ##args)
 #else
-#define TOUCH_ERR_MSG(fmt, args...)     do {} while(0)
+#define TOUCH_ERR_MSG(fmt, args...)     do {} while (0)
 #endif
 
 #if defined(TOUCH_DEBUG_PRINT)
 #define TOUCH_DEBUG_MSG(fmt, args...) 	printk(KERN_ERR "[Touch D] [%s %d] " fmt, \
 						__func__, __LINE__, ##args)
 #else
-#define TOUCH_DEBUG_MSG(fmt, args...)	do {} while(0)
+#define TOUCH_DEBUG_MSG(fmt, args...)	do {} while (0)
 #endif
 
 #define TOUCH_TRACE_FUNC() \
-	if(unlikely(touch_debug_mask_ & DEBUG_TRACE)) TOUCH_DEBUG_MSG("\n")
+	if (unlikely(touch_debug_mask_ & DEBUG_TRACE)) \
+		TOUCH_DEBUG_MSG("\n")
 
 #define TOUCH_FW_MSG(fmt, args...) \
-	if (unlikely(touch_debug_mask_ & DEBUG_FW_UPGRADE)) TOUCH_DEBUG_MSG(fmt, ##args)
+	if (unlikely(touch_debug_mask_ & DEBUG_FW_UPGRADE)) \
+		TOUCH_DEBUG_MSG(fmt, ##args)
 
 #define TOUCH_POWER_MSG(fmt, args...) \
-	if (unlikely(touch_debug_mask_ & DEBUG_POWER)) TOUCH_DEBUG_MSG(fmt, ##args) 
+	if (unlikely(touch_debug_mask_ & DEBUG_POWER)) \
+		TOUCH_DEBUG_MSG(fmt, ##args)
 
 
 extern u32 touch_debug_mask_;
 
-void set_touch_handle_(struct i2c_client *client, void* h_touch);
-void* get_touch_handle_(struct i2c_client *client);
+void set_touch_handle_(struct i2c_client *client, void *h_touch);
+void *get_touch_handle_(struct i2c_client *client);
 #if 0
 int touch_i2c_read(struct i2c_client *client, u8 reg, u8 *buf, int len);
 int touch_i2c_write(struct i2c_client *client, u8 reg, u8 *buf, int len);
 int touch_i2c_write_byte(struct i2c_client *client, u8 reg, u8 data);
 #endif
-int touch_driver_register_(struct touch_device_driver* driver);
+int touch_driver_register_(struct touch_device_driver *driver);
 void touch_driver_unregister_(void);
 
 void power_lock(int value);

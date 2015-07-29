@@ -723,7 +723,7 @@ void __init msm8610_init_gpiomux(void)
 	}
 #endif  /* CONFIG_LGE_BROADCAST_ONESEG */
 
-#ifdef CONFIG_LGE_NFC_PN547
+#ifdef CONFIG_LGE_NFC_PN547_C2
 	msm_gpiomux_install(msm_nfc_configs, ARRAY_SIZE(msm_nfc_configs));
 #endif
 /*  LGE_CHANGE_E, [NFC][taesik.kim@lge.com], NFC Bring up */

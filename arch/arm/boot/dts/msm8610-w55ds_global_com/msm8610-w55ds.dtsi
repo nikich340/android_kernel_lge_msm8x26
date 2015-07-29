@@ -21,7 +21,7 @@
 
 &soc {
 	serial@f991f000 {
-		status = "ok";
+		status = "disable";
 	};
 
 	maxim_max1462x_rev0 { //LGE_UPDATE 20130626 beekay.lee@lge.com WX_MAXIM

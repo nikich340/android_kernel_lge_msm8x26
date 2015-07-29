@@ -44,25 +44,27 @@ config LCD_KCAL
         bool "Enable sysfs for LCD KCAL"
         default n
 
-config LGE_MIPI_TOVIS_VIDEO_540P_PANEL
-        bool "MIPI TOVIS VIDEO 540P PANEL && MIPI TOVIS VIDEO 540 PANEL WITH DSV"
-        default n
-
-config LGE_MIPI_NT35521_VIDEO_720P_PANEL
-	bool "MIPI NT35521 VIDEO 720P PANEL && MIPI NT35521 VIDEO 720P PANEL WITH DSV"
+config LGE_LCD_ESD
+	bool "Enable sysfs for LCD ESD Recovery"
 	default n
 
-config FB_MSM_MIPI_TIANMA_VIDEO_QHD_PT_PANEL
-	bool "MIPI TIANMA VIDEO QHD PT panel"
-	select FB_MSM_MIPI_TIANMA_VIDEO_QHD_PT
-	---help---
-	Support for TIANMA VIDEO QHD PT panel
+config FB_MSM_MIPI_JDI_R69338_VIDEO_HD_PANEL
+        bool "MIPI JDI Display HD PT Panel"
+	default n
 
-config FB_MSM_MIPI_LGIT_LH470WX1_VIDEO_HD_PT_PANEL
-	bool "MIPI LG Display HD PT Panel"
+config LGE_LCD_DYNAMIC_LOG
+	bool "LCD debugging - enable logs through adb"
+	default n
 	---help---
-	Support for LGIT LH470WX1  VIDEO QHD PT panel
-config FB_MSM_MIPI_TOVIS_LM570HN1A_VIDEO_HD_PT_PANEL
-	bool "MIPI TOVIS Display HD PT Panel"
+	If you say Y here, developers can enable/disable lcd logs through adb
+	by accessing /sys/module/mdss_mdp3/parameters/debug_level
+	ex. echo {debug_level} > /sys/module/mdss_mdp3/parameters/debug_level
+
+config LGE_LCD_DSV_CTRL
+	bool "Enable DSV Control when panel off"
+	default n
+
+config LGE_VSYNC_SKIP
+     bool "MDSS VSYNC Skip scheme"
 	---help---
-	Support for TOVIS LM570HN1A  VIDEO HD PT panel
+	This feature provides VSYNC skip scheme.

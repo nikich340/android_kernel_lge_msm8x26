@@ -90,7 +90,7 @@ static int mms_100s_isc_enter(struct mms_data *ts)
 
 	TOUCH_TRACE_FUNC();
 
-	if(mms_i2c_write_block(ts->client, tmp, 2) < 0)
+	if (mms_i2c_write_block(ts->client, tmp, 2) < 0)
 		return -EIO;
 
 	TOUCH_FW_MSG("isc entered...\n");
@@ -162,7 +162,7 @@ static int mms_100s_isc_erase_page(struct mms_data *ts, u8 page)
 			goto isc_erase_success;
 		}
 		retry++;
-	} while(retry*sleep_ms < max_ms);
+	} while (retry*sleep_ms < max_ms);
 
 	TOUCH_ERR_MSG("page[%d] erase failed\n", page);
 	return -1;
@@ -190,7 +190,7 @@ static int mms_100s_flash_section(struct mms_data *ts)
 			ptr_fw = (char *) fw_hdr + fw_hdr->binary_offset + fw_img->offset;
 
 			for (page = fw_img->start_page; page <= fw_img->end_page; page++) {
-				if(mms_100s_isc_erase_page(ts, page) < 0)
+				if (mms_100s_isc_erase_page(ts, page) < 0)
 					return -EIO;
 
 				for (j = 0; j < ISC_BLOCK_NUM; j++, ptr_fw += ISC_XFER_LEN) {

@@ -33,7 +33,7 @@
 	};
 
 	/* Rev 0 */
-	eeprom0: qcom,eeprom@a0 { //EEPROM READ
+         /*	eeprom0: qcom,eeprom_0@a0 { //EEPROM READ
 		cell-index = <0>;
 		reg = <0xa0 0x0>;
 		qcom,eeprom-name = "imx111_eeprom";
@@ -68,10 +68,10 @@
 		qcom,page3 = <0 0x0 1 0x0 1 20>;
 		qcom,poll3 = <0 0x0 1 0x0 1 20>;
 		qcom,mem3  = <0xC6 0x00 1 0 1 0>;
-	};
+	}; */
 
 	/* Rev A */
-	eeprom1: qcom,eeprom@a0 { //EEPROM READ
+	eeprom1: qcom,eeprom_1@a0 { //EEPROM READ
 		cell-index = <0>;
 		reg = <0xa0 0x0>;
 		qcom,eeprom-name = "imx111_eeprom";
@@ -107,7 +107,7 @@
 		qcom,poll3 = <0 0x0 1 0x0 1 20>;
 		qcom,mem3  = <0xC6 0x00 1 0 1 0>;
 	};
-	eeprom2: qcom,eeprom@a0 {
+	eeprom2: qcom,eeprom_2@a0 {
 		cell-index = <0>;
 		reg = <0xa0 0x0>;
 		qcom,eeprom-name = "imx219_eeprom";
@@ -132,7 +132,7 @@
 		qcom,mem0 = <0x900 0x0000 2 0 1 0>;
 	};
 	/* Rev 0 */
-	qcom,camera_rev_0@20{
+       /*	qcom,camera_rev_0@20{
 		compatible = "qcom,imx111";
 		reg = <0x20 0x0>;
 		qcom,slave-id = <0x20 0x0 0x111>;
@@ -204,7 +204,7 @@
 		qcom,cci-master = <0>;
 		status = "ok";
 		revision = "rev_0";
-	};
+	};  */
 
 	/* Rev A */
 		qcom,camera_rev_a@20 {

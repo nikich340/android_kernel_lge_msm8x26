@@ -31,6 +31,7 @@ unsigned char F54_HighResistance(void)
 	short resistance[3];
 	int i, Result=0;
 	unsigned char command;
+	int read_count = 0;
 
 #ifdef F54_Porting
 	int resistanceLimit[3][2] = { {-1000, 450}, {-1000, 450}, {-400, 20} };	//base value * 1000
@@ -57,6 +58,10 @@ unsigned char F54_HighResistance(void)
 	writeRMI(F54_Command_Base, &command, 1);
 
 	do {
+		if(++read_count > 10) {
+			TOUCH_INFO_MSG("%s[%d], command = %d\n", __func__, __LINE__, command);
+			return 0;
+		}
 		delayMS(1); //wait 1ms
 		readRMI(F54_Command_Base, &command, 1);
 	} while (command != 0x00);
@@ -64,7 +69,12 @@ unsigned char F54_HighResistance(void)
 	command = 0x02;
 	writeRMI(F54_Command_Base, &command, 1);
 
+	read_count = 0;
 	do {
+		if(++read_count > 10) {
+			TOUCH_INFO_MSG("%s[%d], command = %d\n", __func__, __LINE__, command);
+			return 0;
+		}
 		delayMS(1); //wait 1ms
 		readRMI(F54_Command_Base, &command, 1);
 	} while (command != 0x00);
@@ -78,7 +88,12 @@ unsigned char F54_HighResistance(void)
 	writeRMI(F54_Command_Base, &command, 1);
 
    // Wait until the command is completed
+   	read_count = 0;
 	do {
+		if(++read_count > 10) {
+			TOUCH_INFO_MSG("%s[%d], command = %d\n", __func__, __LINE__, command);
+			return 0;
+		}
 		delayMS(1); //wait 1ms
 		readRMI(F54_Command_Base, &command, 1);
 	} while (command != 0x00);
@@ -141,7 +156,12 @@ unsigned char F54_HighResistance(void)
 	command = 0x02;
 	writeRMI(F54_Command_Base, &command, 1);
 
+	read_count = 0;
 	do {
+		if(++read_count > 10) {
+			TOUCH_INFO_MSG("%s[%d], command = %d\n", __func__, __LINE__, command);
+			return 0;
+		}
 		delayMS(1); //wait 1ms
 		readRMI(F54_Command_Base, &command, 1);
 	} while (command != 0x00);

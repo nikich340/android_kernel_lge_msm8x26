@@ -117,3 +117,10 @@
 	qcom,memory-reservation-type = "EBI1";
 	qcom,memory-reservation-size = <0x300000>;
 };
+// LGE_UPDATE  hyeonsang85.park@lge.com(AudioBSP) 2014_3_20 no external bypass cap mode for w6 series -start
+&i2c_cdc  {
+	msm8x10_wcd_codec@0d{
+		qcom,cdc-micbias1-ext-cap = <0x0>;
+	};
+};
+// LGE_UPDATE  hyeonsang85.park@lge.com(AudioBSP) 2014_3_20 no external bypass cap mode for w6 series -end

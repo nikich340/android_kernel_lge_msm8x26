@@ -13,16 +13,16 @@
 &soc {
 	i2c@f9923000{
 		mms100s@48 {
-			melfas,product = "T2S35A";
+			melfas,product = "T4S35A";
 			melfas,use_vdd = <0>;
 			melfas,use_vdd_int = <0>;
 			melfas,use_vdd_i2c = <1>;
 			melfas,gpio-vdd-en = <62>;
-			melfas,key-map = <158 172>;
+			melfas,key-map = <158 172 139 249>;
 			melfas,fw-image-name = "melfas/w3_global_sca/w3_global_sca_rev_a_v103.mfsb";
 			melfas,panel-spec-name = "melfas/w3_global_sca/w3_global_sca_limit.txt";
 			status = "disable";
-			revision = "rev_a";
+			revision = "rev_a...";
 		};
 
 		imagis_ist30xx@50 {
@@ -36,49 +36,48 @@
 			imagis,panel-x = <320>;
 			imagis,panel-y = <480>;
 			imagis,i2c-pull-up = <1>;
-			status = "disable";
+			status = "ok";
 			revision = "rev_0";
 		};
+
 		lge_touch@48 {
 			revision = "rev_a...rev_d";
 			status = "ok";
-			lge,product = "T2S35A";
+			lge,product = "T4S35A";
 			lge,fw_image = "melfas/w3_global_sca/w3_global_sca_rev_a_v103.mfsb";
 			lge,panel_spec = "melfas/w3_global_sca/w3_global_sca_limit.txt";
 			vdd_type0 = <1>;
 			vdd_name0 = "high";
 			vdd_value0 = <62>;
 			vdd_type1 = <2>;
-			button_name = <158 172 139 249>;
 		};
-		
+
 		synaptics_red@20 {
 			status = "disable";
 			revision = "rev_e...";
-			synaptics,button-map = <158 172 139 249>;
-			synaptics,i2c-pull-up = <0>;
-			synaptics,power-down  = <1>;
 			synaptics,gpio_vdd_en  = <62>;
 		};
 
 		synaptics_s220x@20 {
 			status = "ok";
 			revision = "rev_e...";
-			synaptics,fw_version_info = <0x22 0x03 0x51>;
-			synaptics,fw_image = "synaptics/w3_global_sca/PLG312_V0.16_PR1581672_DS4.3.5.1.16_24035110.img";
-                        lge,knock_on_type = <1>;
+			synaptics,fw_version_info = <0x24 0x03 0x51>;
+			synaptics,fw_image = "synaptics/w3_global_sca/PLG312_V1.13_PR1599307_DS4.3.5.16_2403518D.img";
+			synaptics,panel_spec = "synaptics/w3_global_sca/w3_Tovis_limit.txt",/*dummy*/
+                                                "synaptics/w3_global_sca/w3_Tovis_limit.txt",/*01*/
+                                                "synaptics/w3_global_sca/w3_ELK_limit.txt";/*10*/
+			lge,knock_on_type = <1>;
 			synaptics,platform_data	{
-				number_of_button = <4>;
-				button_name = [9e ac 8b f9];
 			    /* firmware image depends on this value, temporarily used */
 			    /* 0: No image(default), 1: W3DS(TIM BR)(PLG312_T001), 2: W3S(VDF)(PLG311_T001), ... */
-				panel_type = <2>;
+				panel_type = <1>;
 				/*maker_id  disable(0), enable(1)*/
-				maker_id = <0>;
-				maker_id_gpio = <0>;
+				maker_id = <1>;
+				maker_id_gpio = <76>;
+                                maker_id2_gpio = <77>;
 				palm_detect_mode = <1>;
 				ghost_detection_enable = <1>;
-				ghost_detection_jitter_value = <8>;
+				ghost_detection_value = <200 50 8 6 11 5 10 500 100 6 5>;
 			};
 		};
 	};

@@ -57,7 +57,7 @@
 	{  0x39,	 0x53  },
 	{  0x3A,	 0xDC  },
 	{  0x3B,	 0xD0  },
-	{  0x3C,	 0x0B  },
+	{  0x3C,	 0xEB  }, // 20140117: 0x0B => 0xEB
 	{  0x3D,	 0x76  },
 	{  0x3E,	 0x4F  },
 	{  0x3F,	 0x26  },
@@ -372,6 +372,7 @@ INT rtvRF_SetFrequency(E_RTV_TV_MODE_TYPE eTvMode, UINT nChNum, U32 dwChFreqKHz)
 	WR2A = RTV_REG_GET(0x2A) & 0x3F;
 	RTV_REG_SET(0x2A, (WR2A | 0x80));
 	RTV_REG_SET(0x2A, (WR2A | 0xC0));
+	RTV_DELAY_MS(1);
 	RTV_REG_SET(0x2A, (WR2A | 0x80));
 	RTV_REG_SET(0x2A, (WR2A | 0x00));
 
@@ -385,13 +386,15 @@ INT rtvRF_SetFrequency(E_RTV_TV_MODE_TYPE eTvMode, UINT nChNum, U32 dwChFreqKHz)
 	WR2A = RTV_REG_GET(0x2A) & 0x3F;
 	RTV_REG_SET(0x2A, (WR2A | 0x80));
 	RTV_REG_SET(0x2A, (WR2A | 0xC0));
+	RTV_DELAY_MS(1);
 	RTV_REG_SET(0x2A, (WR2A | 0x80));
 	RTV_REG_SET(0x2A, (WR2A | 0x00));
 
 #endif
-	RTV_DELAY_MS(1);
 
 	do {
+		RTV_DELAY_MS(1);
+
 		RD15 = RTV_REG_GET(0x10);
 		if ((RD15 & 0x20) == 0x20)
 			break;
@@ -399,6 +402,7 @@ INT rtvRF_SetFrequency(E_RTV_TV_MODE_TYPE eTvMode, UINT nChNum, U32 dwChFreqKHz)
 #if (RTV_SRC_CLK_FREQ_KHz == 19200)
 			RTV_REG_SET(0x2A, (WR2A | 0x80));
 			RTV_REG_SET(0x2A, (WR2A | 0xC0));
+			RTV_DELAY_MS(1);
 			RTV_REG_SET(0x2A, (WR2A | 0x80));
 			RTV_REG_SET(0x2A, (WR2A | 0x00));
 
@@ -408,10 +412,10 @@ INT rtvRF_SetFrequency(E_RTV_TV_MODE_TYPE eTvMode, UINT nChNum, U32 dwChFreqKHz)
 #else
 			RTV_REG_SET(0x2A, (WR2A | 0x80));
 			RTV_REG_SET(0x2A, (WR2A | 0xC0));
+			RTV_DELAY_MS(1);
 			RTV_REG_SET(0x2A, (WR2A | 0x80));
 			RTV_REG_SET(0x2A, (WR2A | 0x00));
 #endif
-			RTV_DELAY_MS(1);
 		}
 	} while (--PLL_Verify_cnt);
 
@@ -424,7 +428,9 @@ INT rtvRF_SetFrequency(E_RTV_TV_MODE_TYPE eTvMode, UINT nChNum, U32 dwChFreqKHz)
 	RTV_REG_MASK_SET(0xFB, 0x01, 0x00);
 
 	if (PLL_Verify_cnt == 0) {
-		RTV_DBGMSG0("[rtvRF_SetFrequency] PLL unlocked!\n");
+		RTV_DBGMSG2("[rtvRF_SetFrequency] (%u/%u) PLL unlocked!\n",
+					nChNum, dwChFreqKHz);
+
 		nRet = RTV_PLL_UNLOCKED;
 		goto RF_SET_FREQ_EXIT;
 	}

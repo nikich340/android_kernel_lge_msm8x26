@@ -1,4 +1,4 @@
-/* lge/include/nfc_nxp_pn544pn65n.h
+/*
  *
  * Copyright (C) 2010 NXP Semiconductors
  *
@@ -39,14 +39,8 @@
 
 #include <mach/board_lge.h>
 
-#define PN544_MAGIC	0xE9
-
-
-#ifdef CONFIG_LGE_NFC_PN547
-#define PN544_DRV_NAME      "pn547"    //garam for pn547
-#else
-#define PN544_DRV_NAME      "pn544"    //garam for pn547
-#endif
+#define PN544_MAGIC 0xE9
+#define PN544_DRV_NAME      "pn544"
 
 /*
  * PN544 power control via ioctl
@@ -54,48 +48,50 @@
  * PN544_SET_PWR(1): power on
  * PN544_SET_PWR(2): reset and power on with firmware download enabled
  */
-#define PN544_SET_PWR	_IOW(PN544_MAGIC, 0x01, unsigned int)
+#define PN544_SET_PWR   _IOW(PN544_MAGIC, 0x01, unsigned int)
 
 #define PN544_HW_REVISION _IOR(PN544_MAGIC, 0x02, unsigned int)
 
 struct pn544_i2c_platform_data {
-	unsigned int sda_gpio;
-	unsigned int scl_gpio;
-	unsigned int irq_gpio;
-	unsigned int ven_gpio;
-	unsigned int firm_gpio;
+    unsigned int sda_gpio;
+    unsigned int scl_gpio;
+    unsigned int irq_gpio;
+    unsigned int ven_gpio;
+    unsigned int firm_gpio;
 };
 
 
-struct pn544_dev	{
-	wait_queue_head_t	read_wq;
-	struct mutex		read_mutex;
-	struct i2c_client	*client;
-	struct miscdevice	pn544_device;
-	unsigned int 		ven_gpio;
-	unsigned int 		firm_gpio;
-	unsigned int		irq_gpio;
-	bool			irq_enabled;
-	spinlock_t		irq_enabled_lock;
+struct pn544_dev    {
+    wait_queue_head_t   read_wq;
+    struct mutex        read_mutex;
+    struct i2c_client   *client;
+    struct miscdevice   pn544_device;
+    unsigned int        ven_gpio;
+    unsigned int        firm_gpio;
+    unsigned int        irq_gpio;
+    bool            irq_enabled;
+    spinlock_t      irq_enabled_lock;
 };
 
 struct pn544_gpio {
-	unsigned int 		sda_gpio;	// byunggu
-	unsigned int		scl_gpio;	// byunggu
-	unsigned int 		ven_gpio;
-	unsigned int 		firm_gpio;
-	unsigned int		irq_gpio;	
+    unsigned int        sda_gpio;   // byunggu
+    unsigned int        scl_gpio;   // byunggu
+    unsigned int        ven_gpio;
+    unsigned int        firm_gpio;
+    unsigned int        irq_gpio;
 };
 
 #define LGE_NFC_READ_IRQ_MODIFY//DY_TEST
 
 /* seokmin added for debugging */
-#define PN544_INTERRUPT_CMD	2
+#define PN544_INTERRUPT_CMD 2
 #define PN544_READ_POLLING_CMD 3
 
-
+#if defined(CONFIG_LGE_NFC_DEBUG_MESSAGE)
 #define dprintk(fmt, args...) printk(fmt, ##args)
-
+#else
+#define dprintk(fmt, args...) do{ } while(0)
+#endif
 
 #endif /* _PN544_LGE_H_ */
 

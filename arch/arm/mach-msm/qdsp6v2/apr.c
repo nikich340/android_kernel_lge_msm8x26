@@ -41,6 +41,7 @@ static struct apr_client client[APR_DEST_MAX][APR_CLIENT_MAX];
 
 static wait_queue_head_t dsp_wait;
 static wait_queue_head_t modem_wait;
+int is_modem_up = 0;
 /* Subsystem restart: QDSP6 data, functions */
 static struct workqueue_struct *apr_reset_workqueue;
 static void apr_reset_deregister(struct work_struct *work);
@@ -436,21 +437,9 @@ void apr_cb_func(void *buf, int len, void *priv)
 	if (data.payload_size > 0)
 		data.payload = (char *)hdr + hdr_size;
 
-	temp_port = ((data.src_port >> 8) * 8) + (data.src_port & 0xFF);
+	temp_port = ((data.dest_port >> 8) * 8) + (data.dest_port & 0xFF);
 
-	if (svc == APR_SVC_ASM) {
-		if ((!c_svc->port_cnt && c_svc->port_fn[temp_port]) ||
-		    (c_svc->port_cnt && !c_svc->port_fn[temp_port]) ||
-		    (!c_svc->port_cnt && !c_svc->port_fn[temp_port])) {
-
-			pr_err("%s() Notice. src_port=%d dest_port=%d"
-			" temp_port=%d svc->port_cnt=%u svc->port_fn[temp_port]=%p"
-			" svc->fn=%p hdr->opcode=0x%x\n", __func__,
-			data.src_port, data.dest_port, temp_port,
-			c_svc->port_cnt, c_svc->port_fn[temp_port],
-			c_svc->fn, hdr->opcode);
-		}
-	}
+	pr_debug("port = %d t_port = %d\n", data.src_port, temp_port); 
 
 	if (c_svc->port_cnt && c_svc->port_fn[temp_port])
 		c_svc->port_fn[temp_port](&data,  c_svc->port_priv[temp_port]);
@@ -521,13 +510,6 @@ int apr_deregister(void *handle)
 	dest_id = svc->dest_id;
 	client_id = svc->client_id;
 	clnt = &client[dest_id][client_id];
-
-	if (svc->id == APR_SVC_ASM)
-		pr_err("%s before :svc->port_cnt=%u svc->svc_cnt=%u"
-			" client->svc_cnt=%u\n",
-			__func__, svc->port_cnt,
-			svc->svc_cnt,clnt->svc_cnt);
-
 	if (svc->port_cnt > 0 || svc->svc_cnt > 0) {
 		if (svc->port_cnt)
 			svc->port_cnt--;
@@ -544,13 +526,6 @@ int apr_deregister(void *handle)
 			pr_debug("%s: service is reset %p\n", __func__, svc);
 		}
 	}
-
-	if (svc->id == APR_SVC_ASM)
-		pr_err("%s: After: svc->port_cnt=%u svc->svc_cnt=%u"
-			" client->svc_cnt=%u\n",
-			__func__, svc->port_cnt,
-			svc->svc_cnt,clnt->svc_cnt);
-
 	if (!svc->port_cnt && !svc->svc_cnt) {
 		svc->priv = NULL;
 		svc->id = 0;
@@ -672,6 +647,7 @@ static int modem_notifier_cb(struct notifier_block *this, unsigned long code,
 		if (apr_cmpxchg_modem_state(APR_SUBSYS_DOWN, APR_SUBSYS_UP) ==
 						APR_SUBSYS_DOWN)
 			wake_up(&modem_wait);
+                is_modem_up = 1;
 		pr_debug("M-Notify: Bootup Completed\n");
 		break;
 	default:

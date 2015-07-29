@@ -50,12 +50,12 @@ unsigned char ButtonRXUsed[CFG_F54_RXCOUNT];
 
 void SYNA_PDTScan(void)
 {
-	unsigned char j, tmp = 255;
+	unsigned char j, tmp = 255, check_bit = 0;
 	unsigned char FUNC_EXISTS = 0;
 	unsigned char in[10];	
 #ifdef F54_Porting
 	unsigned short i;
- 	char buf[512] = {0};
+ 	char buf[768] = {0};
  	int ret = 0;
 #else
 	unsigned short i, tmp16, l, m;
@@ -82,6 +82,13 @@ void SYNA_PDTScan(void)
 
 		while(1) 
 		{
+
+			if (check_bit == 0x1f || j > 10) {
+				write_log(buf);
+				FUNC_EXISTS = 0;
+				break;
+			}
+
 			j++;
 			readRMI((i << 8) | (PDT_ADDR - PDT_SIZE*j), in, 6);
 			readRMI((i << 8) | 0xFF, &tmp, 1);
@@ -102,44 +109,63 @@ void SYNA_PDTScan(void)
 				}
 				break;
 			} 
-			else if(in[5] == 0x11) 
+			else if(in[5] == 0x11 && !(check_bit & (1 << 0))) 
 			{		// Function11
+				check_bit |= (1 << 0);
 				F11_Query_Base = (i << 8) | in[0];
 				F11_Cmd_Base = (i << 8) | in[1];
 				F11_Ctrl_Base = (i << 8) | in[2];
 				F11_Data_Base = (i << 8) | in[3];
 #ifdef F54_Porting
 				ret += sprintf(buf+ret, "-- RMI Function $%02X, Address = 0x%02x --\n", in[5], (PDT_ADDR - PDT_SIZE*j));
+                                if(ret>512){
+					printk(KERN_INFO"\n-- RMI Function $%02X, buffer size over.\n", in[5]);
+					write_log(buf);
+					return;
+				}
 #else
 				printk("\n-- RMI Function $%02X, Address = 0x%02x --\n", in[5], (PDT_ADDR - PDT_SIZE*j));
 #endif
 			} 
-			else if(in[5] == 0x34) 
+			else if(in[5] == 0x34 && !(check_bit & (1 << 1))) 
 			{		// Function34
+				check_bit |= (1 << 1);
 				F34_Query_Base = (i << 8) | in[0];
 				F34_Cmd_Base = (i << 8) | in[1];
 				F34_Ctrl_Base = (i << 8) | in[2];
 				F34_Data_Base = (i << 8) | in[3];
 #ifdef F54_Porting
 				ret += sprintf(buf+ret, "\n-- RMI Function $%02X, Address = 0x%02x --\n", in[5], (PDT_ADDR - PDT_SIZE*j));
+                                if(ret>512){
+					printk(KERN_INFO"\n-- RMI Function $%02X, buffer size over.\n", in[5]);
+					write_log(buf);
+					return;
+				}
 #else
 				printk("\n-- RMI Function $%02X, Address = 0x%02x --\n", in[5], (PDT_ADDR - PDT_SIZE*j));
 #endif
 			} 
-			else if(in[5] == 0x01) 
+			else if(in[5] == 0x01 && !(check_bit & (1 << 2)))  
 			{		 // Function01
+				check_bit |= (1 << 2);
 				F01_Query_Base = (i << 8) | in[0];
 				F01_Cmd_Base = (i << 8) | in[1];
 				F01_Ctrl_Base = (i << 8) | in[2];
 				F01_Data_Base = (i << 8) | in[3];
 #ifdef F54_Porting
 				ret += sprintf(buf+ret, "-- RMI Function $%02X, Address = 0x%02x --\n", in[5], (PDT_ADDR - PDT_SIZE*j));
+                                if(ret>512){
+					printk(KERN_INFO"\n-- RMI Function $%02X, buffer size over.\n", in[5]);
+					write_log(buf);
+					return;
+				}
 #else
 				printk("\n-- RMI Function $%02X, Address = 0x%02x --\n", in[5], (PDT_ADDR - PDT_SIZE*j));
 #endif
 			}				
-			else if(in[5] == 0x54) 
+			else if(in[5] == 0x54 && !(check_bit & (1 << 3)))  
 			{
+				check_bit |= (1 << 3);
 				F54_Query_Base = (i << 8) | in[0];
 				F54_Command_Base = (i << 8) | in[1];
 				F54_Control_Base = (i << 8) | in[2];
@@ -155,12 +181,18 @@ void SYNA_PDTScan(void)
 
 #ifdef F54_Porting
 				ret += sprintf(buf+ret, "-- RMI Function $%02X, Address = 0x%02x --\n", in[5], (PDT_ADDR - PDT_SIZE*j));
+                                if(ret>512){
+					printk(KERN_INFO"\n-- RMI Function $%02X, buffer size over.\n", in[5]);
+					write_log(buf);
+					return;
+				}
 #else
 				printk("\n-- RMI Function $%02X, Address = 0x%02x --\n", in[5], (PDT_ADDR - PDT_SIZE*j));
 #endif
 			} 
-			else if(in[5] == 0x1A) 
+			else if(in[5] == 0x1A && !(check_bit & (1 << 4)))  
 			{
+				check_bit |= (1 << 4);
 				F1A_Query_Base = (i << 8) | in[0];
 				F1A_Command_Base = (i << 8) | in[1];
 				F1A_Control_Base = (i << 8) | in[2];
@@ -174,6 +206,11 @@ void SYNA_PDTScan(void)
 
 #ifdef F54_Porting
 				ret += sprintf(buf+ret, "-- RMI Function $%02X, Address = 0x%02x --\n", in[5], (PDT_ADDR - PDT_SIZE*j));
+                                if(ret>512){
+					printk(KERN_INFO"\n-- RMI Function $%02X, buffer size over.\n", in[5]);
+					write_log(buf);
+					return;
+				}
 #else
 				printk("\n-- RMI Function $%02X, Address = 0x%02x --\n", in[5], (PDT_ADDR - PDT_SIZE*j));
 #endif
@@ -181,7 +218,11 @@ void SYNA_PDTScan(void)
 			else 
 			{
 #ifdef F54_Porting
-				ret += sprintf(buf+ret, "-- RMI Function $%02X not supported --\n", in[5]);
+                                if(ret>512){
+					printk(KERN_INFO"\n-- RMI Function $%02X, buffer size over.\n", in[5]);
+					write_log(buf);
+					return;
+				}
 #else
 				printk("\n-- RMI Function $%02X not supported --\n", in[5]);
 #endif

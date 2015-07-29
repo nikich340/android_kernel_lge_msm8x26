@@ -1044,9 +1044,11 @@ void __init msm8610_init_gpiomux(void)
 				msm_gpiomux_install(&gpio_func_reserved_pin_config, 1);
 				}
             msm_gpiomux_install(msm_sensor_configs_revB, ARRAY_SIZE(msm_sensor_configs_revB)); // LGE_CHANGE, Code modifying by revision, youngwook.song@lge.com 2013-09-21
+			msm_gpiomux_install(main_cam_id_gpio, ARRAY_SIZE(main_cam_id_gpio));	/* MAIN_CAM_ID */
 			break;
 		case HW_REV_E :
             msm_gpiomux_install(msm_sensor_configs_revB, ARRAY_SIZE(msm_sensor_configs_revB)); // LGE_CHANGE, Code modifying by revision, youngwook.song@lge.com 2013-09-21
+			msm_gpiomux_install(main_cam_id_gpio, ARRAY_SIZE(main_cam_id_gpio));	/* MAIN_CAM_ID */
 			break;
 		case HW_REV_1_0 :
 			for ( gpio_index = 0 ; gpio_reserved_pin_rev_1_0[gpio_index] < MSM8x10_GPIO_END ; gpio_index++ ){
@@ -1054,6 +1056,7 @@ void __init msm8610_init_gpiomux(void)
 				msm_gpiomux_install(&gpio_func_reserved_pin_config, 1);
 				}
             msm_gpiomux_install(msm_sensor_configs_revB, ARRAY_SIZE(msm_sensor_configs_revB)); // LGE_CHANGE, Code modifying by revision, youngwook.song@lge.com 2013-09-21
+			msm_gpiomux_install(main_cam_id_gpio, ARRAY_SIZE(main_cam_id_gpio));	/* MAIN_CAM_ID */
 			break;
 		case HW_REV_1_1 :
 		default :

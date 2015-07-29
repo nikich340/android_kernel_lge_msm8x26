@@ -17,10 +17,14 @@
 #include <linux/module.h>
 #include <linux/slab.h>
 
+#if defined(CONFIG_LGE_MMC_DYNAMIC_LOG)
+#include <linux/mmc/debug_log.h>
+#endif
+
 struct mmc_cd_gpio {
 	unsigned int gpio;
-	char label[0];
 	bool status;
+	char label[0];
 };
 
 int mmc_cd_get_status(struct mmc_host *host)
@@ -35,8 +39,10 @@ int mmc_cd_get_status(struct mmc_host *host)
 		!!(host->caps2 & MMC_CAP2_CD_ACTIVE_HIGH);
 out:
 	#ifdef CONFIG_MACH_LGE
+	#if !(defined(CONFIG_MACH_MSM8926_JAGN_KR) || defined(CONFIG_MACH_MSM8926_B2LN_KR) || defined (CONFIG_MACH_MSM8926_VFP_KR)  || defined (CONFIG_MACH_MSM8926_AKA_KR)) || defined(CONFIG_MACH_MSM8926_AKA_CN) 
 	pr_info("%s: gpio status, GPIO_READ_%s\n",
 				mmc_hostname(host), ret ? "HIGH" : "LOW");
+	#endif
 	#endif 
 	
 	return ret;

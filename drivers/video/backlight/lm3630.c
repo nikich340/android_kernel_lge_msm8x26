@@ -92,7 +92,7 @@ static int lm3630_write_reg(struct i2c_client *client, unsigned char reg, unsign
 static int cur_main_lcd_level = DEFAULT_BRIGHTNESS;
 static int saved_main_lcd_level = DEFAULT_BRIGHTNESS;
 
-#if defined(CONFIG_MACH_LGE) && !defined(CONFIG_MACH_MSM8974_VU3_KR) && !defined(CONFIG_MACH_MSM8974_Z_KR) && !defined(CONFIG_MACH_MSM8974_Z_US) && !defined(CONFIG_OLED_SUPPORT)
+#if defined(CONFIG_MACH_LGE) && !defined(CONFIG_MACH_MSM8974_VU3_KR) && !defined(CONFIG_MACH_MSM8974_Z_KR) && !defined(CONFIG_MACH_MSM8974_Z_US) && !defined(CONFIG_OLED_SUPPORT) && !defined(CONFIG_MACH_MSM8926_T8LTE_ATT_US)
 int backlight_status = BL_OFF;
 #else
 static int backlight_status = BL_OFF;
@@ -236,8 +236,24 @@ void lm3630_backlight_on(int level)
 		pr_info("%s with level %d\n", __func__, level);
 		lm3630_hw_reset();
 
+#if defined(CONFIG_MACH_MSM8226_E7WIFI) || defined(CONFIG_MACH_MSM8226_E8WIFI) || defined(CONFIG_MACH_MSM8926_E8LTE) || defined ( CONFIG_MACH_MSM8926_E7LTE_ATT_US) || defined(CONFIG_MACH_MSM8926_E7LTE_VZW_US) || defined (CONFIG_MACH_MSM8926_E7LTE_USC_US) || defined(CONFIG_MACH_MSM8926_T8LTE_ATT_US)
+		lm3630_write_reg(main_lm3630_dev->client, 0x02, 0x50); //OVP 32V, OCP 1.0A Boost Freq. 500Khz
+
+		if( lm3630_pwm_enable ) {
+			/* Enble Feedback , disable	PWM for BANK A,B */
+			lm3630_write_reg(main_lm3630_dev->client, 0x01, 0x09);
+		}
+		else {
+			/* Enble Feedback , disable	PWM for BANK A,B */
+			lm3630_write_reg(main_lm3630_dev->client, 0x01, 0x08);
+		}
+
+		lm3630_write_reg(main_lm3630_dev->client, 0x05, 0x13); //Full Scale Current 20.2mA, Brightness Code Setting Max on Bank A
+		lm3630_write_reg(main_lm3630_dev->client, 0x00, 0x15); //Enable Bank A | LED A | LED1,2 on Bank A
+#else
+
 		/*  OVP(24V),OCP(1.0A) , Boost Frequency(500khz) */
-#if !defined(CONFIG_MACH_MSM8926_B1L_VZW) && !defined(CONFIG_MACH_MSM8926_B1L_ATT)
+#if !defined(CONFIG_MACH_MSM8926_X10_VZW) && !defined(CONFIG_MACH_MSM8926_B2L_ATT) && !defined(CONFIG_MACH_MSM8926_B2LN_KR) || defined(CONFIG_MACH_MSM8926_JAGNM_ATT) || defined(CONFIG_MACH_MSM8926_JAGN_KR) || defined(CONFIG_MACH_MSM8926_JAGNM_GLOBAL_COM) || defined(CONFIG_MACH_MSM8926_JAGNM_BELL) || defined(CONFIG_MACH_MSM8926_JAGC_SPR)
 		lm3630_write_reg(main_lm3630_dev->client, 0x02, 0x30);
 #else
 		lm3630_write_reg(main_lm3630_dev->client, 0x02, 0x50);  /*B1L Rev0,A... OVP = 32V */
@@ -258,7 +274,7 @@ void lm3630_backlight_on(int level)
 		lm3630_write_reg(main_lm3630_dev->client, 0x05, 0x16);
 
 		/* Enable LED A to Exponential, LED2 is connected to BANK_A */
-#if !defined(CONFIG_MACH_MSM8926_B1L_VZW) && !defined(CONFIG_MACH_MSM8926_B1L_ATT)
+#if !defined(CONFIG_MACH_MSM8926_X10_VZW) && !defined(CONFIG_MACH_MSM8926_B2L_ATT) && !defined(CONFIG_MACH_MSM8926_B2LN_KR) || defined(CONFIG_MACH_MSM8926_JAGNM_ATT) || defined(CONFIG_MACH_MSM8926_JAGN_KR) || defined(CONFIG_MACH_MSM8926_JAGNM_GLOBAL_COM) || defined(CONFIG_MACH_MSM8926_JAGNM_BELL) || defined(CONFIG_MACH_MSM8926_JAGC_SPR)
 		lm3630_write_reg(main_lm3630_dev->client, 0x00, 0x15);
 #else
 		if(HW_REV_0 == hw_rev)
@@ -272,6 +288,8 @@ void lm3630_backlight_on(int level)
 			lm3630_write_reg(main_lm3630_dev->client, 0x00, 0x15 /*0x14*/); /* 0x15 : enable BANK A | enable LED A | LED2 on BANK A */
 		}
 #endif
+#endif//defined( CONFIG_MACH_MSM8226_E7WIFI ) || defined ( CONFIG_MACH_MSM8926_E7LTE)
+
 	}
 	mdelay(1);
 
@@ -574,7 +592,7 @@ static int lm3630_probe(struct i2c_client *i2c_dev,
 	int err;
 
 	pr_debug("[LCD][DEBUG] %s: i2c probe start\n", __func__);
-	
+
 #ifdef CONFIG_OF
 	if (&i2c_dev->dev.of_node) {
 		pdata = devm_kzalloc(&i2c_dev->dev,

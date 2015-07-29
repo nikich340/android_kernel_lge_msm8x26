@@ -114,7 +114,8 @@ static int mms_100a_firmware_image_parse(struct mms_data *ts, const u8 *image_bi
 	return 0;
 }
 
-static int mms_100a_fw_version_check(struct mms_data *ts){
+static int mms_100a_fw_version_check(struct mms_data *ts)
+{
 
 	bool fw_up_to_date = true;
 	int offset = 0;
@@ -125,28 +126,28 @@ static int mms_100a_fw_version_check(struct mms_data *ts){
 	offset = sizeof(struct mms_bin_hdr);
 	for (i = 0; i < ts->fw_hdr->section_num; i++) {
 
-		if(ts->fw_img[i]->version != ts->ts_section[i].version){
+		if (ts->fw_img[i]->version != ts->ts_section[i].version) {
 			fw_up_to_date = false;
-			ts->need_update[i]=true;
+			ts->need_update[i] = true;
 
-			if(ts->fw_img[0]->version != ts->ts_section[0].version){
-				ts->need_update[0]=true;
-				ts->need_update[1]=true;
-				ts->need_update[2]=true;
+			if (ts->fw_img[0]->version != ts->ts_section[0].version) {
+				ts->need_update[0] = true;
+				ts->need_update[1] = true;
+				ts->need_update[2] = true;
 				return FW_UPDATE_BY_ISP;
 			}
 
-			else if(ts->fw_img[1]->version != ts->ts_section[1].version){
-				ts->need_update[0]=false;
-				ts->need_update[1]=true;
-				ts->need_update[2]=true;
+			else if (ts->fw_img[1]->version != ts->ts_section[1].version) {
+				ts->need_update[0] = false;
+				ts->need_update[1] = true;
+				ts->need_update[2] = true;
 				return FW_UPDATE_BY_ISP;
 			}
 
-			else if(ts->fw_img[2]->version != ts->ts_section[2].version){
-				ts->need_update[0]=false;
-				ts->need_update[1]=false;
-				ts->need_update[2]=true;
+			else if (ts->fw_img[2]->version != ts->ts_section[2].version) {
+				ts->need_update[0] = false;
+				ts->need_update[1] = false;
+				ts->need_update[2] = true;
 				return FW_UPDATE_BY_ISC;
 			}
 
@@ -173,7 +174,7 @@ static int mms_100a_isc_enter(struct mms_data *ts)
 
 	TOUCH_TRACE_FUNC();
 
-	if(mms_i2c_write_block(ts->client, tmp, 2) < 0)
+	if (mms_i2c_write_block(ts->client, tmp, 2) < 0)
 		return -EIO;
 
 	TOUCH_INFO_MSG("isc entered...\n");
@@ -246,7 +247,7 @@ static int mms_100a_isc_clear_validate_makers(struct mms_data *ts)
 					TOUCH_ERR_MSG("clear page[%d] failed\n", ts->ts_section[i].end_addr);
 					return -EIO;
 				}
-				
+
 				if (touch_debug_mask_ & DEBUG_FW_UPGRADE)
 					TOUCH_INFO_MSG("ts:page[%d] cleared...\n", ts->ts_section[i].end_addr);
 			}
@@ -597,7 +598,7 @@ static int fw_download(struct mms_info *info, const u8 *data, size_t len)
 	mms_set_gpio_mode(info->pdata, GPIOMODE_ISP_START);
 
 #if 0
-	//gpio_direction_output(info->pdata->gpio_vdd_en, 0);
+	/*gpio_direction_output(info->pdata->gpio_vdd_en, 0); */
 	melfas_poweron(0);
 	gpio_direction_output(GPIO_TOUCH_SDA, 0);
 	gpio_direction_output(GPIO_TOUCH_SCL, 0);
@@ -610,7 +611,7 @@ static int fw_download(struct mms_info *info, const u8 *data, size_t len)
 	TOUCH_INFO_MSG("calibration data backup\n");
 	for (i = 0; i < ISP_CAL_DATA_SIZE; i++) {
 		buf[i] = flash_readl(info, ISP_CAL_INFO_ADDR);
-		//dev_info(&client->dev, "cal data : 0x%02x\n", buf[i]);
+		/*dev_info(&client->dev, "cal data : 0x%02x\n", buf[i]); */
 	}
 #endif
 
@@ -659,15 +660,15 @@ int mms_100a_isp(struct mms_data *ts, const struct firmware *fw)
 {
 	int ret = 0;
 	struct mms_info *info = kzalloc(sizeof(struct mms_info), GFP_KERNEL);
-	const u8 *fw_data = fw->data + sizeof(struct mms_bin_hdr) + sizeof(struct mms_fw_img)*3;
-	size_t fw_size = fw->size - sizeof(struct mms_bin_hdr) - sizeof(struct mms_fw_img)*3; 
+	const u8 *fw_data = fw->data + sizeof(struct mms_bin_hdr) + sizeof(struct mms_fw_img) * 3;
+	size_t fw_size = fw->size - sizeof(struct mms_bin_hdr) - sizeof(struct mms_fw_img) * 3;
 
 	info->client = ts->client;
 	info->pdata = ts->pdata;
 
 	TOUCH_INFO_MSG("[%s]\n", __func__);
 	TOUCH_INFO_MSG("ISP Update firmware (fw_size = %d) \n", fw_size);
-	if(fw_size == 31744)
+	if (fw_size == 31744)
 		ret = fw_download(info, fw_data, fw_size);
 	else
 		TOUCH_INFO_MSG("ISP Update firmware size error  \n");
@@ -688,11 +689,11 @@ int mms_100a_fw_upgrade(struct mms_data *ts, struct touch_fw_info *info)
 
 	mms_100a_firmware_image_parse(ts, info->fw->data);
 
-	do{
+	do {
 		isc_up_result = mms_100a_isc_enter(ts);
-	}while(isc_up_result < 0 && --retires);
+	} while (isc_up_result < 0 && --retires);
 
-	if (!retires){
+	if (!retires) {
 		TOUCH_INFO_MSG("failed to isc enter after retires, F/W upgrade by ISP\n");
 		return mms_100a_isp(ts, info->fw);
 	}
@@ -705,7 +706,7 @@ int mms_100a_fw_upgrade(struct mms_data *ts, struct touch_fw_info *info)
 		return mms_100a_isp(ts, info->fw);
 	}
 
-	if(strcmp(ts->module.product_code, ts->pdata->fw_product) != 0 || strlen(ts->module.product_code) == 0){
+	if (strcmp(ts->module.product_code, ts->pdata->fw_product) != 0 || strlen(ts->module.product_code) == 0) {
 		TOUCH_INFO_MSG("Model name is not match [%s]\n", ts->module.product_code);
 		ts->need_update[0] = true;
 		ts->need_update[1] = true;
@@ -718,21 +719,20 @@ int mms_100a_fw_upgrade(struct mms_data *ts, struct touch_fw_info *info)
 
 	if (upgrade_fuc == FW_UP_TO_DATE)
 		return 0;
-	else if(upgrade_fuc == FW_UPDATE_BY_ISC){
+	else if (upgrade_fuc == FW_UPDATE_BY_ISC) {
 		isc_up_result = 0;
 		retires = 3;
-		do{
+		do {
 			isc_up_result = mms_100a_isc(ts);
 			mms_power_ctrl(ts->client, POWER_OFF);
 			mms_power_ctrl(ts->client, POWER_ON);
-		}while(isc_up_result < 0 && --retires);
+		} while (isc_up_result < 0 && --retires);
 
-		if (!retires){
+		if (!retires) {
 			TOUCH_INFO_MSG("failed to flash firmware after retires, GO TO ISP\n");
 			return mms_100a_isp(ts, info->fw);
 		}
-	}
-	else if(upgrade_fuc == FW_UPDATE_BY_ISP)
+	} else if (upgrade_fuc == FW_UPDATE_BY_ISP)
 		return mms_100a_isp(ts, info->fw);
 	else
 		goto err;

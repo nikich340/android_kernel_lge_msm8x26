@@ -21,7 +21,7 @@
 
 &soc {
 	serial@f991f000 {
-		status = "enable";
+		status = "disable";
 	};
 
 	i2c@f9924000 { /* BLSP-1 QUP-2 */

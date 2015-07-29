@@ -22,7 +22,7 @@
 
 &soc {
 	serial@f991f000 {
-		status = "disabled";
+		status = "ok";
 	};
 
 	syncoam_sm100_rev_0 {

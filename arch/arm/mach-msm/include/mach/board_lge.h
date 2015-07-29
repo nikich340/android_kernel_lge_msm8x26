@@ -1,15 +1,15 @@
 #ifndef __ASM_ARCH_MSM_BOARD_LGE_H
 #define __ASM_ARCH_MSM_BOARD_LGE_H
 
-#if defined(CONFIG_MACH_MSM8926_X3N_OPEN_EU) || defined(CONFIG_MACH_MSM8926_X3N_GLOBAL_SCA) || defined(CONFIG_MACH_MSM8926_X3N_GLOBAL_COM) || \
-	defined(CONFIG_MACH_MSM8926_X3_TRF_US) || defined(CONFIG_MACH_MSM8926_X3_KR)
+#if defined(CONFIG_MACH_MSM8926_X3N_OPEN_EU) || defined(CONFIG_MACH_MSM8926_X3N_GLOBAL_SCA) || defined(CONFIG_MACH_MSM8926_X3N_GLOBAL_COM) || defined(CONFIG_MACH_MSM8926_F70N_GLOBAL_COM) || defined(CONFIG_MACH_MSM8926_F70N_GLOBAL_AME) || \
+	defined(CONFIG_MACH_MSM8926_F70_GLOBAL_COM) || defined(CONFIG_MACH_MSM8926_X3_TRF_US) || defined(CONFIG_MACH_MSM8926_X3N_KR) || defined(CONFIG_MACH_MSM8926_F70N_KR)
 typedef enum {
 	HW_REV_0 = 0,
 	HW_REV_A,
 	HW_REV_A2,
 	HW_REV_B,
+	HW_REV_B2,
 	HW_REV_C,
-	HW_REV_D,
 	HW_REV_1_0,
 	HW_REV_1_1,
 	HW_REV_MAX
@@ -64,9 +64,15 @@ int lge_pm_get_cable_info(struct chg_cable_info *, int32_t);
 acc_cable_type lge_pm_get_cable_type(void);
 unsigned lge_pm_get_ta_current(void);
 unsigned lge_pm_get_usb_current(void);
+
+#if defined(CONFIG_PRE_SELF_DIAGNOSIS)
+int lge_pre_self_diagnosis(char *drv_bus_code, int func_code, char *dev_code, char *drv_code, int errno);
 #endif
 
-#ifdef CONFIG_LGE_DIAG_ENABLE_SPR
+enum lge_boot_cable_type lge_get_boot_cable_type(void);
+#endif
+
+#ifdef CONFIG_LGE_DIAG_ENABLE_SYSFS
 void __init lge_add_diag_devices(void);
 #endif
 
@@ -92,6 +98,14 @@ enum {
 	BATT_ID_ISL6296_N,
 	BATT_ID_ISL6296_L,
 	BATT_ID_ISL6296_C,
+#ifdef CONFIG_LGE_PM_BATTERY_ID_RANIX_SILICON_WORKS
+	BATT_ID_RA4301_VC0,
+	BATT_ID_RA4301_VC1,
+	BATT_ID_RA4301_VC2,
+	BATT_ID_SW3800_VC0,
+	BATT_ID_SW3800_VC1,
+	BATT_ID_SW3800_VC2,
+#endif
 };
 bool is_lge_battery_valid(void);
 int read_lge_battery_id(void);
@@ -113,6 +127,22 @@ enum lge_boot_mode_type {
 };
 
 enum lge_boot_mode_type lge_get_boot_mode(void);
+int lge_get_factory_boot(void);
+
+/* from cable_type */
+enum lge_boot_cable_type {
+	LGE_BOOT_LT_CABLE_56K = 6,
+	LGE_BOOT_LT_CABLE_130K,
+	LGE_BOOT_USB_CABLE_400MA,
+	LGE_BOOT_USB_CABLE_DTC_500MA,
+	LGE_BOOT_ABNORMAL_USB_CABLE_400MA,
+	LGE_BOOT_LT_CABLE_910K,
+	LGE_BOOT_NO_INIT_CABLE,
+};
+
+#if defined(CONFIG_PRE_SELF_DIAGNOSIS)
+int lge_pre_self_diagnosis(char *drv_bus_code, int func_code, char *dev_code, char *drv_code, int errno);
+#endif
 
 #if defined(CONFIG_LCD_KCAL)
 struct kcal_data {
@@ -125,6 +155,13 @@ struct kcal_platform_data {
 	int (*set_values) (int r, int g, int b);
 	int (*get_values) (int *r, int *g, int *b);
 	int (*refresh_display) (void);
+};
+#endif
+
+#if defined(CONFIG_PRE_SELF_DIAGNOSIS)
+struct pre_selfd_platform_data {
+	int (*set_values) (int r, int g, int b);
+	int (*get_values) (int *r, int *g, int *b);
 };
 #endif
 
@@ -156,6 +193,9 @@ void get_dt_cn_prop_u32(const char *name, uint32_t *u32);
 extern unsigned int lge_get_uart_mode(void);
 extern void lge_set_uart_mode(unsigned int um);
 
+#if defined(CONFIG_LGE_CRASH_FOOTPRINT)
+extern unsigned long int lge_get_crash_footprint(void);
+#endif//
 #ifdef CONFIG_ANDROID_PERSISTENT_RAM
 #define LGE_PERSISTENT_RAM_SIZE (SZ_256K)
 #endif
@@ -189,6 +229,18 @@ void __init lge_add_mmc_strength_devices(void);
 
 #endif
 
+#ifdef CONFIG_LGE_QSDL_SUPPORT
+void __init lge_add_qsdl_device(void);
 #endif
 
+#if defined(CONFIG_LGE_KSWITCH)
+#define LGE_KSWITCH_UART_DISABLE     0x1 << 3
+int lge_get_kswitch_status(void);
+#endif
+
+#ifdef CONFIG_LGE_LCD_OFF_DIMMING
+int lge_get_bootreason(void);
+#endif
+
+#endif
 

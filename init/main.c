@@ -79,6 +79,11 @@
 #include <asm/smp.h>
 #endif
 
+#ifdef CONFIG_LGE_PM_DQSL
+#include <linux/qpnp/power-on.h>
+#endif
+
+
 static int kernel_init(void *);
 
 extern void init_IRQ(void);
@@ -437,10 +442,30 @@ static void smpl_count(void)
 {
 	char* file_name = "/smpl_boot";
 	uint16_t boot_cause = 0;
+#ifdef CONFIG_LGE_PM_DQSL
+	int warm_reset = 0;
+#endif
 
 	boot_cause = power_on_status_info_get();
+#ifdef CONFIG_LGE_PM_DQSL
+	warm_reset = qpnp_pon_is_warm_reset();
+	printk("[BOOT_CAUSE] %d, warm_reset = %d \n", boot_cause, warm_reset);
+#else
 	printk("[BOOT_CAUSE] %d \n", boot_cause);
+#endif
 
+#ifdef CONFIG_LGE_PM_DQSL
+	if ((boot_cause &= PWR_ON_EVENT_SMPL) && (warm_reset == 0))
+	{
+		printk("[SMPL_CNT] ===> is smpl boot\n");
+		write_file(file_name, "1");
+	}
+	else
+	{
+		write_file(file_name, "0");
+		printk("[SMPL_CNT] ===> not smpl boot!!!!!\n");
+	}
+#else
 	if(boot_cause==PWR_ON_EVENT_SMPL)
 	{
 		printk("[SMPL_CNT] ===> is smpl boot\n");
@@ -451,6 +476,7 @@ static void smpl_count(void)
 		write_file(file_name, "0");
         printk("[SMPL_CNT] ===> not smpl boot!!!!!\n");
 	}
+#endif
 }
 #endif
 

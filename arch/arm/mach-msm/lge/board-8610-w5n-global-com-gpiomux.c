@@ -520,40 +520,6 @@ static struct gpiomux_setting mms100s_ts_ldo_sus_cfg = {
 	.dir = GPIOMUX_OUT_LOW,
 };
 
-static struct msm_gpiomux_config mms100s_ts_configs[] __initdata = {
-	{
-		.gpio      = 0,		/* MMS100s INT */
-		.settings = {
-			[GPIOMUX_ACTIVE]    = &mms100s_ts_int_act_cfg,
-			[GPIOMUX_SUSPENDED] = &mms100s_ts_int_sus_cfg,
-		},
-	},
-	{
-		.gpio      = 62,	/* GPIO LDO */
-		.settings = {
-			[GPIOMUX_ACTIVE]    = &mms100s_ts_ldo_act_cfg,
-			[GPIOMUX_SUSPENDED] = &mms100s_ts_ldo_sus_cfg,
-		},
-	},
-};
-
-static struct msm_gpiomux_config mms100s_ts_configs_rev_c[] __initdata = {
-	{
-		.gpio      = 0,		/* MMS100s INT */
-		.settings = {
-			[GPIOMUX_ACTIVE]    = &mms100s_ts_int_act_cfg,
-			[GPIOMUX_SUSPENDED] = &mms100s_ts_int_sus_cfg,
-		},
-	},
-	{
-		.gpio      = 82,	/* GPIO LDO */
-		.settings = {
-			[GPIOMUX_ACTIVE]    = &mms100s_ts_ldo_act_cfg,
-			[GPIOMUX_SUSPENDED] = &mms100s_ts_ldo_sus_cfg,
-		},
-	},
-};
-
 static struct gpiomux_setting aps_ts_int_act_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_2MA,
@@ -580,6 +546,113 @@ static struct gpiomux_setting aps_ts_reset_sus_cfg = {
 	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_NONE,
 	.dir = GPIOMUX_OUT_LOW,
+};
+
+static struct gpiomux_setting ts_makerid_cfg = {
+	.func = GPIOMUX_FUNC_GPIO,
+	.drv = GPIOMUX_DRV_2MA,
+	.pull = GPIOMUX_PULL_NONE,
+	.dir = GPIOMUX_IN,
+};
+
+static struct gpiomux_setting synap_attn_cfg = {
+	.func = GPIOMUX_FUNC_GPIO,
+	.drv = GPIOMUX_DRV_2MA,
+	.pull = GPIOMUX_PULL_NONE,
+	.dir = GPIOMUX_IN,
+};
+
+static struct gpiomux_setting synap_reset_cfg = {
+	.func = GPIOMUX_FUNC_GPIO,
+	.drv = GPIOMUX_DRV_2MA,
+	.pull = GPIOMUX_PULL_NONE,
+	.dir = GPIOMUX_OUT_HIGH,
+};
+
+static struct msm_gpiomux_config mms100s_ts_configs[] __initdata = {
+	{
+		.gpio      = 0,		/* MMS100s INT */
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &mms100s_ts_int_act_cfg,
+			[GPIOMUX_SUSPENDED] = &mms100s_ts_int_sus_cfg,
+		},
+	},
+	{
+		.gpio      = 76,	/* GPIO MAKER ID */
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &ts_makerid_cfg,
+			[GPIOMUX_SUSPENDED] = &ts_makerid_cfg,
+		},
+	},
+	{
+		.gpio      = 62,	/* GPIO LDO */
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &mms100s_ts_ldo_act_cfg,
+			[GPIOMUX_SUSPENDED] = &mms100s_ts_ldo_sus_cfg,
+		},
+	},
+};
+
+static struct msm_gpiomux_config mms100s_ts_configs_rev_c[] __initdata = {
+	{
+		.gpio      = 0,		/* MMS100s INT */
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &mms100s_ts_int_act_cfg,
+			[GPIOMUX_SUSPENDED] = &mms100s_ts_int_sus_cfg,
+		},
+	},
+	{
+		.gpio      = 76,	/* GPIO MAKER ID */
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &ts_makerid_cfg,
+			[GPIOMUX_SUSPENDED] = &ts_makerid_cfg,
+		},
+	},
+	{
+		.gpio      = 82,	/* GPIO LDO */
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &mms100s_ts_ldo_act_cfg,
+			[GPIOMUX_SUSPENDED] = &mms100s_ts_ldo_sus_cfg,
+		},
+	},
+};
+
+static struct msm_gpiomux_config synaptics_configs[] __initdata = {
+	{
+		.gpio      = 0,		/* RESET_N */
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &synap_reset_cfg,
+			[GPIOMUX_SUSPENDED] = &synap_reset_cfg,
+		},
+	},
+	{
+		.gpio      = 1,		/* ATTN_N */
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &synap_attn_cfg,
+			[GPIOMUX_SUSPENDED] = &synap_attn_cfg,
+		},
+	},
+	{
+		.gpio      = 76,	/* GPIO MAKER ID 0*/
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &ts_makerid_cfg,
+			[GPIOMUX_SUSPENDED] = &ts_makerid_cfg,
+		},
+	},
+	{
+		.gpio      = 77,	/* GPIO MAKER ID 1*/
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &ts_makerid_cfg,
+			[GPIOMUX_SUSPENDED] = &ts_makerid_cfg,
+		},
+	},
+	{
+		.gpio      = 82,	/* GPIO LDO */
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &mms100s_ts_ldo_act_cfg,
+			[GPIOMUX_SUSPENDED] = &mms100s_ts_ldo_sus_cfg,
+		},
+	},
 };
 
 static struct msm_gpiomux_config aps_ts_configs[] __initdata = {
@@ -625,7 +698,7 @@ static struct msm_gpiomux_config ags04_ts_configs[] __initdata = {
 
 
 /*  LGE_CHANGE_S, [NFC][taesik.kim@lge.com], NFC Bring up*/
-#ifdef CONFIG_LGE_NFC_PN547
+#ifdef CONFIG_LGE_NFC_PN547_C2
 
 
 static struct gpiomux_setting nfc_pn547_ven_cfg = {
@@ -734,21 +807,20 @@ void __init msm8610_init_gpiomux(void)
 
 	msm_gpiomux_install(msm_blsp_configs, ARRAY_SIZE(msm_blsp_configs));
 
-
-        /*W5 Touch Enable Pin Number is Changed from 62 to 82 */
-        if (revision >= HW_REV_C) {
-                printk(KERN_INFO"[%s][TOUCH] HW_Revision = %d ", __func__, revision );
-                msm_gpiomux_install(mms100s_ts_configs_rev_c, ARRAY_SIZE(mms100s_ts_configs_rev_c));
-	} 
-        else if(revision > HW_REV_A)  /*for Melfas Touch IC : enable pin 62*/
-        {
-                printk(KERN_INFO"[%s][TOUCH] HW_Revision = %d ", __func__, revision );
-                msm_gpiomux_install(mms100s_ts_configs, ARRAY_SIZE(mms100s_ts_configs));
-        }
-        else {   /*For Incell Touch*/
+	printk(KERN_INFO"[%s][TOUCH] HW_Revision = %d ", __func__, revision );
+	/* Touch gpio Mux */
+	if(revision == HW_REV_A)/*For Incell Touch*/
+	{
 		msm_gpiomux_install(aps_ts_configs, ARRAY_SIZE(aps_ts_configs));
 		msm_gpiomux_install(ags04_ts_configs, ARRAY_SIZE(ags04_ts_configs));
-	}
+	} 
+	else if(revision == HW_REV_B)
+		msm_gpiomux_install(mms100s_ts_configs, ARRAY_SIZE(mms100s_ts_configs));
+	else if(revision == HW_REV_C)
+		msm_gpiomux_install(mms100s_ts_configs_rev_c, ARRAY_SIZE(mms100s_ts_configs_rev_c));
+	else
+		msm_gpiomux_install(synaptics_configs, ARRAY_SIZE(synaptics_configs));
+
 	msm_gpiomux_install(wcnss_5wire_interface,
 			ARRAY_SIZE(wcnss_5wire_interface));
 	msm_gpiomux_install_nowrite(msm_lcd_configs,
@@ -779,7 +851,7 @@ void __init msm8610_init_gpiomux(void)
 			ARRAY_SIZE(msm_gpio_int_configs));
 
 	/*  LGE_CHANGE_S, [NFC][taesik.kim@lge.com], NFC Bring up */
-#ifdef CONFIG_LGE_NFC_PN547
+#ifdef CONFIG_LGE_NFC_PN547_C2
 	if (revision <= HW_REV_B){
 		msm_gpiomux_install(msm_nfc_configs, ARRAY_SIZE(msm_nfc_configs));
 	}

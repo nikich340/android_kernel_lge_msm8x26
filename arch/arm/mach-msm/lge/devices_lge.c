@@ -26,12 +26,16 @@
 #include <mach/msm_memtypes.h>
 #endif
 
+#ifdef CONFIG_LGE_QSDL_SUPPORT
+#include <mach/lge_qsdl.h>
+#endif
 /* in drivers/staging/android */
 #include "ram_console.h"
 
 #ifdef CONFIG_USB_G_LGE_ANDROID
 #include <linux/platform_data/lge_android_usb.h>
 #endif
+#include <linux/power_supply.h>
 
 static int cn_arr_len = 3;
 
@@ -170,7 +174,7 @@ static struct platform_device ram_console_device = {
 };
 #endif /*CONFIG_ANDROID_RAM_CONSOLE*/
 
-#ifdef CONFIG_LGE_DIAG_ENABLE_SPR
+#ifdef CONFIG_LGE_DIAG_ENABLE_SYSFS
 static struct platform_device lg_diag_cmd_device = {
 	.name = "lg_diag_cmd",
 	.id = -1,
@@ -278,8 +282,23 @@ void __init lge_add_mmc_strength_devices(void)
 {
 	platform_device_register(&lge_mmc_strength_device);
 }
+#endif
 
-#endif 
+#ifdef CONFIG_LGE_DIAG_USB_ACCESS_LOCK
+static struct platform_device lg_diag_cmd_device = {
+	.name = "lg_diag_cmd",
+	.id = -1,
+	.dev    = {
+		.platform_data = 0, /* &lg_diag_cmd_pdata */
+	},
+};
+
+static int __init lge_diag_devices_init(void)
+{
+	return platform_device_register(&lg_diag_cmd_device);
+}
+arch_initcall(lge_diag_devices_init);
+#endif
 
 #ifdef CONFIG_LGE_PM_USB_ID
 int lge_pm_get_cable_data_from_dt(void *of_node)
@@ -437,10 +456,12 @@ void lge_pm_set_usb_cable_to_minimum(void){
 
 
 #ifdef CONFIG_LGE_PM_BATTERY_ID_CHECKER
+struct power_supply *ac_psy;
+struct power_supply *usb_psy;
 
 #if defined(CONFIG_MACH_MSM8926_X5_VZW) || defined(CONFIG_MACH_MSM8926_X3C_TRF_US) || \
-	defined(CONFIG_MACH_MSM8926_X3N_OPEN_EU) || defined(CONFIG_MACH_MSM8926_X3N_GLOBAL_COM) || defined(CONFIG_MACH_MSM8926_X3N_GLOBAL_SCA) || \
-	defined(CONFIG_MACH_MSM8926_X3_TRF_US) || defined(CONFIG_MACH_MSM8926_X3_KR)
+	defined(CONFIG_MACH_MSM8926_X3N_OPEN_EU) || defined(CONFIG_MACH_MSM8926_X3N_GLOBAL_COM) || defined(CONFIG_MACH_MSM8926_F70N_GLOBAL_COM) || defined(CONFIG_MACH_MSM8926_F70N_GLOBAL_AME) || defined(CONFIG_MACH_MSM8926_X3N_GLOBAL_SCA) || \
+	defined(CONFIG_MACH_MSM8926_X3_TRF_US) || defined(CONFIG_MACH_MSM8926_X3N_KR) || defined(CONFIG_MACH_MSM8926_F70N_KR) || defined(CONFIG_MACH_MSM8926_F70_GLOBAL_COM) || defined(CONFIG_MACH_MSM8926_E2_SPR_US)
 int lge_battery_info = BATT_ID_DS2704_N;// BATT_ID_UNKNOWN;
 #else
 int lge_battery_info = BATT_ID_UNKNOWN;
@@ -448,23 +469,37 @@ int lge_battery_info = BATT_ID_UNKNOWN;
 
 bool is_lge_battery_valid(void)
 {
-#ifdef CONFIG_MACH_MSM8926_B1L_ATT  // temp just only Rev 0
-	return true;
-#else
-
+	union power_supply_propval ac_val = {0,}, usb_val = {0,};
 #ifdef CONFIG_LGE_PM_BATTERY_4_2VOLT
 	return true;
 #else
-	if(lge_pm_get_cable_type()== CABLE_56K ||
+	if (!ac_psy)
+		ac_psy = power_supply_get_by_name("ac");
+	if (!usb_psy)
+		usb_psy = power_supply_get_by_name("usb");
+	if (!ac_psy || !usb_psy)
+		return false;
+	ac_psy->get_property(ac_psy, POWER_SUPPLY_PROP_PRESENT, &ac_val);
+	usb_psy->get_property(usb_psy, POWER_SUPPLY_PROP_PRESENT, &usb_val);
+	if((lge_pm_get_cable_type()== CABLE_56K ||
 		lge_pm_get_cable_type()== CABLE_130K ||
-		lge_pm_get_cable_type()== CABLE_910K)
+		lge_pm_get_cable_type()== CABLE_910K) &&
+		(ac_val.intval || usb_val.intval))
 		return true;
-		
+
 	if (lge_battery_info == BATT_ID_DS2704_N ||
 		lge_battery_info == BATT_ID_DS2704_L ||
 		lge_battery_info == BATT_ID_DS2704_C ||
 		lge_battery_info == BATT_ID_ISL6296_N ||
 		lge_battery_info == BATT_ID_ISL6296_L ||
+#ifdef CONFIG_LGE_PM_BATTERY_ID_RANIX_SILICON_WORKS
+		lge_battery_info == BATT_ID_RA4301_VC0 ||
+		lge_battery_info == BATT_ID_RA4301_VC1 ||
+		lge_battery_info == BATT_ID_RA4301_VC2 ||
+		lge_battery_info == BATT_ID_SW3800_VC0 ||
+		lge_battery_info == BATT_ID_SW3800_VC1 ||
+		lge_battery_info == BATT_ID_SW3800_VC2 ||
+#endif
 		lge_battery_info == BATT_ID_ISL6296_C)
 		return true;
 
@@ -477,7 +512,6 @@ bool is_lge_battery_valid(void)
 
 
 #endif //CONFIG_LGE_PM_BATTERY_4_2VOLT
-#endif
 }
 //EXPORT_SYMBOL(is_lge_battery_valid);
 
@@ -501,6 +535,20 @@ static int __init battery_information_setup(char *batt_info)
                 lge_battery_info = BATT_ID_ISL6296_L;
         else if(!strcmp(batt_info, "ISL6296_C"))
                 lge_battery_info = BATT_ID_ISL6296_C;
+#ifdef CONFIG_LGE_PM_BATTERY_ID_RANIX_SILICON_WORKS
+        else if(!strcmp(batt_info, "RA4301_VC0"))
+                lge_battery_info = BATT_ID_RA4301_VC0;
+        else if(!strcmp(batt_info, "RA4301_VC1"))
+                lge_battery_info = BATT_ID_RA4301_VC1;
+        else if(!strcmp(batt_info, "RA4301_VC2"))
+                lge_battery_info = BATT_ID_RA4301_VC2;
+        else if(!strcmp(batt_info, "SW3800_VC0"))
+                lge_battery_info = BATT_ID_SW3800_VC0;
+        else if(!strcmp(batt_info, "SW3800_VC1"))
+                lge_battery_info = BATT_ID_SW3800_VC1;
+        else if(!strcmp(batt_info, "SW3800_VC2"))
+                lge_battery_info = BATT_ID_SW3800_VC2;
+#endif
         else
                 lge_battery_info = BATT_ID_UNKNOWN;
 
@@ -510,12 +558,22 @@ static int __init battery_information_setup(char *batt_info)
 }
 __setup("lge.battid=", battery_information_setup);
 #endif
+#if defined(CONFIG_LGE_KSWITCH)
+static int kswitch_status;
+#endif
+
 
 /* setting whether uart console is enalbed or disabled */
 static unsigned int uart_console_mode = 1;  /* Alway Off */
 
 unsigned int lge_get_uart_mode(void)
 {
+
+#ifdef CONFIG_LGE_KSWITCH
+if ((kswitch_status & LGE_KSWITCH_UART_DISABLE) >> 3)
+	 uart_console_mode = 0;
+#endif
+
 	return uart_console_mode;
 }
 
@@ -548,31 +606,33 @@ int lge_boot_mode_for_touch = (int)LGE_BOOT_MODE_NORMAL;
 static enum lge_boot_mode_type lge_boot_mode = LGE_BOOT_MODE_NORMAL;
 int __init lge_boot_mode_init(char *s)
 {
-    if (!strcmp(s, "charger"))
-        lge_boot_mode = LGE_BOOT_MODE_CHARGER;
+	if (!strcmp(s, "charger"))
+		lge_boot_mode = LGE_BOOT_MODE_CHARGER;
 #ifdef CONFIG_LGE_PM_CHARGING_CHARGERLOGO
-    else if(!strcmp(s, "chargerlogo"))
-        lge_boot_mode = LGE_BOOT_MODE_CHARGERLOGO;
+	else if(!strcmp(s, "chargerlogo"))
+		lge_boot_mode = LGE_BOOT_MODE_CHARGERLOGO;
 #endif
-    else if (!strcmp(s, "qem_56k"))
-        lge_boot_mode = LGE_BOOT_MODE_QEM_56K;
-    else if (!strcmp(s, "qem_130k"))
-        lge_boot_mode = LGE_BOOT_MODE_QEM_130K;
-    else if (!strcmp(s, "qem_910k"))
-        lge_boot_mode = LGE_BOOT_MODE_QEM_910K;
-    else if (!strcmp(s, "pif_56k"))
-        lge_boot_mode = LGE_BOOT_MODE_PIF_56K;
-    else if (!strcmp(s, "pif_130k"))
-        lge_boot_mode = LGE_BOOT_MODE_PIF_130K;
-    else if (!strcmp(s, "pif_910k"))
-        lge_boot_mode = LGE_BOOT_MODE_PIF_910K;
+	else if (!strcmp(s, "qem_56k"))
+		lge_boot_mode = LGE_BOOT_MODE_QEM_56K;
+	else if (!strcmp(s, "qem_130k"))
+		lge_boot_mode = LGE_BOOT_MODE_QEM_130K;
+	else if (!strcmp(s, "qem_910k"))
+		lge_boot_mode = LGE_BOOT_MODE_QEM_910K;
+	else if (!strcmp(s, "pif_56k"))
+		lge_boot_mode = LGE_BOOT_MODE_PIF_56K;
+	else if (!strcmp(s, "pif_130k"))
+		lge_boot_mode = LGE_BOOT_MODE_PIF_130K;
+	else if (!strcmp(s, "pif_910k"))
+		lge_boot_mode = LGE_BOOT_MODE_PIF_910K;
+	else
+		lge_boot_mode = LGE_BOOT_MODE_NORMAL;
 
 #ifdef CONFIG_LGE_PM_CHARGING_CHARGERLOGO
         lge_boot_mode_for_touch = (int)lge_boot_mode;
 #endif
 
-    printk("ANDROID BOOT MODE : %d %s\n", lge_boot_mode, s);
-    return 1;
+	printk("ANDROID BOOT MODE : %d %s\n", lge_boot_mode, s);
+	return 1;
 }
 
 __setup("androidboot.mode=", lge_boot_mode_init);
@@ -580,6 +640,51 @@ __setup("androidboot.mode=", lge_boot_mode_init);
 enum lge_boot_mode_type lge_get_boot_mode(void)
 {
     return lge_boot_mode;
+}
+
+int lge_get_factory_boot(void)
+{
+    int res;
+
+    /*   if boot mode is factory,
+     *   cable must be factory cable.
+     */
+    switch (lge_boot_mode) {
+        case LGE_BOOT_MODE_QEM_56K:
+        case LGE_BOOT_MODE_QEM_130K:
+        case LGE_BOOT_MODE_QEM_910K:
+        case LGE_BOOT_MODE_PIF_56K:
+        case LGE_BOOT_MODE_PIF_130K:
+        case LGE_BOOT_MODE_PIF_910K:
+            res = 1;
+            break;
+        default:
+            res = 0;
+            break;
+    }
+    return res;
+}
+
+static enum lge_boot_cable_type lge_boot_cable = LGE_BOOT_NO_INIT_CABLE;
+int __init lge_boot_cable_type_init(char *s)
+{
+	lge_boot_cable = 0;
+
+	for (;; s++) {
+		switch (*s) {
+			case '0' ... '9':
+				lge_boot_cable = 10*lge_boot_cable+(*s-'0');
+				break;
+			default:
+				return 1;
+		}
+	}
+}
+__setup("bootcable.type=", lge_boot_cable_type_init);
+
+enum lge_boot_cable_type lge_get_boot_cable_type(void)
+{
+	return lge_boot_cable;
 }
 
 static enum lge_laf_mode_type lge_laf_mode = LGE_LAF_MODE_NORMAL;
@@ -603,10 +708,10 @@ enum lge_laf_mode_type lge_get_laf_mode(void)
 static hw_rev_type lge_bd_rev = HW_REV_A;
 
 /* CAUTION: These strings are come from LK. */
-#if defined(CONFIG_MACH_MSM8926_X3N_OPEN_EU) || defined(CONFIG_MACH_MSM8926_X3N_GLOBAL_COM) || defined(CONFIG_MACH_MSM8926_X3N_GLOBAL_SCA) || \
-	defined(CONFIG_MACH_MSM8926_X3_TRF_US) || defined(CONFIG_MACH_MSM8926_X3_KR)
-char *rev_str[] = {"rev_0", "rev_a", "rev_a2", "rev_b", "rev_c",
-	"rev_d", "rev_10", "rev_11", "revserved"};
+#if defined(CONFIG_MACH_MSM8926_X3N_OPEN_EU) || defined(CONFIG_MACH_MSM8926_X3N_GLOBAL_COM) || defined(CONFIG_MACH_MSM8926_F70N_GLOBAL_COM) || defined(CONFIG_MACH_MSM8926_F70N_GLOBAL_AME) || defined(CONFIG_MACH_MSM8926_F70_GLOBAL_COM) || defined(CONFIG_MACH_MSM8926_X3N_GLOBAL_SCA) || \
+	defined(CONFIG_MACH_MSM8926_X3_TRF_US) || defined(CONFIG_MACH_MSM8926_X3N_KR) || defined(CONFIG_MACH_MSM8926_F70N_KR)
+char *rev_str[] = {"rev_0", "rev_a", "rev_a2", "rev_b", "rev_b2",
+	"rev_c", "rev_10", "rev_11", "revserved"};
 #else
 char *rev_str[] = {"rev_0", "rev_a", "rev_b", "rev_c", "rev_d",
 	"rev_e", "rev_10", "rev_11", "revserved"};
@@ -765,7 +870,7 @@ static int __init lcd_maker_id_setup(char *lcd_maker_id)
         else
         {
             lge_lcd_id = 4;
-        }           
+        }
 
         printk(KERN_INFO "lcd_maker_id : %s %d\n", lcd_maker_id, lge_lcd_id);
 
@@ -773,4 +878,81 @@ static int __init lcd_maker_id_setup(char *lcd_maker_id)
 }
 __setup("lcd_maker_id=", lcd_maker_id_setup);
 #endif
+#ifdef CONFIG_LGE_QSDL_SUPPORT
+static struct lge_qsdl_platform_data lge_qsdl_pdata = {
+	.oneshot_read = 0,
+	.using_uevent = 0
+};
 
+static struct platform_device lge_qsdl_device = {
+	.name = LGE_QSDL_DEV_NAME,
+	.id = -1,
+	.dev = {
+		.platform_data = &lge_qsdl_pdata,
+	}
+};
+
+void __init lge_add_qsdl_device(void)
+{
+	platform_device_register(&lge_qsdl_device);
+}
+#endif /* CONFIG_LGE_QSDL_SUPPORT */
+
+#if defined(CONFIG_LGE_KSWITCH)
+ static int atoi(const char *name)
+{
+	int val = 0;
+	for (;; name++) {
+		switch (*name) {
+		case '0' ... '9':
+			val = 10*val+(*name-'0');
+			break;
+		default:
+		 return val;
+		}
+	}
+}
+
+static int __init kswitch_setup(char *value)
+{
+	kswitch_status = atoi(value);
+	if (kswitch_status < 0)
+		kswitch_status = 0;
+
+	printk(KERN_INFO "[KSwitch] %d \n", kswitch_status);
+		 return 1;
+}
+__setup("kswitch=", kswitch_setup);
+int lge_get_kswitch_status(void)
+{
+	return kswitch_status;
+}
+#endif
+#ifdef CONFIG_LGE_LCD_OFF_DIMMING
+static int lge_boot_reason = -1; /*  undefined for error checking */
+static int __init lge_check_bootreason(char *reason)
+{
+	int ret = 0;
+
+	/*  handle corner case of kstrtoint */
+	if (!strcmp(reason, "0xffffffff")) {
+		lge_boot_reason = 0xffffffff;
+		return 1;
+	}
+
+	ret = kstrtoint(reason, 16, &lge_boot_reason);
+	if (!ret)
+		printk(KERN_INFO "LGE REBOOT REASON: %x\n", lge_boot_reason);
+	else
+		printk(KERN_INFO "LGE REBOOT REASON: Couldn't get bootreason - %d\n",
+				ret);
+
+	return 1;
+}
+__setup("lge.bootreason=", lge_check_bootreason);
+
+int lge_get_bootreason(void)
+{
+	return lge_boot_reason;
+}
+#endif

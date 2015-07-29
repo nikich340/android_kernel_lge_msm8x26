@@ -16,8 +16,8 @@
 
 
 / {
-	model = "Qualcomm MSM 8610v2 w3globalcom";
-	compatible = "qcom,msm8610-w3globalcom", "qcom,msm8610";
+	model = "Qualcomm MSM 8610v2 w3globalsca";
+	compatible = "qcom,msm8610-w3globalsca", "qcom,msm8610";
 	/* 
 		MSM8610   = 147,
 		MSM8110   = 161,
@@ -27,7 +27,8 @@
 		MSM8612   = 165,
 		MSM8812   = 166,
 	*/
-	qcom,board-id = <121 0>;
+	qcom,msm-id = <147 121 0x10001>, <165 121 0x10001>, <161 121 0x10001>, <162 121 0x10001>,
+		      <163 121 0x10001>, <164 121 0x10001>, <166 121 0x10001>;
 };
 
 

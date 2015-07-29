@@ -20,7 +20,7 @@
 			status = "ok";
 		};
 		lp5521@32{
-			status = "disable";
+			status = "ok";
 			ti,led_en = <&msmgpio 6 0x0>;
 		};
 	};

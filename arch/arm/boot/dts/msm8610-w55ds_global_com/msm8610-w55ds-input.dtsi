@@ -47,7 +47,9 @@
 			status = "ok";
 			revision = "rev_d...";
 			synaptics,fw_version_info = <0x34 0x04 0x31>;
-			synaptics,fw_image = "synaptics/w55ds_global_com/PLG333-V0.02-PR1581873-DS4.3.5.1.16_34043102.img";
+			synaptics,fw_image = "synaptics/w55ds_global_com/PLG333-V1.12-PR1597031-DS4.3.5.1.16_3404318C.img";
+			synaptics,panel_spec = "synaptics/w55ds_global_com/w55ds_global_com_limit.txt";
+			synaptics,global_access_pixel = <10>;
 			lge,knock_on_type = <1>;
 
 			synaptics,platform_data	{
@@ -59,14 +61,11 @@
 				lcd_y = <800>;
 				use_vio_regulator = <1>;
 				gpio_vdd_en = <82>;
-			    /* firmware image depends on this value, temporarily used */
-			    /* 0: No image(default), 1: W3DS(TIM BR)(PLG312_T001), 2: W3S(VDF)(PLG311_T001), 3:X3, 4:w55DS, 5:w55S ... */
-				panel_type = <4>;
-				/*maker_id  disable(0), enable(1)*/
-				maker_id = <1>;
+			    	/*maker_id  disable(0), enable(1)*/
+				maker_id = <0>;
 				maker_id_gpio = <76>;
 				palm_detect_mode = <1>;
-				ghost_detection_enable = <1>;
+				ghost_detection_enable = <0>;
 				ghost_detection_jitter_value = <8>;
 			};				
 		};

@@ -329,7 +329,7 @@ static void audio_send(struct audio_dev *audio)
 	ktime_t now;
 	unsigned long flags;
 
-	spin_lock_irqsave(&audio->lock,flags);
+	spin_lock_irqsave(&audio->lock, flags);
 	/* audio->substream will be null if we have been closed */
 	if (!audio->substream) {
 		spin_unlock_irqrestore(&audio->lock, flags);
@@ -340,8 +340,10 @@ static void audio_send(struct audio_dev *audio)
 		spin_unlock_irqrestore(&audio->lock, flags);
 		return;
 	}
+
 	runtime = audio->substream->runtime;
-	spin_unlock_irqrestore(&audio->lock,flags);
+	spin_unlock_irqrestore(&audio->lock, flags);
+
 	/* compute number of frames to send */
 	now = ktime_get();
 	msecs = ktime_to_ns(now) - ktime_to_ns(audio->start_time);
@@ -379,6 +381,7 @@ static void audio_send(struct audio_dev *audio)
 			spin_unlock_irqrestore(&audio->lock, flags);
 			break;
 		}
+
 		length = frames_to_bytes(runtime, frames);
 		if (length > IN_EP_MAX_PACKET_SIZE)
 			length = IN_EP_MAX_PACKET_SIZE;

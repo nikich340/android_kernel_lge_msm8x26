@@ -57,7 +57,7 @@ static const RTV_REG_INIT_INFO g_atTopHostInitData[] = {
 static const RTV_REG_INIT_INFO g_atOfdmInitData[] = {
 	{0x21, 0xFF},
 	{0x22, 0xFF},
-	{0x34, 0x9F},
+	{0x34, 0x0F},
 	{0x35, 0xFF},
 	{0x36, 0x00},
 	{0x37, 0x86}, //Locking
@@ -873,9 +873,9 @@ void rtvISDBT_GetTMCC(RTV_ISDBT_TMCC_INFO *ptTmccInfo)
 //SCAN debuging log enable
 //#define DEBUG_LOG_FOR_SCAN
 
-#define MAX_MON_FSM_MS		100
-#define MAX_COARSE_MS		800
-#define MAX_OFDM_RETRY_MS	600
+#define MAX_MON_FSM_MS		200
+#define MAX_COARSE_MS		1000
+#define MAX_OFDM_RETRY_MS	1000
 #define MAX_TMCC_RETRY_MS	3000
 
 #define MON_FSM_MS_CNT		(MAX_MON_FSM_MS / 10)
@@ -918,7 +918,7 @@ INT rtvISDBT_ScanFrequency(UINT nChNum)
 	RTV_REG_SET(0x27, 0x6B);
 	RTV_REG_SET(0x37, 0x87);
 	RTV_REG_SET(0x75, 0x4B);
-	RTV_REG_SET(0x36, 0x00);
+	RTV_REG_SET(0x36, 0x01);
 
 #if (RTV_SRC_CLK_FREQ_KHz == 19200)
 	if ((nChNum & 0x01) == 0x00)
@@ -929,7 +929,7 @@ INT rtvISDBT_ScanFrequency(UINT nChNum)
 	if (nRet != RTV_SUCCESS)
 		goto ISDBT_SCAN_FREQ_EXIT;
 
-	pwr_threshold = 20000;
+	pwr_threshold = 10000;
 
 #if defined(__KERNEL__) /* Linux kernel */
 	start_jiffies = get_jiffies_64();
@@ -992,7 +992,7 @@ INT rtvISDBT_ScanFrequency(UINT nChNum)
 				dTime = (RTV_REG_GET(0xC1)<<1)|((RTV_REG_GET(0xC0)>>7) &0x01);
 
 				RTV_REG_SET(0x27, dTime);
-		   		RTV_REG_SET(0x36, 0x01);
+		   		RTV_REG_SET(0x36, 0x00);
 		   		RTV_REG_MASK_SET(0x10, 0x01, 0x01);
 				RTV_REG_MASK_SET(0x10, 0x01, 0x00);
 				double_check = 1;
@@ -1003,7 +1003,7 @@ INT rtvISDBT_ScanFrequency(UINT nChNum)
 				 dTime = (RTV_REG_GET(0xC1)<<1)|((RTV_REG_GET(0xC0)>>7) &0x01);
 
 				 RTV_REG_SET(0x27, dTime);
-				 RTV_REG_SET(0x36, 0x01);
+				 RTV_REG_SET(0x36, 0x00);
 				 RTV_REG_MASK_SET(0x10, 0x01, 0x01);
 				 RTV_REG_MASK_SET(0x10, 0x01, 0x00);
 				 double_check = 1;
@@ -1101,6 +1101,7 @@ ISDBT_SCAN_FREQ_EXIT:
 
 	RTV_REG_MAP_SEL(OFDM_PAGE);
 	RTV_REG_SET(0x27, 0x5B);
+	RTV_REG_SET(0x36, 0x01);
 	RTV_REG_SET(0x37, 0x86);
 	RTV_REG_SET(0x75, 0x8B);
 

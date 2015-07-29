@@ -32,14 +32,17 @@ static int gpio_reserved_pin_rev_A[] = {
 	1, 7, 14, 15, 18, 35, 39, 44, 46, 47, 48, 55, 57, 61, 66, 67, 70, 71, 75, 83, 84, 90, 97, 98, 99,
 	MSM8x10_GPIO_END // This is included to notify the end of reserved GPIO configuration.
 };
-
 static int gpio_reserved_pin_rev_C[] = {
 	7, 14, 15, 18, 35, 39, 44, 46, 47, 48, 55, 57, 61, 66, 67, 70, 71, 75, 83, 84, 90, 97, 99,
 	MSM8x10_GPIO_END // This is included to notify the end of reserved GPIO configuration.
 };
 
-/// Rev_E...
-static int gpio_reserved_pin_rev_E[] = {
+static int gpio_reserved_pin_rev_D[] = {
+	7, 14, 15, 18, 35, 39, 44, 46, 47, 48, 55, 57, 61, 66, 67, 70, 75, 90, 91, 93, 97, 98, 99,
+	MSM8x10_GPIO_END // This is included to notify the end of reserved GPIO configuration.
+};
+
+static int gpio_reserved_pin_rev_1_0[] = {
 	7, 14, 15, 18, 35, 39, 44, 46, 47, 48, 55, 57, 61, 66, 67, 70, 75, 90, 91, 93, 97, 98, 99,
 	MSM8x10_GPIO_END // This is included to notify the end of reserved GPIO configuration.
 };
@@ -194,21 +197,14 @@ static struct gpiomux_setting gpio_int_sus_cfg = {
 	.dir = GPIOMUX_IN,
 };
 
-static struct gpiomux_setting ts_ldo_act_cfg = {
-	.func = GPIOMUX_FUNC_GPIO,
-	.drv = GPIOMUX_DRV_2MA,
-	.pull = GPIOMUX_PULL_NONE,
-	.dir = GPIOMUX_OUT_LOW,
-};
-
-static struct gpiomux_setting ts_ldo_sus_cfg = {
-	.func = GPIOMUX_FUNC_GPIO,
-	.drv = GPIOMUX_DRV_2MA,
-	.pull = GPIOMUX_PULL_NONE,
-	.dir = GPIOMUX_OUT_LOW,
-};
-
 static struct gpiomux_setting synap_attn_cfg = {
+	.func = GPIOMUX_FUNC_GPIO,
+	.drv = GPIOMUX_DRV_2MA,
+	.pull = GPIOMUX_PULL_NONE,
+	.dir = GPIOMUX_IN,
+};
+
+static struct gpiomux_setting synap_maker_id_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_NONE,
@@ -222,12 +218,6 @@ static struct gpiomux_setting synap_reset_cfg = {
 	.dir = GPIOMUX_OUT_HIGH,
 };
 
-static struct gpiomux_setting synap_maker_id_cfg = {
-	.func = GPIOMUX_FUNC_GPIO,
-	.drv = GPIOMUX_DRV_2MA,
-	.pull = GPIOMUX_PULL_NONE,
-	.dir = GPIOMUX_IN,
-};
 
 static struct msm_gpiomux_config msm_gpio_int_configs[] __initdata = {
 	{
@@ -571,10 +561,10 @@ static struct msm_gpiomux_config msm_syunap_configs[] __initdata = {
 		},
 	},
 	{
-		.gpio      = 62,		/* TOUCH VDD */
+		.gpio = 62,    /*TOUCH VDD*/
 		.settings = {
-			[GPIOMUX_ACTIVE] = &ts_ldo_act_cfg,
-			[GPIOMUX_SUSPENDED] = &ts_ldo_sus_cfg,
+			[GPIOMUX_ACTIVE] = &synap_reset_cfg,
+			[GPIOMUX_SUSPENDED] = &synap_reset_cfg,
 		},
 	},
 	{
@@ -592,8 +582,6 @@ static struct msm_gpiomux_config msm_syunap_configs[] __initdata = {
 		},
 	},
 };
-
-
 static struct msm_gpiomux_config msm_focaltech_configs[] __initdata = {
 	{
 		.gpio      = 0,		/* TOUCH RESET */
@@ -957,12 +945,12 @@ static struct msm_gpiomux_config fmr_intenna_det[] __initdata = {
 };
 #endif
 
-/// Rev_E
+
 #ifdef CONFIG_MACH_LGE
-static struct gpiomux_setting pcb_indicator_config = {
+static struct gpiomux_setting main_cam_id_gpio_act_config = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_2MA,
-	.pull = GPIOMUX_PULL_NONE,
+	.pull = GPIOMUX_PULL_UP,
 	.dir = GPIOMUX_IN
 };
 
@@ -992,7 +980,13 @@ static struct msm_gpiomux_config pcb_indicator[] __initdata = {
 #endif /* CONFIG_MACH_LGE */
 
 #ifdef CONFIG_MACH_LGE
-static struct gpiomux_setting main_cam_id_gpio_config = {
+static struct gpiomux_setting main_cam_id_gpio_act_config = {
+	.func = GPIOMUX_FUNC_GPIO,
+	.drv = GPIOMUX_DRV_2MA,
+	.pull = GPIOMUX_PULL_UP,
+	.dir = GPIOMUX_IN
+};
+static struct gpiomux_setting main_cam_id_gpio_sus_config = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_NONE,
@@ -1003,8 +997,8 @@ static struct msm_gpiomux_config main_cam_id_gpio[] __initdata = {
 	{
 		.gpio = 71,
 		.settings = {
-			[GPIOMUX_ACTIVE] = &main_cam_id_gpio_config,
-			[GPIOMUX_SUSPENDED] = &main_cam_id_gpio_config,
+			[GPIOMUX_ACTIVE] = &main_cam_id_gpio_act_config,
+			[GPIOMUX_SUSPENDED] = &main_cam_id_gpio_sus_config,
 		}
 	}
 };
@@ -1053,12 +1047,13 @@ void __init msm8610_init_gpiomux(void)
 	// GPIO related function <<20.LOGIC>>
 
 	switch ( lge_bd_rev ){
-		case HW_REV_0 :
+		case HW_REV_0 :{
 			for ( gpio_index = 0 ; gpio_reserved_pin_rev_0[gpio_index] < MSM8x10_GPIO_END ; gpio_index++ ){
 				gpio_func_reserved_pin_config.gpio = gpio_reserved_pin_rev_0[gpio_index];
 				msm_gpiomux_install(&gpio_func_reserved_pin_config, 1);
 				}
 			msm_gpiomux_install(msm_sensor_configs_revA, ARRAY_SIZE(msm_sensor_configs_revA)); // LGE_CHANGE, Code modifying by revision, youngwook.song@lge.com 2013-09-21
+			}
 			break;
 		case HW_REV_A :
             for ( gpio_index = 0 ; gpio_reserved_pin_rev_A[gpio_index] < MSM8x10_GPIO_END ; gpio_index++ ){
@@ -1069,23 +1064,36 @@ void __init msm8610_init_gpiomux(void)
 			break;
 		case HW_REV_B :
 		case HW_REV_C :
-			for ( gpio_index = 0 ; gpio_reserved_pin_rev_C[gpio_index] < MSM8x10_GPIO_END ; gpio_index++ ){
+            for ( gpio_index = 0 ; gpio_reserved_pin_rev_C[gpio_index] < MSM8x10_GPIO_END ; gpio_index++ ){
 				gpio_func_reserved_pin_config.gpio = gpio_reserved_pin_rev_C[gpio_index];
 				msm_gpiomux_install(&gpio_func_reserved_pin_config, 1);
 				}
             msm_gpiomux_install(msm_sensor_configs_revB, ARRAY_SIZE(msm_sensor_configs_revB)); // LGE_CHANGE, Code modifying by revision, youngwook.song@lge.com 2013-09-21
             break;
 		case HW_REV_D :
-		case HW_REV_E :
-		case HW_REV_1_0 :
-		case HW_REV_1_1 :
-		default :
-			for ( gpio_index = 0 ; gpio_reserved_pin_rev_E[gpio_index] < MSM8x10_GPIO_END ; gpio_index++ ){
-				gpio_func_reserved_pin_config.gpio = gpio_reserved_pin_rev_E[gpio_index];
+			for ( gpio_index = 0 ; gpio_reserved_pin_rev_D[gpio_index] < MSM8x10_GPIO_END ; gpio_index++ ){
+				gpio_func_reserved_pin_config.gpio = gpio_reserved_pin_rev_C[gpio_index];
 				msm_gpiomux_install(&gpio_func_reserved_pin_config, 1);
 				}
-			msm_gpiomux_install(msm_sensor_configs_revB, ARRAY_SIZE(msm_sensor_configs_revB)); // LGE_CHANGE, Code modifying by revision, youngwook.song@lge.com 2013-09-21
-			msm_gpiomux_install(pcb_indicator, ARRAY_SIZE(pcb_indicator));
+            msm_gpiomux_install(msm_sensor_configs_revB, ARRAY_SIZE(msm_sensor_configs_revB)); // LGE_CHANGE, Code modifying by revision, youngwook.song@lge.com 2013-09-21
+			msm_gpiomux_install(main_cam_id_gpio, ARRAY_SIZE(main_cam_id_gpio));	/* MAIN_CAM_ID */
+			break;
+		case HW_REV_E :
+		case HW_REV_1_0 :
+			for ( gpio_index = 0 ; gpio_reserved_pin_rev_1_0[gpio_index] < MSM8x10_GPIO_END ; gpio_index++ ){
+				gpio_func_reserved_pin_config.gpio = gpio_reserved_pin_rev_C[gpio_index];
+				msm_gpiomux_install(&gpio_func_reserved_pin_config, 1);
+				}
+            msm_gpiomux_install(msm_sensor_configs_revB, ARRAY_SIZE(msm_sensor_configs_revB)); // LGE_CHANGE, Code modifying by revision, youngwook.song@lge.com 2013-09-21
+			msm_gpiomux_install(main_cam_id_gpio, ARRAY_SIZE(main_cam_id_gpio));	/* MAIN_CAM_ID */
+			break;
+		case HW_REV_1_1 :
+		default :
+			for ( gpio_index = 0 ; gpio_reserved_pin_rev_1_0[gpio_index] < MSM8x10_GPIO_END ; gpio_index++ ){
+				gpio_func_reserved_pin_config.gpio = gpio_reserved_pin_rev_C[gpio_index];
+				msm_gpiomux_install(&gpio_func_reserved_pin_config, 1);
+				}
+            msm_gpiomux_install(msm_sensor_configs_revB, ARRAY_SIZE(msm_sensor_configs_revB)); // LGE_CHANGE, Code modifying by revision, youngwook.song@lge.com 2013-09-21
 			msm_gpiomux_install(main_cam_id_gpio, ARRAY_SIZE(main_cam_id_gpio));	/* MAIN_CAM_ID */
 			break;
 	}

@@ -81,7 +81,7 @@
                         /*add*/
                         Avago,ppcount = <8>;
                         Avago,pdrive = <0>;
-                        Avago,near_offset = <150>;
+                        Avago,near_offset = <200>;
                         Avago,far_offset = <50>;
                         Avago,crosstalk_max = <770>;
 			status = "ok";

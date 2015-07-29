@@ -33,7 +33,7 @@
 #define DC_CURRENT_DEF   -1
 
 /* Battery temperature states */
-#ifdef CONFIG_MACH_MSM8926_X5_SPR
+#if defined(CONFIG_MACH_MSM8926_X5_SPR) || defined(CONFIG_MACH_MSM8X10_W5C_SPR_US) || defined(CONFIG_MACH_MSM8926_JAGC_SPR)
 enum lge_battemp_states {
 	CHG_BATTEMP_BL_M7,
 	CHG_BATTEMP_M6_M5,

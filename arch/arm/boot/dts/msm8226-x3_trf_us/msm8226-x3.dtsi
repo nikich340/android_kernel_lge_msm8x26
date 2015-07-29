@@ -28,6 +28,18 @@
 			status = "disable";
 		};
 	};
+	lge_sw_irrc { /* LGE_UPDATE 20110107 euna.jo@lge.com WX_IRRC */
+		compatible = "lge,sw_irrc";
+		vreg_irrc-supply = <&pm8226_l19>;
+		lge,gp-cmd-rcgr = <0xFD8C3420>;
+		lge,pwm-gpio = <&msmgpio 33 0x00>;
+		lge,pwm-gpio-func = <3>;
+		lge,clk-name = "cam_gp0_clk";
+		lge,clk-rate = <96000>; //This must match with clk_freq_tbl.
+		status = "ok";
+		revision = "rev_a...";
+		vreg2_irrc-supply = <&pm8226_l6>;
+	};
 };
 
 &sdcc1 {
@@ -151,4 +163,10 @@
     qcom,min-fcc-ocv-pc = <30>;
     qcom,min-fcc-learning-samples = <5>;
     qcom,fcc-resolution = <10>;
+};
+
+&slim_msm {
+	tapan_codec {
+			qcom,cdc-micbias1-ext-cap;
+	};
 };

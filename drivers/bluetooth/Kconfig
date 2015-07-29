@@ -286,4 +286,10 @@ config LGE_BLUESLEEP
 	  LGE Bluetooth sleep driver.
 	  This driver provides support for LGE BT Sleep.
 
+config LGE_BLUETOOTH_PM
+       bool "LGE Bluetooth common driver"
+       default n
+       help
+         LGE Bluetooth Power & Sleep 	
+         This driver provides support for LGE BT Power & Sleep.
 endmenu

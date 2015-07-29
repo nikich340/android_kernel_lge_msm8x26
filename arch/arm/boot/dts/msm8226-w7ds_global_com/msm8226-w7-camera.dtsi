@@ -12,9 +12,17 @@
  */
 
 &cci {
-	actuator0: qcom,actuator@18 {
+	/* imx111 - dw9714 */
+	actuator0: qcom,actuator_imx111@18 {
 		cell-index = <1>;//Use Af_main_1 of dw9714
+		reg = <0x18 0x0>;
+		compatible = "qcom,actuator";
+		qcom,cci-master = <0>;
+	};
 
+	/* imx219 - dw9714 */
+	actuator1: qcom,actuator_imx219@18 {
+		cell-index = <4>;//Use Af_main_4 of dw9714
 		reg = <0x18 0x0>;
 		compatible = "qcom,actuator";
 		qcom,cci-master = <0>;
@@ -111,7 +119,7 @@
 		qcom,slave-id = <0x34 0x0 0x219>;
 		qcom,csiphy-sd-index = <0>;
 		qcom,csid-sd-index = <0>;
-		qcom,actuator-src = <&actuator0>;
+		qcom,actuator-src = <&actuator1>;
 		qcom,led-flash-src = <&led_flash0>;
 		qcom,eeprom-src = <&eeprom>;
 		qcom,mount-angle = <90>;
@@ -223,7 +231,7 @@
 		qcom,slave-id = <0x34 0x0 0x219>;
 		qcom,csiphy-sd-index = <0>;
 		qcom,csid-sd-index = <0>;
-		qcom,actuator-src = <&actuator0>;
+		qcom,actuator-src = <&actuator1>;
 		qcom,led-flash-src = <&led_flash0>;
 		qcom,eeprom-src = <&eeprom>;
 		qcom,mount-angle = <90>;
@@ -335,7 +343,7 @@
 		qcom,slave-id = <0x34 0x0 0x219>;
 		qcom,csiphy-sd-index = <0>;
 		qcom,csid-sd-index = <0>;
-		qcom,actuator-src = <&actuator0>;
+		qcom,actuator-src = <&actuator1>;
 		qcom,led-flash-src = <&led_flash0>;
 		qcom,eeprom-src = <&eeprom>;
 		qcom,mount-angle = <90>;
@@ -445,7 +453,7 @@
 		qcom,slave-id = <0x34 0x0 0x219>;
 		qcom,csiphy-sd-index = <0>;
 		qcom,csid-sd-index = <0>;
-		qcom,actuator-src = <&actuator0>;
+		qcom,actuator-src = <&actuator1>;
 		qcom,led-flash-src = <&led_flash0>;
 		qcom,eeprom-src = <&eeprom>;
 		qcom,mount-angle = <90>;

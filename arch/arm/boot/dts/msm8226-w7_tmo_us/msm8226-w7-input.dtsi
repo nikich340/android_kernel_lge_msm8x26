@@ -40,9 +40,12 @@
 			revision = "rev_e...";
 			status = "ok";
 
+			atmel,t15_key_array = <0 0 1 0>;
 			atmel,fw_name = "atmel/E2A47P2_2_07.fw";
 			atmel,panel_check = <0>;
 			atmel,ghost_detection_enable = <1>;
+			atmel,butt_check_enable = <1>;
+			atmel,offset_value1 = "E2A47P2, 10, 12, 292";   /*  FW Product, X, Y, Value */
 		};
 
 		lge_touch@48 {
