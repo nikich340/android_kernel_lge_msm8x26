@@ -4,7 +4,7 @@ menu "IO Schedulers"
 
 config IOSCHED_NOOP
 	bool
-	default y
+	default n
 	---help---
 	  The no-op I/O scheduler is a minimal scheduler that does basic merging
 	  and sorting. Its main uses include non-disk based block devices like
@@ -25,7 +25,7 @@ config IOSCHED_TEST
 
 config IOSCHED_DEADLINE
 	tristate "Deadline I/O scheduler"
-	default y
+	default n
 	---help---
 	  The deadline I/O scheduler is simple and compact. It will provide
 	  CSCAN service with FIFO expiration of requests, switching to
@@ -34,7 +34,7 @@ config IOSCHED_DEADLINE
 
 config IOSCHED_ROW
 	tristate "ROW I/O scheduler"
-	default y
+	default n
 	---help---
 	  The ROW I/O scheduler gives priority to READ requests over the
 	  WRITE requests when dispatching, without starving WRITE requests.
@@ -47,7 +47,7 @@ config IOSCHED_CFQ
 	tristate "CFQ I/O scheduler"
 	# If BLK_CGROUP is a module, CFQ has to be built as module.
 	depends on (BLK_CGROUP=m && m) || !BLK_CGROUP || BLK_CGROUP=y
-	default y
+	default n
 	---help---
 	  The CFQ I/O scheduler tries to distribute bandwidth equally
 	  among all processes in the system. It should provide a fair
@@ -89,7 +89,7 @@ config CGROUP_BFQIO
 
 config IOSCHED_SIOPLUS
 	tristate "SIO I/O scheduler"
-	default y
+	default n
 	---help---
 		The Simple I/O scheduler is an extremely simple scheduler,
 		based on NOOP, that relies on deadlines to
@@ -99,7 +99,7 @@ config IOSCHED_SIOPLUS
 
 config IOSCHED_SIO
 	tristate "Simple I/O scheduler"
-	default y
+	default n
 	---help---
 		The Simple I/O scheduler is an extremely simple scheduler,
 		based on noop and deadline, that relies on deadlines to
@@ -108,19 +108,19 @@ config IOSCHED_SIO
 		mainly for aleatory access devices (eg: flash devices).
 config IOSCHED_VR
 	tristate "V(R) I/O scheduler"
-	default y
+	default n
 	---help---
 		Requests are chosen according to SSTF with a penalty of rev_penalty
 		for switching head direction.
 config IOSCHED_ZEN
 	tristate "Zen I/O scheduler"
-	default y
+	default n
 	---help---
 		FCFS, dispatches are back-inserted, deadlines ensure fairness.
 		Should work best with devices where there is no travel delay.
 config IOSCHED_FIOPS
 	tristate "IOPS based I/O scheduler"
-	default y
+	default n
 	---help---
 		This is an IOPS based I/O scheduler. It will try to distribute
 		IOPS equally among all processes in the system. It's mainly for
@@ -128,7 +128,7 @@ config IOSCHED_FIOPS
 
 config IOSCHED_FIFO
 	bool
-	default y
+	default n
 	---help---
 		Fifo is similar to no-op I/O scheduler and it's a minimal scheduler that does basic merging and sorting.
 
