@@ -1,0 +1,13 @@
+ui_print("[+] ONLY FOR LG L90 D405 with STOCK 5.0.2-based ROM!!!");
+ui_print("[+] LollipopExtended kernel installation started");
+ui_print("*** Powered by Nikita Pro Android (@4pda & @ xda ***");
+ui_print("[+] New BOOT extracted...");
+package_extract_file("boot.img", "/dev/block/platform/msm_sdcc.1/by-name/boot");
+sleep(2);
+show_progress(0.100000, 0);
+ui_print("[+] New MODULES extracted...");
+mount("ext4", "EMMC", "/dev/block/platform/msm_sdcc.1/by-name/system", "/system");
+package_extract_dir("system", "/system");
+set_perm_recursive(0, 0, 0755, 0644, "/system/lib");
+unmount("/system");
+ui_print("[*] Installation LollipopExtended kernel complete. Enjoy!");

@@ -1,0 +1,3 @@
+post-build=lge/g2mds_global_com/g2mds:4.4.2/KOT49I.A1397623902/1397623902:user/release-keys
+post-timestamp=1422734219
+pre-device=g2mds
