@@ -37,11 +37,6 @@
 #include "msm_watchdog.h"
 #include "timer.h"
 #include "wdog_debug.h"
-
-#ifdef CONFIG_KEXEC_HARDBOOT
-#include <asm/kexec.h>
-#endif
-
 #ifdef CONFIG_LGE_HANDLE_PANIC
 #include <mach/lge_handle_panic.h>
 #endif
@@ -405,26 +400,6 @@ void msm_restart(char mode, const char *cmd)
 			pr_notice("PS_HOLD didn't work, falling back to watchdog\n");
 		}
 
-#ifdef CONFIG_KEXEC_HARDBOOT
-static void msm_kexec_hardboot_hook(void)
-{
-	set_dload_mode(0);
-
-	// Set PMIC to restart-on-poweroff
-	pm8xxx_reset_pwr_off(1);
-
-	// These are executed on normal reboot, but with kexec-hardboot,
-	// they reboot/panic the system immediately.
-#if 0
-	qpnp_pon_system_pwr_off(PON_POWER_OFF_WARM_RESET);
-
-	/* Needed to bypass debug image on some chips */
-	msm_disable_wdog_debug();
-	halt_spmi_pmic_arbiter();
-#endif
-}
-#endif
-
 		__raw_writel(1, msm_tmr0_base + WDT0_RST);
 		__raw_writel(5*0x31F3, msm_tmr0_base + WDT0_BARK_TIME);
 		__raw_writel(0x31F3, msm_tmr0_base + WDT0_BITE_TIME);
@@ -439,10 +414,6 @@ static void msm_kexec_hardboot_hook(void)
 	mdelay(10000);
 	printk(KERN_ERR "Restarting has failed\n");
 }
-
-#ifdef CONFIG_KEXEC_HARDBOOT
-	kexec_hardboot_hook = msm_kexec_hardboot_hook;
-#endif
 
 static int __init msm_pmic_restart_init(void)
 {
