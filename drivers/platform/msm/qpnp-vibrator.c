@@ -10,6 +10,7 @@
  * GNU General Public License for more details.
  */
 
+#include <linux/device.h>
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/kernel.h>
@@ -26,7 +27,7 @@
 #define QPNP_VIB_EN_CTL(base)		(base + 0x46)
 
 #define QPNP_VIB_MAX_LEVEL		31
-#define QPNP_VIB_MIN_LEVEL		12
+#define QPNP_VIB_MIN_LEVEL		10
 
 #define QPNP_VIB_DEFAULT_TIMEOUT	15000
 #define QPNP_VIB_DEFAULT_VTG_LVL	3100
@@ -34,6 +35,8 @@
 #define QPNP_VIB_EN			BIT(7)
 #define QPNP_VIB_VTG_SET_MASK		0x1F
 #define QPNP_VIB_LOGIC_SHIFT		4
+
+#define QPNP_HAPTIC_THRESHOLD		60
 
 struct qpnp_vib {
 	struct spmi_device *spmi;
@@ -46,12 +49,55 @@ struct qpnp_vib {
 	u16 base;
 	int state;
 	int vtg_level;
+	int vtg_level_normal;
+	int vtg_level_haptic;
 	int timeout;
+	int haptic_threshold;
 	struct mutex lock;
 };
 
 struct qpnp_vib *vib_dev;
 EXPORT_SYMBOL(vib_dev);
+
+static ssize_t qpnp_vib_level_show(struct device *dev,
+                                        struct device_attribute *attr,
+                                        char *buf)
+{
+        struct timed_output_dev *tdev = dev_get_drvdata(dev);
+        struct qpnp_vib *vib = container_of(tdev, struct qpnp_vib,
+                                         timed_dev);
+
+        return scnprintf(buf, PAGE_SIZE, "%d\n", vib->vtg_level_normal);
+}
+
+
+static ssize_t qpnp_vib_level_store(struct device *dev,
+                                        struct device_attribute *attr,
+                                        const char *buf, size_t count)
+{
+        struct timed_output_dev *tdev = dev_get_drvdata(dev);
+        struct qpnp_vib *vib = container_of(tdev, struct qpnp_vib,
+                                         timed_dev);
+        int val;
+        int rc;
+
+        rc = kstrtoint(buf, 10, &val);
+        if (rc) {
+                pr_err("%s: error getting level\n, error-code: %d", __func__, rc);
+                return -EINVAL;
+        }
+
+        if (val < QPNP_VIB_MIN_LEVEL || val > QPNP_VIB_MAX_LEVEL) {
+                pr_err("%s: level %d not in range.", __func__, val);
+                return -EINVAL;
+        }
+
+        vib->vtg_level_normal = val;
+
+        return strnlen(buf, count);
+}
+
+static DEVICE_ATTR(vtg_level, S_IRUGO | S_IWUSR, qpnp_vib_level_show, qpnp_vib_level_store);
 
 static int qpnp_vib_read_u8(struct qpnp_vib *vib, u8 *data, u16 reg)
 {
@@ -209,6 +255,8 @@ static void qpnp_vib_enable(struct timed_output_dev *dev, int value)
 		value = (value > vib->timeout ?
 				 vib->timeout : value);
 		vib->state = 1;
+		vib->vtg_level = (value < vib->haptic_threshold) ?
+				vib->vtg_level_haptic : vib->vtg_level_normal;
 		hrtimer_start(&vib->vib_timer,
 			      ktime_set(value / 1000, (value % 1000) * 1000000),
 			      HRTIMER_MODE_REL);
@@ -287,17 +335,31 @@ static int __devinit qpnp_vibrator_probe(struct spmi_device *spmi)
 		return rc;
 	}
 
-	vib->vtg_level = QPNP_VIB_DEFAULT_VTG_LVL;
+	vib->vtg_level_normal = QPNP_VIB_DEFAULT_VTG_LVL;
 	rc = of_property_read_u32(spmi->dev.of_node,
 			"qcom,vib-vtg-level-mV", &temp_val);
 	if (!rc) {
-		vib->vtg_level = temp_val;
+		vib->vtg_level_normal = temp_val;
 	} else if (rc != -EINVAL) {
 		dev_err(&spmi->dev, "Unable to read vtg level\n");
 		return rc;
 	}
 
-	vib->vtg_level /= 100;
+	vib->vtg_level_normal /= 100;
+	vib->vtg_level = vib->vtg_level_normal;
+	vib->vtg_level_haptic = vib->vtg_level_normal;
+
+	rc = of_property_read_u32(spmi->dev.of_node,
+			"qcom,vib-vtg-level-mV-haptic", &temp_val);
+	if (!rc)
+		vib->vtg_level_haptic = temp_val/100;
+
+	vib->haptic_threshold = QPNP_HAPTIC_THRESHOLD;
+
+	rc = of_property_read_u32(spmi->dev.of_node,
+			"qcom,vib-haptic-threshold-ms", &temp_val);
+	if (!rc)
+		vib->haptic_threshold = temp_val;
 
 	vib_resource = spmi_get_resource(spmi, 0, IORESOURCE_MEM, 0);
 	if (!vib_resource) {
@@ -332,6 +394,8 @@ static int __devinit qpnp_vibrator_probe(struct spmi_device *spmi)
 	rc = timed_output_dev_register(&vib->timed_dev);
 	if (rc < 0)
 		return rc;
+
+        device_create_file(vib->timed_dev.dev, &dev_attr_vtg_level);
 
 	vib_dev = vib;
 

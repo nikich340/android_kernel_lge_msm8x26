@@ -3,25 +3,25 @@
 ** File:
 **     tspdrv.c
 **
-** Description: 
+** Description:
 **     TouchSense Kernel Module main entry-point.
 **
-** Portions Copyright (c) 2008-2013 Immersion Corporation. All Rights Reserved. 
+** Portions Copyright (c) 2008-2013 Immersion Corporation. All Rights Reserved.
 **
-** This file contains Original Code and/or Modifications of Original Code 
-** as defined in and that are subject to the GNU Public License v2 - 
-** (the 'License'). You may not use this file except in compliance with the 
-** License. You should have received a copy of the GNU General Public License 
+** This file contains Original Code and/or Modifications of Original Code
+** as defined in and that are subject to the GNU Public License v2 -
+** (the 'License'). You may not use this file except in compliance with the
+** License. You should have received a copy of the GNU General Public License
 ** along with this program; if not, write to the Free Software Foundation, Inc.,
-** 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA or contact 
+** 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA or contact
 ** TouchSenseSales@immersion.com.
 **
-** The Original Code and all software distributed under the License are 
-** distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
-** EXPRESS OR IMPLIED, AND IMMERSION HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
-** INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
-** FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. Please see 
-** the License for the specific language governing rights and limitations 
+** The Original Code and all software distributed under the License are
+** distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+** EXPRESS OR IMPLIED, AND IMMERSION HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+** INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+** FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. Please see
+** the License for the specific language governing rights and limitations
 ** under the License.
 ** =========================================================================
 */
@@ -48,15 +48,19 @@ static int g_nTimerPeriodMs = 5; /* 5ms timer by default. This variable could be
 static atomic_t g_bRuntimeRecord;
 #endif
 
+static char IMMR_DEB = false;
 #include "ImmVibeSPI.c"
 #if (defined(VIBE_DEBUG) && defined(VIBE_RECORD)) || defined(VIBE_RUNTIME_RECORD)
-#include "tspdrvRecorder.c"
+#include <tspdrvRecorder.c>
 #endif
 
+#include "imm_timed_output.h"
+
+#include "touch_fops.c"
 /* Device name and version information */
 #define VERSION_STR " v3.7.11.0\n"                  /* DO NOT CHANGE - this is auto-generated */
 #define VERSION_STR_LEN 16                          /* account extra space for future extra digits in version number */
-static char g_szDeviceName[  (VIBE_MAX_DEVICE_NAME_LENGTH 
+static char g_szDeviceName[  (VIBE_MAX_DEVICE_NAME_LENGTH
                             + VERSION_STR_LEN)
                             * NUM_ACTUATORS];       /* initialized in init_module */
 static size_t g_cchDeviceName;                      /* initialized in init_module */
@@ -72,6 +76,7 @@ static atomic_t g_nDebugLevel;
 #define MAX_SPI_BUFFER_SIZE (NUM_ACTUATORS * (VIBE_OUTPUT_SAMPLE_SIZE + SPI_HEADER_SIZE))
 
 static char g_cWriteBuffer[MAX_SPI_BUFFER_SIZE];
+
 
 
 #if ((LINUX_VERSION_CODE & 0xFFFF00) < KERNEL_VERSION(2,6,0))
@@ -99,7 +104,7 @@ static int g_nMajor = 0;
 asmlinkage void _DbgOut(int level, const char *fmt,...)
 {
     static char printk_buf[MAX_DEBUG_BUFFER_LENGTH];
-    static char prefix[6][4] = 
+    static char prefix[6][4] =
         {" * ", " ! ", " ? ", " I ", " V", " O "};
 
     int nDbgLevel = atomic_read(&g_nDebugLevel);
@@ -130,7 +135,7 @@ static long unlocked_ioctl(struct file *file, unsigned int cmd, unsigned long ar
 #else
 static int ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long arg);
 #endif
-static struct file_operations fops = 
+static struct file_operations fops =
 {
     .owner =            THIS_MODULE,
     .read =             read,
@@ -146,7 +151,7 @@ static struct file_operations fops =
 };
 
 #ifndef IMPLEMENT_AS_CHAR_DRIVER
-static struct miscdevice miscdev = 
+static struct miscdevice miscdev =
 {
 	.minor =    MISC_DYNAMIC_MINOR,
 	.name =     MODULE_NAME,
@@ -156,24 +161,24 @@ static struct miscdevice miscdev =
 
 static int suspend(struct platform_device *pdev, pm_message_t state);
 static int resume(struct platform_device *pdev);
-static struct platform_driver platdrv = 
+static struct platform_driver platdrv =
 {
-    .suspend =  suspend,	
-    .resume =   resume,	
-    .driver = 
-    {		
-        .name = MODULE_NAME,	
-    },	
+    .suspend =  suspend,
+    .resume =   resume,
+    .driver =
+    {
+        .name = MODULE_NAME,
+    },
 };
 
 static void platform_release(struct device *dev);
-static struct platform_device platdev = 
-{	
-	.name =     MODULE_NAME,	
+static struct platform_device platdev =
+{
+	.name =     MODULE_NAME,
 	.id =       -1,                     /* means that there is only one device */
-	.dev = 
+	.dev =
     {
-		.platform_data = NULL, 		
+		.platform_data = NULL,
 		.release = platform_release,    /* a warning is thrown during rmmod if this is absent */
 	},
 };
@@ -183,11 +188,39 @@ MODULE_AUTHOR("Immersion Corporation");
 MODULE_DESCRIPTION("TouchSense Kernel Module");
 MODULE_LICENSE("GPL v2");
 
-#if defined(CONFIG_MACH_MSM8226_G2MDS_OPEN_CIS) || defined(CONFIG_MACH_MSM8226_G2MDS_GLOBAL_COM) || defined(CONFIG_MACH_MSM8226_G2MSS_GLOBAL_COM)
+extern VibeInt8 timedForce;
+
+static ssize_t nforce_val_show(struct device *dev, struct device_attribute *attr,
+		char *buf)
+{
+	return sprintf(buf, "%hu", timedForce);
+}
+
+static ssize_t nforce_val_store(struct device *dev, struct device_attribute *attr,
+		const char *buf, size_t size)
+{
+	unsigned short int strength_val = DEFAULT_TIMED_STRENGTH;
+	if (kstrtoul(buf, 0, (unsigned long int*)&strength_val))
+		pr_err("[VIB] %s: error on storing nforce\n", __func__);
+
+	/* make sure new pwm duty is in range */
+	if (strength_val > 127)
+		strength_val = 127;
+	else if (strength_val < 1)
+		strength_val = 1;
+
+	timedForce = strength_val;
+
+	return size;
+}
+
+static DEVICE_ATTR(nforce_timed, S_IRUGO | S_IWUSR, nforce_val_show, nforce_val_store);
+
+#if 1
 /* LGE_CHANGED_START
   * Vibrator on/off device file is added(vib_enable)
   * 2012.11.11, sehwan.lee@lge.com
-  */ 
+  */
 static int val = 0;
 
 static ssize_t
@@ -213,7 +246,7 @@ immersion_enable_store(struct device *dev, struct device_attribute *attr, const 
 	} else  {
 		printk("immersion_enable_store() : out of range...\n");
 	}
-	
+
 	return count;
 }
 
@@ -244,14 +277,14 @@ static int __init tspdrv_init(void)
 
 #ifdef IMPLEMENT_AS_CHAR_DRIVER
     g_nMajor = register_chrdev(0, MODULE_NAME, &fops);
-    if (g_nMajor < 0) 
+    if (g_nMajor < 0)
     {
         DbgOut((DBL_ERROR, "tspdrv: can't get major number.\n"));
         return g_nMajor;
     }
 #else
     nRet = misc_register(&miscdev);
-	if (nRet) 
+	if (nRet)
     {
         DbgOut((DBL_ERROR, "tspdrv: misc_register failed.\n"));
 		return nRet;
@@ -259,27 +292,27 @@ static int __init tspdrv_init(void)
 #endif
 
 	nRet = platform_device_register(&platdev);
-	if (nRet) 
+	if (nRet)
     {
         DbgOut((DBL_ERROR, "tspdrv: platform_device_register failed.\n"));
     }
 
 	nRet = platform_driver_register(&platdrv);
-	if (nRet) 
+	if (nRet)
     {
         DbgOut((DBL_ERROR, "tspdrv: platform_driver_register failed.\n"));
     }
-#if defined(CONFIG_MACH_MSM8226_G2MDS_OPEN_CIS) || defined(CONFIG_MACH_MSM8226_G2MDS_GLOBAL_COM) || defined(CONFIG_MACH_MSM8226_G2MSS_GLOBAL_COM)
+#if 1
 /* LGE_CHANGED_START
   * Vibrator on/off device file is added(vib_enable)
   * 2012.11.11, sehwan.lee@lge.com
-  */ 
+  */
 	for (i = 0; i < ARRAY_SIZE(immersion_device_attrs); i++) {
 			nRet = device_create_file(miscdev.this_device, &immersion_device_attrs[i]);
 			if (nRet)
 				return nRet;
 	}
-	
+
 /* LGE_CHANGED_END 2012.11.11, sehwan.lee@lge.com */
 #endif
     DbgRecorderInit(());
@@ -301,6 +334,9 @@ static int __init tspdrv_init(void)
 
     }
 
+	device_create_file(&platdev.dev, &dev_attr_nforce_timed);
+	ImmVibe_timed_output();
+
     return 0;
 }
 
@@ -321,38 +357,39 @@ static void __exit tspdrv_exit(void)
 #else
     misc_deregister(&miscdev);
 #endif
+
 }
 
-static int open(struct inode *inode, struct file *file) 
+static int open(struct inode *inode, struct file *file)
 {
     DbgOut((DBL_INFO, "tspdrv: open.\n"));
 
     if (!try_module_get(THIS_MODULE)) return -ENODEV;
 
-    return 0; 
+    return 0;
 }
 
-static int release(struct inode *inode, struct file *file) 
+static int release(struct inode *inode, struct file *file)
 {
     DbgOut((DBL_INFO, "tspdrv: release.\n"));
 
-    /* 
+    /*
     ** Reset force and stop timer when the driver is closed, to make sure
     ** no dangling semaphore remains in the system, especially when the
     ** driver is run outside of immvibed for testing purposes.
     */
     VibeOSKernelLinuxStopTimer();
 
-    /* 
-    ** Clear the variable used to store the magic number to prevent 
-    ** unauthorized caller to write data. TouchSense service is the only 
+    /*
+    ** Clear the variable used to store the magic number to prevent
+    ** unauthorized caller to write data. TouchSense service is the only
     ** valid caller.
     */
     file->private_data = (void*)NULL;
 
     module_put(THIS_MODULE);
 
-    return 0; 
+    return 0;
 }
 
 static ssize_t read(struct file *file, char *buf, size_t count, loff_t *ppos)
@@ -362,7 +399,7 @@ static ssize_t read(struct file *file, char *buf, size_t count, loff_t *ppos)
     /* End of buffer, exit */
     if (0 == nBufSize) return 0;
 
-    if (0 != copy_to_user(buf, g_szDeviceName + (*ppos), nBufSize)) 
+    if (0 != copy_to_user(buf, g_szDeviceName + (*ppos), nBufSize))
     {
         /* Failed to copy all the data, exit */
         DbgOut((DBL_ERROR, "tspdrv: copy_to_user failed.\n"));
@@ -378,17 +415,17 @@ static ssize_t write(struct file *file, const char *buf, size_t count, loff_t *p
 {
     *ppos = 0;  /* file position not used, always set to 0 */
 
-    /* 
-    ** Prevent unauthorized caller to write data. 
+    /*
+    ** Prevent unauthorized caller to write data.
     ** TouchSense service is the only valid caller.
     */
-    if (file->private_data != (void*)TSPDRV_MAGIC_NUMBER) 
+    if (file->private_data != (void*)TSPDRV_MAGIC_NUMBER)
     {
         DbgOut((DBL_ERROR, "tspdrv: unauthorized write.\n"));
         return 0;
     }
 
-    /* 
+    /*
     ** Ignore packets that have size smaller than SPI_HEADER_SIZE or bigger than MAX_SPI_BUFFER_SIZE.
     ** Please note that the daemon may send an empty buffer (count == SPI_HEADER_SIZE)
     ** during quiet time between effects while playing a Timeline effect in order to maintain
@@ -494,7 +531,7 @@ static int ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsig
                 atomic_set(&g_bRuntimeRecord, nRecordFlag);
                 if (nRecordFlag) {
                     int i;
-                    for (i=0; i<NUM_ACTUATORS; i++) { 
+                    for (i=0; i<NUM_ACTUATORS; i++) {
                         DbgRecorderReset((i));
                     }
                 }
@@ -566,7 +603,7 @@ static int ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsig
     return 0;
 }
 
-static int suspend(struct platform_device *pdev, pm_message_t state) 
+static int suspend(struct platform_device *pdev, pm_message_t state)
 {
     if (g_bIsPlaying)
     {
@@ -580,15 +617,15 @@ static int suspend(struct platform_device *pdev, pm_message_t state)
     }
 }
 
-static int resume(struct platform_device *pdev) 
-{	
+static int resume(struct platform_device *pdev)
+{
     DbgOut((DBL_ERROR, "tspdrv: resume.\n"));
 
 	return 0;   /* can resume */
 }
 
-static void platform_release(struct device *dev) 
-{	
+static void platform_release(struct device *dev)
+{
     DbgOut((DBL_ERROR, "tspdrv: platform_release.\n"));
 }
 
