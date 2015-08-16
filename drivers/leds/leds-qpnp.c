@@ -1589,10 +1589,10 @@ static void __qpnp_led_work(struct qpnp_led_data *led,
 				"RGB set brightness failed (%d)\n", rc);
 		break;
 	case QPNP_ID_LED_MPP:
-//		rc = qpnp_mpp_set(led);
-//		if (rc < 0)
-//			dev_err(&led->spmi_dev->dev,
-//					"MPP set brightness failed (%d)\n", rc);
+//			rc = qpnp_mpp_set(led);
+//			if (rc < 0)
+//				dev_err(&led->spmi_dev->dev,
+//						"MPP set brightness failed (%d)\n", rc);
 		break;
 	case QPNP_ID_KPDBL:
 		rc = qpnp_kpdbl_set(led);
