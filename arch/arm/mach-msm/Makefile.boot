@@ -102,7 +102,7 @@ endif
    zreladdr-$(CONFIG_ARCH_MSM8226)	:= 0x00008000
 ifeq ($(CONFIG_MACH_LGE),y)
 
-	dtb-$(CONFIG_MACH_MSM8226_G2MDS_GLOBAL_COM)	+= msm8226-g2mds.dtb
+	dtb-$(CONFIG_MACH_MSM8926_G2M_GLOBAL)			+= msm8226-g2mds.dtb
 
 	dtb-$(CONFIG_MACH_MSM8926_G2M_GLOBAL)			+= msm8226-v1-g2m.dtb \
 																      msm8226-v2-g2m.dtb
