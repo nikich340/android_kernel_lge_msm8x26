@@ -430,9 +430,9 @@ static int __devinit xencons_probe(struct xenbus_device *dev,
 	if (devid == 0)
 		return -ENODEV;
 
-	info = kzalloc(sizeof(struct xencons_info), GFP_KERNEL);
+	info = kzalloc(sizeof(struct xencons_info), GFP_KERNEL | __GFP_ZERO);
 	if (!info)
-		return -ENOMEM;
+		goto error_nomem;
 	dev_set_drvdata(&dev->dev, info);
 	info->xbdev = dev;
 	info->vtermno = xenbus_devid_to_vtermno(devid);
