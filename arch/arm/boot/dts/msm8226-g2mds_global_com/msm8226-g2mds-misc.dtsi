@@ -12,7 +12,12 @@
 
 &soc {
     hall-bu52061nvx {
-        status = "disable";
+        status = "ok";
+    };
+
+    hall-bu52033nvx-carkit {
+        status = "ok";
+        revision = "rev_a...";
     };
 
     hall-s5717 {

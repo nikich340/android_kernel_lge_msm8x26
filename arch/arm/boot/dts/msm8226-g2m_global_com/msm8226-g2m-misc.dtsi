@@ -20,6 +20,10 @@
         revision = "rev_a...";
     };
 
+    hall-s5717 {
+        status = "ok";
+    };    
+
     i2c@f9925000 {
     	lp5521@32 {
 		status = "disable";
