@@ -1887,6 +1887,12 @@ again:
 
 	backlog_eng = crypto_get_backlog(&pengine->req_queue);
 
+	/* make sure it is in high bandwidth state */
+	if (pengine->bw_state != BUS_HAS_BANDWIDTH) {
+		spin_unlock_irqrestore(&cp->lock, flags);
+		return 0;
+	}
+
 	/* try to get request from request queue of the engine first */
 	async_req = crypto_dequeue_request(&pengine->req_queue);
 	if (!async_req) {
