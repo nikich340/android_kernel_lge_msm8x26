@@ -567,7 +567,7 @@ static const struct soc_enum msm_enum[] = {
 #ifdef CONFIG_SND_SOC_HFP_WB
 static const char *const btsco_rate_text[] = {"RATE_8KHZ", "RATE_16KHZ"};
 #else
-static const char *const btsco_rate_text[] = {"8000", "16000"};
+static const char *const btsco_rate_text[] = {"BTSCO_RATE_8KHZ", "BTSCO_RATE_16KHZ"};
 #endif
 static const struct soc_enum msm_btsco_enum[] = {
 	SOC_ENUM_SINGLE_EXT(2, btsco_rate_text),
@@ -731,10 +731,10 @@ static int msm_btsco_rate_put(struct snd_kcontrol *kcontrol,
         msm_btsco_rate = BTSCO_RATE_16KHZ;
         break;
 #else
-	case 8000:
+	case 0:
 		msm_btsco_rate = BTSCO_RATE_8KHZ;
 		break;
-	case 16000:
+	case 1:
 		msm_btsco_rate = BTSCO_RATE_16KHZ;
 		break;
 #endif
