@@ -136,6 +136,8 @@ else # not CONFIG_MACH_LGE
 	dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-v1-qrd.dtb
 	dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-v1-qrd-skug.dtb
 	dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-v1-qrd-skug-pvt.dtb
+	dtb-$(CONFIG_ARCH_MSM8226)       += msm8926-v1-320p-w-cdp.dtb
+	dtb-$(CONFIG_ARCH_MSM8226)       += msm8926-v1-320p-w-mtp.dtb
 	dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-v2-720p-cdp.dtb
 	dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-v2-1080p-cdp.dtb
 	dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-v2-1080p-ext-buck-cdp.dtb
