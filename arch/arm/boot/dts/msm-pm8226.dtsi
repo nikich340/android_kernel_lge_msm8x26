@@ -94,6 +94,8 @@
 			qcom,cool-bat-decidegc = <100>;
 			qcom,cool-bat-mv = <4100>;
 			qcom,ibatmax-cool-ma = <350>;
+			qcom,chg-iadc = <&pm8226_iadc>;
+			qcom,ibat-calibration-enabled;
 
 			pm8226_chg_chgr: qcom,chgr@1000 {
 				status = "disabled";
@@ -475,7 +477,7 @@
 			qcom,temp_alarm-vadc = <&pm8226_vadc>;
 		};
 
-		qcom,pm8226_rtc {
+		pm8x26_rtc: qcom,pm8226_rtc {
 			spmi-dev-container;
 			compatible = "qcom,qpnp-rtc";
 			#address-cells = <1>;

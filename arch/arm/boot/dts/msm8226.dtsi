@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2015, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -25,16 +25,10 @@
 	};
 
 	memory {
-		secure_mem: secure_region {
-			status = "ok";
-			linux,contiguous-region;
-			reg = <0 0x6D00000>;
-			label = "secure_mem";
-		};
 
 		adsp_mem: adsp_region {
 			linux,contiguous-region;
-			reg = <0 0x2a00000>;
+			reg = <0 0x1400000>;
 			label = "adsp_mem";
 		};
 
@@ -629,6 +623,13 @@
 		qcom,msm-auxpcm-interface = "primary";
 	};
 
+	qcom,avtimer@fe053000 {
+		compatible = "qcom,avtimer";
+		reg = <0xfe053008 0x4>,
+			<0xfe05300c 0x4>;
+		reg-names = "avtimer_lsb_addr", "avtimer_msb_addr";
+	};
+
 	qcom,wcnss-wlan@fb000000 {
 		compatible = "qcom,wcnss_wlan";
 		reg = <0xfb000000 0x280000>,
@@ -1199,7 +1200,7 @@
 		qcom,calib-mode = "fuse_map2";
 	};
 
-	qcom,msm-thermal {
+	thermal: qcom,msm-thermal {
 		compatible = "qcom,msm-thermal";
 		qcom,sensor-id = <0>;
 		qcom,poll-ms = <250>;

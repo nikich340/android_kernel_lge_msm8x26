@@ -567,6 +567,15 @@ config MSM_SOC_REV_A
 	select ARCH_MSM7X27A if ARCH_MSM7X27
 endchoice
 
+choice
+	prompt "Target type phone/wearable"
+	default MSM_PHONE
+config MSM_PHONE
+	bool "Phone"
+config MSM_WEARABLE
+	bool "Wearable"
+endchoice
+
 config MSM_KRAIT_TBB_ABORT_HANDLER
 	bool "Krait TBB/TBH data abort handler"
 	depends on ARCH_MSM_KRAIT
@@ -3068,3 +3077,11 @@ config FORCE_FAST_CHARGE
 	  are detected as USB to charge as AC.
 
 endif
+
+config KERNEL_TEXT_MPU_PROT
+        bool "Enable xpu protection of kernel r/o sections"
+        help
+          Enables xpu protection of kernel code and read-only data
+          sections early in boot. Read access is permitted to
+          all masters; Write access is only permited to the
+          secure world.

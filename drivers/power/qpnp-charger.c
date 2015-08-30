@@ -4754,7 +4754,8 @@ qpnp_batt_external_power_changed(struct power_supply *psy)
 							OVP_USB_WALL_TRSH_MA);
 					} else if (unlikely(
 							ext_ovp_isns_present)) {
-						qpnp_chg_iusb_trim_set(chip, 0);
+						qpnp_chg_iusb_trim_set(chip,
+							chip->usb_trim_default);
 						qpnp_chg_iusbmax_set(chip,
 							IOVP_USB_WALL_TRSH_MA);
 					} else {
@@ -5231,6 +5232,17 @@ qpnp_chg_trim_ibat(struct qpnp_chg_chip *chip, u8 ibat_trim)
 						IBAT_TRIM_HIGH_LIM))
 				return;
 		}
+
+		if (chip->type == SMBBP) {
+			rc = qpnp_chg_masked_write(chip,
+					chip->buck_base + SEC_ACCESS,
+					0xFF, 0xA5, 1);
+			if (rc) {
+				pr_err("failed to write SEC_ACCESS: %d\n", rc);
+				return;
+			}
+		}
+
 		ibat_trim |= IBAT_TRIM_GOOD_BIT;
 		rc = qpnp_chg_write(chip, &ibat_trim,
 				chip->buck_base + BUCK_CTRL_TRIM3, 1);
@@ -5266,7 +5278,7 @@ qpnp_chg_input_current_settled(struct qpnp_chg_chip *chip)
 	if (!chip->ibat_calibration_enabled)
 		return 0;
 
-	if (chip->type != SMBB)
+	if (chip->type != SMBB && chip->type != SMBBP)
 		return 0;
 
 	rc = qpnp_chg_read(chip, &reg,
@@ -5286,6 +5298,17 @@ qpnp_chg_input_current_settled(struct qpnp_chg_chip *chip)
 		pr_debug("Improper ibat_trim value=%x setting to value=%x\n",
 						ibat_trim, IBAT_TRIM_MEAN);
 		ibat_trim = IBAT_TRIM_MEAN;
+
+		if (chip->type == SMBBP) {
+			rc = qpnp_chg_masked_write(chip,
+					chip->buck_base + SEC_ACCESS,
+					0xFF, 0xA5, 1);
+			if (rc) {
+				pr_err("failed to write SEC_ACCESS: %d\n", rc);
+				return rc;
+			}
+		}
+
 		rc = qpnp_chg_masked_write(chip,
 				chip->buck_base + BUCK_CTRL_TRIM3,
 				IBAT_TRIM_OFFSET_MASK, ibat_trim, 1);
@@ -5529,14 +5552,15 @@ qpnp_chg_regulator_boost_enable(struct regulator_dev *rdev)
 			pr_err("failed to write SEC_ACCESS rc=%d\n", rc);
 			return rc;
 		}
-
-		rc = qpnp_chg_masked_write(chip,
-			chip->usb_chgpth_base + COMP_OVR1,
-			0xFF,
-			0x2F, 1);
-		if (rc) {
-			pr_err("failed to write COMP_OVR1 rc=%d\n", rc);
-			return rc;
+		if (chip->type != SMBBP) {
+			rc = qpnp_chg_masked_write(chip,
+				chip->usb_chgpth_base + COMP_OVR1,
+				0xFF,
+				0x2F, 1);
+			if (rc) {
+				pr_err("failed to write COMP_OVR1 rc=%d\n", rc);
+				return rc;
+			}
 		}
 	}
 
@@ -5635,16 +5659,16 @@ qpnp_chg_regulator_boost_disable(struct regulator_dev *rdev)
 			pr_err("failed to write SEC_ACCESS rc=%d\n", rc);
 			return rc;
 		}
-
-		rc = qpnp_chg_masked_write(chip,
-			chip->usb_chgpth_base + COMP_OVR1,
-			0xFF,
-			0x00, 1);
-		if (rc) {
-			pr_err("failed to write COMP_OVR1 rc=%d\n", rc);
-			return rc;
+		if (chip->type != SMBBP) {
+			rc = qpnp_chg_masked_write(chip,
+				chip->usb_chgpth_base + COMP_OVR1,
+				0xFF,
+				0x00, 1);
+			if (rc) {
+				pr_err("failed to write COMP_OVR1 rc=%d\n", rc);
+				return rc;
+			}
 		}
-
 		usleep(1000);
 
 		qpnp_chg_usb_suspend_enable(chip, 0);
@@ -8221,7 +8245,8 @@ qpnp_charger_probe(struct spmi_device *spmi)
 		lge_pm_set_usb_id_handle(chip->vadc_dev);
 #endif
 
-			if (subtype == SMBB_BAT_IF_SUBTYPE) {
+			if (subtype == SMBB_BAT_IF_SUBTYPE ||
+					subtype == SMBBP_BAT_IF_SUBTYPE) {
 				chip->iadc_dev = qpnp_get_iadc(chip->dev,
 						"chg");
 				if (IS_ERR(chip->iadc_dev)) {

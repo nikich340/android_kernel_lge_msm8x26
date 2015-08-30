@@ -9,6 +9,10 @@
 *.mdp.cmd
 *.cmd
 *kconfig~
+*.orig
+*.orig~
+*.rej
+*.rej~
 .config
 .missing-syscalls.d
 .tmp_System.map
