@@ -1,6 +1,6 @@
 VERSION = 3
 PATCHLEVEL = 4
-SUBLEVEL = 0
+SUBLEVEL = 5
 EXTRAVERSION = --L.E.K.-G2Mini
 NAME = Saber-toothed Squirrel
 
