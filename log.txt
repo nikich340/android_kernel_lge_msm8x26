@@ -3471,3 +3471,410 @@ patching file drivers/hid/hid-ids.h
 patching file Makefile
 Hunk #1 FAILED at 1.
 1 out of 1 hunk FAILED -- saving rejects to file Makefile.rej
+patching file arch/arm/vfp/vfpmodule.c
+Hunk #1 succeeded at 422 (offset 9 lines).
+patching file arch/arm/mm/alignment.c
+patching file arch/x86/pci/xen.c
+patching file drivers/scsi/dc395x.c
+patching file drivers/scsi/storvsc_drv.c
+patching file drivers/target/target_core_pscsi.c
+patching file fs/btrfs/volumes.c
+patching file fs/cifs/cifsfs.c
+patching file fs/nfs/unlink.c
+patching file net/sunrpc/xprt.c
+patching file drivers/ata/ata_piix.c
+patching file drivers/char/hw_random/core.c
+patching file drivers/net/wireless/mwifiex/pcie.c
+patching file drivers/net/wireless/ath/ath9k/common.h
+patching file drivers/net/wireless/ath/ath9k/hw.c
+patching file drivers/md/md.c
+patching file drivers/md/md.c
+patching file drivers/md/raid0.c
+patching file drivers/md/raid0.c
+patching file drivers/hwmon/sht15.c
+patching file drivers/hwmon/pmbus/ltc2978.c
+patching file drivers/hwmon/pmbus/ltc2978.c
+patching file drivers/gpu/drm/radeon/radeon_combios.c
+patching file arch/arm/kernel/perf_event_v7.c
+Reversed (or previously applied) patch detected!  Assume -R? [n] 
+Apply anyway? [n] 
+Skipping patch.
+1 out of 1 hunk ignored -- saving rejects to file arch/arm/kernel/perf_event_v7.c.rej
+patching file sound/pci/ice1712/ice1712.c
+patching file sound/core/vmaster.c
+patching file drivers/net/ethernet/intel/e1000e/netdev.c
+patching file drivers/hid/hid-logitech-dj.c
+Hunk #1 succeeded at 459 (offset 8 lines).
+patching file arch/x86/xen/enlighten.c
+patching file crypto/ablkcipher.c
+patching file crypto/aead.c
+patching file crypto/ahash.c
+patching file crypto/blkcipher.c
+patching file crypto/crypto_user.c
+patching file crypto/pcompress.c
+patching file crypto/rng.c
+patching file crypto/shash.c
+patching file security/keys/process_keys.c
+patching file fs/compat.c
+patching file mm/process_vm_access.c
+patching file security/keys/compat.c
+patching file fs/pipe.c
+patching file drivers/cpufreq/cpufreq_stats.c
+Reversed (or previously applied) patch detected!  Assume -R? [n] 
+Apply anyway? [n] 
+Skipping patch.
+1 out of 1 hunk ignored -- saving rejects to file drivers/cpufreq/cpufreq_stats.c.rej
+patching file kernel/trace/Kconfig
+patching file drivers/firmware/dmi_scan.c
+patching file drivers/usb/core/hub.c
+Hunk #1 succeeded at 2425 (offset 95 lines).
+Hunk #2 succeeded at 2472 (offset 95 lines).
+patching file drivers/usb/core/hub.c
+Hunk #1 succeeded at 2348 (offset 95 lines).
+Hunk #2 succeeded at 2394 (offset 95 lines).
+Hunk #3 succeeded at 2416 (offset 95 lines).
+patching file drivers/usb/core/hub.c
+Hunk #1 succeeded at 2302 (offset 95 lines).
+Hunk #2 succeeded at 2348 (offset 95 lines).
+Hunk #3 succeeded at 2375 (offset 95 lines).
+Hunk #4 succeeded at 2391 (offset 95 lines).
+Hunk #5 succeeded at 2423 (offset 95 lines).
+patching file sound/pci/hda/patch_hdmi.c
+patching file drivers/usb/core/hub.c
+Hunk #1 succeeded at 2369 (offset 95 lines).
+Hunk #2 succeeded at 2402 (offset 95 lines).
+Hunk #3 succeeded at 4205 (offset 328 lines).
+patching file Makefile
+Hunk #1 FAILED at 1.
+1 out of 1 hunk FAILED -- saving rejects to file Makefile.rej
+patching file drivers/usb/serial/qcaux.c
+patching file drivers/xen/xen-pciback/pciback_ops.c
+patching file drivers/char/hw_random/virtio-rng.c
+patching file drivers/usb/serial/option.c
+patching file drivers/usb/class/cdc-wdm.c
+patching file drivers/usb/serial/cp210x.c
+patching file drivers/usb/serial/option.c
+patching file drivers/usb/serial/cp210x.c
+patching file drivers/usb/storage/initializers.c
+patching file drivers/usb/storage/initializers.h
+patching file drivers/usb/storage/unusual_devs.h
+Hunk #1 succeeded at 1527 (offset 12 lines).
+patching file drivers/usb/host/ehci-q.c
+patching file drivers/staging/vt6656/main_usb.c
+patching file kernel/signal.c
+Reversed (or previously applied) patch detected!  Assume -R? [n] 
+Apply anyway? [n] 
+Skipping patch.
+1 out of 1 hunk ignored -- saving rejects to file kernel/signal.c.rej
+patching file fs/ext3/super.c
+patching file drivers/tty/serial/8250/8250_pci.c
+patching file drivers/tty/serial/Kconfig
+patching file drivers/tty/pty.c
+patching file arch/x86/kernel/cpu/perf_event_intel_ds.c
+patching file arch/x86/power/cpu.c
+patching file include/linux/perf_event.h
+Hunk #1 succeeded at 1293 (offset 3 lines).
+Hunk #2 succeeded at 1332 (offset 3 lines).
+patching file sound/core/seq/seq_timer.c
+patching file drivers/hwmon/pmbus/ltc2978.c
+patching file drivers/hwmon/lineage-pem.c
+patching file drivers/w1/w1.c
+patching file arch/powerpc/mm/hash_utils_64.c
+patching file arch/powerpc/kernel/cputable.c
+patching file security/selinux/xfrm.c
+patching file arch/x86/kernel/cpu/perf_event_intel_ds.c
+patching file include/linux/perf_event.h
+Hunk #1 succeeded at 1293 (offset 3 lines).
+Hunk #2 succeeded at 1331 (offset 3 lines).
+patching file arch/s390/kernel/entry.S
+patching file arch/s390/kernel/entry64.S
+patching file arch/s390/include/asm/tlbflush.h
+patching file fs/btrfs/volumes.c
+patching file drivers/video/atmel_lcdfb.c
+patching file include/video/atmel_lcdc.h
+patching file drivers/gpu/drm/i915/i915_gem.c
+patching file drivers/hwmon/sht15.c
+patching file fs/block_dev.c
+patching file drivers/block/loop.c
+patching file drivers/block/loop.c
+patching file drivers/gpu/drm/i915/intel_display.c
+patching file net/l2tp/l2tp_ppp.c
+patching file net/rds/message.c
+patching file net/ipv6/route.c
+Hunk #1 FAILED at 1973.
+1 out of 1 hunk FAILED -- saving rejects to file net/ipv6/route.c.rej
+patching file net/ipv4/tcp_input.c
+Hunk #1 succeeded at 5521 (offset 2 lines).
+Hunk #2 succeeded at 5535 (offset 2 lines).
+patching file drivers/net/tun.c
+patching file drivers/net/macvlan.c
+patching file net/netlabel/netlabel_unlabeled.c
+patching file net/core/dev.c
+patching file net/ipv6/ip6_input.c
+patching file net/core/rtnetlink.c
+Hunk #1 succeeded at 977 (offset 2 lines).
+patching file net/dcb/dcbnl.c
+patching file net/ieee802154/6lowpan.h
+patching file Makefile
+Hunk #1 FAILED at 1.
+1 out of 1 hunk FAILED -- saving rejects to file Makefile.rej
+patching file drivers/usb/host/ehci-q.c
+patching file drivers/tty/serial/sunsu.c
+patching file net/ipv4/ip_options.c
+patching file drivers/net/netconsole.c
+patching file drivers/net/bonding/bond_main.c
+patching file drivers/net/ethernet/broadcom/tg3.c
+patching file net/sctp/sm_statefuns.c
+patching file net/sctp/associola.c
+patching file include/net/ip_fib.h
+patching file include/linux/skbuff.h
+patching file net/ipv4/tcp.c
+Hunk #1 succeeded at 718 (offset 14 lines).
+patching file net/ipv4/tcp_output.c
+Hunk #1 succeeded at 1095 (offset -1 lines).
+patching file net/core/rtnetlink.c
+Hunk #1 succeeded at 2052 (offset 2 lines).
+patching file drivers/vhost/net.c
+patching file drivers/net/ethernet/broadcom/bnx2x/bnx2x_stats.h
+patching file include/net/inet_frag.h
+patching file net/ipv4/inet_fragment.c
+patching file net/ipv4/ip_fragment.c
+patching file net/ipv6/netfilter/nf_conntrack_reasm.c
+patching file net/ipv6/reassembly.c
+patching file drivers/net/ethernet/sfc/efx.c
+patching file drivers/net/ethernet/sfc/mcdi.c
+patching file drivers/net/ethernet/sfc/bitfield.h
+patching file drivers/net/ethernet/sfc/mcdi.h
+patching file drivers/net/ethernet/sfc/falcon.c
+patching file drivers/net/ethernet/sfc/net_driver.h
+patching file drivers/net/ethernet/sfc/nic.c
+patching file drivers/net/ethernet/sfc/nic.h
+patching file drivers/net/ethernet/sfc/siena.c
+patching file drivers/net/ethernet/sfc/siena_sriov.c
+patching file drivers/net/ethernet/sfc/net_driver.h
+patching file drivers/net/ethernet/sfc/nic.c
+patching file drivers/net/ethernet/sfc/efx.c
+patching file drivers/net/ethernet/sfc/efx.h
+patching file drivers/net/ethernet/sfc/selftest.c
+patching file drivers/net/ethernet/sfc/mcdi.c
+patching file drivers/net/ethernet/sfc/falcon.c
+patching file drivers/net/ethernet/sfc/net_driver.h
+patching file drivers/net/ethernet/sfc/nic.c
+patching file drivers/net/ethernet/sfc/selftest.c
+patching file drivers/net/ethernet/sfc/siena.c
+patching file drivers/net/ethernet/sfc/mcdi.c
+patching file drivers/net/ethernet/sfc/siena_sriov.c
+patching file drivers/net/ethernet/sfc/siena.c
+patching file drivers/net/ethernet/sfc/rx.c
+patching file drivers/net/ethernet/sfc/net_driver.h
+patching file drivers/net/ethernet/sfc/rx.c
+patching file drivers/net/ethernet/sfc/efx.c
+patching file drivers/net/ethernet/sfc/efx.h
+patching file drivers/net/ethernet/sfc/nic.c
+patching file sound/pci/hda/patch_conexant.c
+patching file sound/pci/hda/hda_codec.c
+patching file sound/usb/mixer.c
+patching file sound/usb/mixer.c
+patching file drivers/gpu/drm/i915/i915_debugfs.c
+patching file kernel/trace/trace.c
+Hunk #1 succeeded at 709 (offset 1 line).
+Hunk #2 succeeded at 721 (offset 1 line).
+patching file kernel/trace/ftrace.c
+patching file drivers/net/wireless/rtlwifi/rtl8192cu/hw.c
+patching file drivers/net/wireless/rtlwifi/rtl8192cu/hw.c
+patching file drivers/net/wireless/mwifiex/join.c
+patching file drivers/gpu/drm/i915/i915_gem_execbuffer.c
+patching file drivers/gpu/drm/drm_edid.c
+patching file drivers/gpu/drm/drm_edid.c
+patching file mm/hugetlb.c
+patching file drivers/target/iscsi/iscsi_target_auth.c
+patching file include/drm/drm_pciids.h
+patching file drivers/gpu/drm/radeon/ni.c
+patching file drivers/gpu/drm/radeon/radeon_benchmark.c
+patching file fs/cifs/asn1.c
+patching file fs/jbd2/transaction.c
+patching file fs/ext4/extents.c
+patching file drivers/usb/storage/unusual_devs.h
+patching file fs/ext4/inode.c
+patching file drivers/infiniband/ulp/ipoib/ipoib_cm.c
+patching file kernel/time/tick-broadcast.c
+patching file arch/x86/lib/usercopy_64.c
+patching file drivers/usb/host/xhci.h
+patching file drivers/usb/core/hcd-pci.c
+patching file drivers/usb/host/xhci.c
+Hunk #1 succeeded at 340 (offset -10 lines).
+Hunk #2 succeeded at 361 (offset -10 lines).
+patching file drivers/usb/class/cdc-acm.c
+patching file drivers/usb/serial/usb-serial.c
+patching file kernel/time/tick-sched.c
+Hunk #1 succeeded at 506 (offset 10 lines).
+patching file fs/udf/udf_sb.h
+patching file drivers/usb/serial/garmin_gps.c
+patching file drivers/usb/serial/io_ti.c
+patching file security/keys/keyctl.c
+patching file fs/isofs/export.c
+patching file fs/udf/namei.c
+patching file tools/hv/hv_kvp_daemon.c
+patching file drivers/gpu/drm/i915/intel_opregion.c
+patching file fs/binfmt_em86.c
+patching file fs/binfmt_misc.c
+patching file fs/binfmt_script.c
+patching file fs/exec.c
+Hunk #1 succeeded at 1434 (offset 45 lines).
+Hunk #2 succeeded at 1462 (offset 45 lines).
+patching file include/linux/binfmts.h
+patching file drivers/net/wireless/rt2x00/rt2x00dev.c
+patching file drivers/platform/x86/asus-laptop.c
+patching file Makefile
+Hunk #1 FAILED at 1.
+1 out of 1 hunk FAILED -- saving rejects to file Makefile.rej
+patching file arch/arm/include/asm/signal.h
+Hunk #1 succeeded at 132 with fuzz 2 (offset 5 lines).
+patching file arch/avr32/include/asm/signal.h
+patching file arch/cris/include/asm/signal.h
+patching file arch/h8300/include/asm/signal.h
+patching file arch/m32r/include/asm/signal.h
+patching file arch/m68k/include/asm/signal.h
+patching file arch/mn10300/include/asm/signal.h
+patching file arch/powerpc/include/asm/signal.h
+patching file arch/s390/include/asm/signal.h
+patching file arch/sparc/include/asm/signal.h
+patching file arch/x86/include/asm/signal.h
+patching file arch/xtensa/include/asm/signal.h
+patching file include/asm-generic/signal.h
+patching file kernel/signal.c
+patching file net/sunrpc/sched.c
+patching file arch/tile/kernel/setup.c
+patching file net/bluetooth/sco.c
+Hunk #1 succeeded at 405 (offset 27 lines).
+patching file drivers/bluetooth/ath3k.c
+Hunk #1 succeeded at 67 with fuzz 2 (offset -5 lines).
+Hunk #2 succeeded at 85 with fuzz 2 (offset -9 lines).
+patching file drivers/bluetooth/btusb.c
+Hunk #1 succeeded at 128 with fuzz 2 (offset -8 lines).
+patching file drivers/bluetooth/ath3k.c
+Hunk #1 FAILED at 75.
+Hunk #2 FAILED at 97.
+2 out of 2 hunks FAILED -- saving rejects to file drivers/bluetooth/ath3k.c.rej
+patching file drivers/bluetooth/btusb.c
+Hunk #1 FAILED at 139.
+1 out of 1 hunk FAILED -- saving rejects to file drivers/bluetooth/btusb.c.rej
+patching file drivers/staging/comedi/drivers/s626.c
+patching file fs/sysfs/dir.c
+patching file fs/sysfs/dir.c
+patching file drivers/net/can/sja1000/plx_pci.c
+patching file drivers/net/can/sja1000/sja1000.c
+patching file drivers/net/can/sja1000/sja1000.h
+patching file drivers/net/wireless/ath/ath9k/ar9003_calib.c
+patching file drivers/hid/hid-ids.h
+patching file drivers/hid/usbhid/hid-quirks.c
+patching file drivers/net/wireless/rtlwifi/usb.c
+patching file drivers/net/wireless/b43/phy_n.c
+patching file drivers/net/wireless/b43/dma.c
+patching file drivers/net/wireless/b43/phy_n.c
+patching file drivers/net/ethernet/broadcom/tg3.c
+patching file drivers/iommu/amd_iommu.c
+patching file drivers/block/xen-blkback/blkback.c
+patching file drivers/block/xen-blkback/common.h
+patching file include/xen/interface/io/blkif.h
+patching file drivers/block/xen-blkback/blkback.c
+patching file drivers/tty/serial/atmel_serial.c
+patching file drivers/usb/serial/ftdi_sio.c
+patching file drivers/usb/serial/ftdi_sio_ids.h
+patching file drivers/tty/vt/vc_screen.c
+patching file drivers/net/wireless/mwifiex/init.c
+patching file fs/nfs/blocklayout/blocklayoutdm.c
+patching file net/irda/af_irda.c
+patching file drivers/usb/host/xhci-ring.c
+Hunk #1 succeeded at 2033 (offset 6 lines).
+Hunk #2 succeeded at 2066 (offset 6 lines).
+Hunk #3 succeeded at 2102 (offset 6 lines).
+Hunk #4 succeeded at 2147 (offset 6 lines).
+Hunk #5 succeeded at 2205 (offset 6 lines).
+Hunk #6 succeeded at 2233 (offset 6 lines).
+Hunk #7 succeeded at 2286 (offset 6 lines).
+Hunk #8 succeeded at 2372 (offset 6 lines).
+patching file drivers/usb/host/xhci.h
+patching file fs/btrfs/extent_io.c
+patching file fs/btrfs/extent_io.h
+patching file fs/btrfs/inode.c
+patching file fs/btrfs/extent-tree.c
+patching file fs/btrfs/scrub.c
+patching file drivers/usb/gadget/udc-core.c
+patching file drivers/block/loop.c
+patching file fs/block_dev.c
+patching file arch/arm/mach-cns3xxx/core.c
+patching file arch/arm/mach-cns3xxx/include/mach/cns3xxx.h
+patching file fs/nfsd/nfs4xdr.c
+patching file drivers/gpu/drm/i915/intel_display.c
+patching file fs/btrfs/extent-tree.c
+patching file drivers/firmware/efivars.c
+patching file drivers/firmware/efivars.c
+patching file fs/ext4/balloc.c
+patching file fs/ext4/mballoc.c
+patching file fs/ext4/resize.c
+patching file fs/ext4/ext4.h
+patching file fs/ext4/ialloc.c
+patching file fs/ext4/mballoc.c
+patching file fs/ext4/resize.c
+patching file fs/ext4/super.c
+Hunk #1 succeeded at 1911 (offset 4 lines).
+patching file kernel/trace/trace.c
+Hunk #1 succeeded at 2770 (offset 2 lines).
+Hunk #2 succeeded at 2787 (offset 2 lines).
+Hunk #3 succeeded at 2797 (offset 2 lines).
+Hunk #4 succeeded at 4492 (offset 4 lines).
+patching file kernel/trace/trace.c
+Hunk #1 succeeded at 2745 (offset 2 lines).
+Hunk #2 succeeded at 2775 (offset 2 lines).
+Hunk #3 succeeded at 2786 (offset 2 lines).
+Hunk #4 succeeded at 2807 (offset 2 lines).
+Hunk #5 succeeded at 2818 (offset 2 lines).
+Hunk #6 succeeded at 3143 (offset 2 lines).
+Hunk #7 succeeded at 3175 (offset 2 lines).
+Hunk #8 succeeded at 4514 (offset 4 lines).
+patching file kernel/trace/trace.h
+patching file kernel/trace/trace_irqsoff.c
+patching file kernel/trace/trace_sched_wakeup.c
+patching file net/core/dev.c
+patching file drivers/net/ethernet/marvell/sky2.h
+patching file drivers/net/ethernet/marvell/sky2.c
+patching file net/ipv4/tcp_output.c
+Hunk #1 succeeded at 1586 (offset -1 lines).
+patching file net/ipv4/tcp_input.c
+Hunk #1 succeeded at 2261 (offset 1 line).
+patching file net/8021q/vlan.c
+patching file include/linux/thermal.h
+Hunk #1 succeeded at 147 (offset 39 lines).
+patching file net/netlink/genetlink.c
+patching file net/unix/af_unix.c
+Reversed (or previously applied) patch detected!  Assume -R? [n] 
+Apply anyway? [n] 
+Skipping patch.
+3 out of 3 hunks ignored -- saving rejects to file net/unix/af_unix.c.rej
+patching file drivers/net/bonding/bond_sysfs.c
+patching file drivers/net/bonding/bond_main.c
+patching file drivers/net/bonding/bond_sysfs.c
+patching file drivers/net/bonding/bond_sysfs.c
+patching file drivers/net/ethernet/ti/davinci_emac.c
+patching file drivers/net/ethernet/ti/cpsw.c
+patching file include/linux/unix_diag.h
+patching file drivers/block/aoe/aoecmd.c
+patching file drivers/net/ethernet/atheros/atl1e/atl1e.h
+patching file drivers/net/ethernet/atheros/atl1e/atl1e_main.c
+patching file drivers/net/ethernet/davicom/dm9000.c
+patching file drivers/net/ethernet/davicom/dm9000.h
+patching file net/ipv6/ip6_input.c
+patching file net/ipv6/addrconf.c
+Hunk #1 succeeded at 4956 (offset 270 lines).
+patching file net/ipv6/ip6_input.c
+patching file drivers/net/ethernet/micrel/ks8851.c
+Hunk #1 succeeded at 556 (offset 9 lines).
+patching file net/core/dev.c
+patching file drivers/net/ethernet/oki-semi/pch_gbe/pch_gbe_main.c
+patching file drivers/net/usb/smsc75xx.c
+patching file drivers/net/bonding/bond_main.c
+patching file drivers/block/xen-blkback/blkback.c
+patching file Makefile
+Hunk #1 FAILED at 1.
+1 out of 1 hunk FAILED -- saving rejects to file Makefile.rej
