@@ -1,5 +1,4 @@
-/*
-   BlueZ - Bluetooth protocol stack for Linux
+/*   BlueZ - Bluetooth protocol stack for Linux
    Copyright (c) 2000-2001, 2010-2012 The Linux Foundation.  All rights reserved.
 
    Written 2000,2001 by Maxim Krasnyansky <maxk@qualcomm.com>
@@ -639,8 +638,6 @@ static int hci_dev_do_close(struct hci_dev *hdev, u8 is_process)
 	BT_DBG("%s %p", hdev->name, hdev);
 
 	cancel_work_sync(&hdev->power_off);
-
-	cancel_delayed_work(&hdev->power_off);
 
 	hci_req_cancel(hdev, ENODEV);
 	hci_req_lock(hdev);
