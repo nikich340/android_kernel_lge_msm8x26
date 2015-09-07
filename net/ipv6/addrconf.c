@@ -3014,7 +3014,7 @@ static int addrconf_ifdown(struct net_device *dev, int how)
 #endif
 
 	/* Step 5: Discard multicast list */
-	if (how)
+	if (how) {
 		ipv6_mc_destroy_dev(idev);
 	} else {
 		ipv6_mc_down(idev);
