@@ -387,6 +387,19 @@ int kthread_park(struct task_struct *k)
 	return ret;
 }
 
+/* insert @work before @pos in @worker */
+static void insert_kthread_work(struct kthread_worker *worker,
+			       struct kthread_work *work,
+			       struct list_head *pos)
+{
+	lockdep_assert_held(&worker->lock);
+
+	list_add_tail(&work->node, pos);
+	work->worker = worker;
+	if (likely(worker->task))
+		wake_up_process(worker->task);
+}
+
 /**
  * kthread_stop - stop a thread created by kthread_create().
  * @k: thread created by kthread_create().
@@ -471,6 +484,18 @@ void __init_kthread_worker(struct kthread_worker *worker,
 }
 EXPORT_SYMBOL_GPL(__init_kthread_worker);
 
+struct kthread_flush_work {
+	struct kthread_work	work;
+	struct completion	done;
+};
+
+static void kthread_flush_work_fn(struct kthread_work *work)
+{
+	struct kthread_flush_work *fwork =
+		container_of(work, struct kthread_flush_work, work);
+	complete(&fwork->done);
+}
+
 /**
  * kthread_worker_fn - kthread function to process kthread_worker
  * @worker_ptr: pointer to initialized kthread_worker
@@ -525,19 +550,6 @@ repeat:
 }
 EXPORT_SYMBOL_GPL(kthread_worker_fn);
 
-/* insert @work before @pos in @worker */
-static void insert_kthread_work(struct kthread_worker *worker,
-			       struct kthread_work *work,
-			       struct list_head *pos)
-{
-	lockdep_assert_held(&worker->lock);
-
-	list_add_tail(&work->node, pos);
-	work->worker = worker;
-	if (likely(worker->task))
-		wake_up_process(worker->task);
-}
-
 /**
  * queue_kthread_work - queue a kthread_work
  * @worker: target kthread_worker
@@ -562,18 +574,6 @@ bool queue_kthread_work(struct kthread_worker *worker,
 	return ret;
 }
 EXPORT_SYMBOL_GPL(queue_kthread_work);
-
-struct kthread_flush_work {
-	struct kthread_work	work;
-	struct completion	done;
-};
-
-static void kthread_flush_work_fn(struct kthread_work *work)
-{
-	struct kthread_flush_work *fwork =
-		container_of(work, struct kthread_flush_work, work);
-	complete(&fwork->done);
-}
 
 /**
  * flush_kthread_work - flush a kthread_work
