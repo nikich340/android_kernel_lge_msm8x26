@@ -1,7 +1,7 @@
 VERSION = 3
 PATCHLEVEL = 4
 SUBLEVEL = 67
-EXTRAVERSION = --L.E.K.-G2Mini
+EXTRAVERSION = --L.E.K.-msm8x26
 NAME = Saber-toothed Squirrel
 
 # *DOCUMENTATION*
@@ -195,7 +195,7 @@ export KBUILD_BUILDHOST := $(SUBARCH)
 ARCH		:= arm
 SUBARCH	:= arm
 ARCH		?= $(SUBARCH)
-CROSS_COMPILE	:= /home/nikita/SOURCE/arm-eabi-4.8/bin/arm-eabi-
+CROSS_COMPILE	?= /home/nikita/arm-eabi-4.8/bin/arm-eabi-
 CROSS_COMPILE	?= $(CONFIG_CROSS_COMPILE:"%"=%)
 
 # Architecture as present in compile.h
