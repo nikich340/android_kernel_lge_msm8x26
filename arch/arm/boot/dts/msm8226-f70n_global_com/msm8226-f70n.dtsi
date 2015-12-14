@@ -31,7 +31,7 @@
 			status = "ok";
 		};
 		lp5521@32 {
-			status = "disable";
+			status = "ok";
 		};
 	};
 	/*  LGE_CHANGE_E, [NFC][ljk2231.lee@lge.com], NFC Bring up */
