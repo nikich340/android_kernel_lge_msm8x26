@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  */
 
-/include/ "msm8226-lge-common/msm8926-lge.dtsi"
+/include/ "msm8226-lge-common/msm8926-v2-lge.dtsi"
 /include/ "msm8226-f70n_global_com/msm8226-f70n.dtsi"
 
 / {
