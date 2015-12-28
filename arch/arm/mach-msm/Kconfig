@@ -3062,7 +3062,7 @@ config KRAIT_REGULATOR
 
 config FORCE_FAST_CHARGE
 	bool "Force AC charge mode at will"
-	default y
+	default n
 	help
 	  A simple sysfs interface to force adapters that
 	  are detected as USB to charge as AC.
