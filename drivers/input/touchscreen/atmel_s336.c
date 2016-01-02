@@ -52,7 +52,6 @@ static struct sys_device lge_touch_sys_device;
 static struct workqueue_struct *touch_wq;
 
 static bool touch_irq_mask = 1;
-static bool init_touchscreen_hack = 0;
 static bool touch_irq_wake_mask;
 unsigned char touched_finger_count;
 static unsigned char patchevent_mask;
@@ -7113,26 +7112,15 @@ int fb_notifier_callback(struct notifier_block *self, unsigned long event, void 
 	struct fb_event *evdata = data;
 	int *blank = NULL;
 	struct mxt_data *ts = container_of(self, struct mxt_data, fb_notif);
-	TOUCH_INFO_MSG("[CRAZYATMEL]: I'm in %s\n", __func__);
 
-	if (!init_touchscreen_hack) {
-			TOUCH_INFO_MSG("[CRAZYATMEL]: First launch starting hack \n");
-			mxt_fb_resume(ts);
-			init_touchscreen_hack = 1;
-			TOUCH_INFO_MSG("[CRAZYATMEL]: Hack completed \n");
-	} else if (evdata && evdata->data && event == FB_EVENT_BLANK && ts && ts->client) {
+	if (evdata && evdata->data && event == FB_EVENT_BLANK && ts && ts->client) {
 		blank = evdata->data;
-		TOUCH_INFO_MSG("[CRAZYATMEL]: Event was caught \n");
-				if (*blank == FB_BLANK_UNBLANK) {
-					TOUCH_INFO_MSG("[CRAZYATMEL]: Call resume event \n");
-					mxt_fb_resume(ts);
-				} else if (*blank == FB_BLANK_POWERDOWN) {
-					TOUCH_INFO_MSG("[CRAZYATMEL]: Call suspend event \n");
-					mxt_fb_suspend(ts);
-			}
+		if (*blank == FB_BLANK_UNBLANK)
+			mxt_fb_resume(ts);
+		else if (*blank == FB_BLANK_POWERDOWN)
+			mxt_fb_suspend(ts);
 	}
-	
-	TOUCH_INFO_MSG("[CRAZYATMEL]: Go out from %s\n", __func__);
+
 	return 0;
 }
 
