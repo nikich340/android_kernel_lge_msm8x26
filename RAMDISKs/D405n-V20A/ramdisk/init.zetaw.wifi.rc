@@ -1,2 +1,0 @@
-on early-boot
-    write /dev/wcnss_wlan 1
